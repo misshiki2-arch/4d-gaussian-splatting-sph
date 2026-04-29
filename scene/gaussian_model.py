@@ -303,6 +303,47 @@ class GaussianModel:
         assert self.gaussian_dim == 4 and self.rot_4d
         self.spatial_lr_scale = spatial_lr_scale
         init_4d_gaussian = torch.load(path)
+        # --- patch: support chkpnt*.pth format saved as (gaussians.capture(), iteration) ---
+        if isinstance(init_4d_gaussian, (tuple, list)) and len(init_4d_gaussian) == 2:
+            # ex) (model_args, iteration)
+            model_args, _iter = init_4d_gaussian
+
+            # capture() の戻り：gaussian_dim=4 のとき len==19（Scene.saveが保存している形式）
+            if isinstance(model_args, (tuple, list)) and len(model_args) == 19:
+                (active_sh_degree,
+                xyz, f_dc, f_rest,
+                scaling, rotation, opacity,
+                max_radii2D, xyz_grad_accum, t_grad_accum, denom,
+                opt_state, spatial_lr_scale,
+                t, scaling_t, rotation_r, rot_4d, env_map, active_sh_degree_t) = model_args
+
+                # ★追加：SH次数を復元（ここが重要）
+                self.active_sh_degree = int(active_sh_degree)
+                self.active_sh_degree_t = int(active_sh_degree_t)
+                self.max_sh_degree = max(self.max_sh_degree, self.active_sh_degree)
+                self.max_sh_degree_t = max(self.max_sh_degree_t, self.active_sh_degree_t)
+
+                init_4d_gaussian = {
+                    "xyz": xyz,
+
+                    # create_from_pth は features_dc.transpose(1,2) を行うので、
+                    # ここでは [N,3,1] を渡す（captureの f_dc は [N,1,3] 想定）
+                    "features_dc": f_dc.transpose(1, 2),
+
+                    # create_from_pth は features_rest.transpose(1,2) を行うので、
+                    # ここでは [N,3,K] を渡す（captureの f_rest は [N,K,3] 想定）
+                    "features_rest": f_rest.transpose(1, 2),
+
+                    "t": t,
+                    "scaling": scaling,
+                    "rotation": rotation,
+                    "scaling_t": scaling_t,
+                    "rotation_r": rotation_r,
+                    "opacity": opacity,
+                }
+            else:
+                raise TypeError(f"Unsupported checkpoint model_args format: type={type(model_args)} len={len(model_args) if hasattr(model_args,'__len__') else 'NA'}")
+        # --- end patch ---
         fused_point_cloud = init_4d_gaussian['xyz'].cuda()
         features_dc = init_4d_gaussian['features_dc'].cuda()
         features_rest = init_4d_gaussian['features_rest'].cuda()

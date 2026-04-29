@@ -1,0 +1,65 @@
+gaussian_dim: 4
+rot_4d: True
+time_duration: [0.0, 33.0]
+num_pts: 600000
+
+ModelParams:
+  source_path: /home/demo/data/4dgs_sph_scene
+  model_path:  /home/demo/outputs/sph_scene_4dgs
+  loaded_pth:  /home/demo/outputs/sph_scene_4dgs/chkpnt_best.pth
+  #loaded_pth:  /home/demo/outputs/sph_scene_4dgs/chkpnt30000.pth
+    #loaded_pth:  /home/demo/data/4dgs_sph_scene/init_from_3dgs_35_200_aligned_sigmaT0p05.pth
+  images: images
+  resolution: 1
+  white_background: False
+  extension: ""
+  dataloader: True
+  sh_degree: 2
+
+PipelineParams:
+  eval_shfs_4d: True
+
+OptimizationParams:
+  # 追加で回すならここは 12000 のままでOK
+  iterations: 12000
+
+  # --- densify上限は少しだけ上げる（穴埋めの余地） ---
+  densify_until_num_points: 3200000   # 250万→320万
+
+  # SH増加を戻す
+  sh_increase_interval: 1000
+
+  # 位置は“微調整”に落とす（形状を崩さず穴を詰める）
+  position_lr_init: 0.00002          # 5e-5 → 2e-5
+  position_lr_final: 0.0000002       # 5e-7 → 2e-7
+  position_lr_max_steps: 12000
+
+  # 半径は少しだけ動くようにする（穴を埋める方向に寄せる）
+  scaling_lr: 0.00015                # 3e-4 → 1.5e-4（暴れ防止）
+
+  # 回転はさらに抑える（ノイズ的な毛羽立ち抑制）
+  rotation_lr: 0.00015               # 3e-4 → 1.5e-4
+
+  # opacity は上げすぎると“厚塗り”になりやすいので少し下げる
+  opacity_lr: 0.01                   # 0.015 → 0.01
+  opacity_reset_interval: 1000000000
+
+  # --- ★ここが肝：densify/prune を「後半寄り」に移す ---
+  densify_from_iter: 2500            # 200 → 2500
+  densify_until_iter: 9000           # 3000 → 9000
+
+  # densifyを“少しだけ”起こしやすくする（穴の縁に効く）
+  densify_grad_threshold: 0.00022    # 0.0003 → 0.00022
+
+  # 1回あたりの更新を細かく（増え方を滑らかにして制御する）
+  densification_interval: 100        # 200 → 100
+
+  # pruneは強める（背景に出たゴミを削る）
+  thresh_opa_prune: 0.02             # 0.01 → 0.02
+
+  # マスク損失は現状維持（強くすると内部が潰れやすい）
+  lambda_opa_mask: 0.01
+
+  lambda_rigid: 0.0
+  lambda_motion: 0.0
+

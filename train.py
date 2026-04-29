@@ -12,6 +12,8 @@
 import os
 import random
 import torch
+import torch.multiprocessing as mp
+mp.set_sharing_strategy("file_system")
 from torch import nn
 from utils.loss_utils import l1_loss, ssim, msssim
 from gaussian_renderer import render
@@ -28,6 +30,7 @@ import numpy as np
 from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 from torch.utils.data import DataLoader
+from PIL import Image
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -42,17 +45,39 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
+    
+    print(f"[DBG] dataset.sh_degree = {dataset.sh_degree}")
+    print(f"[DBG] pipe.eval_shfs_4d = {pipe.eval_shfs_4d}")
+
     gaussians = GaussianModel(dataset.sh_degree, gaussian_dim=gaussian_dim, time_duration=time_duration, rot_4d=rot_4d, force_sh_3d=force_sh_3d, sh_degree_t=2 if pipe.eval_shfs_4d else 0,
                               prefilter_var=dataset.prefilter_var)
     scene = Scene(dataset, gaussians, num_pts=num_pts, num_pts_ratio=num_pts_ratio, time_duration=time_duration)
     gaussians.training_setup(opt)
     
+    densify_grad_t_threshold = getattr(opt, "densify_grad_t_threshold", None)
+    thresh_opa_prune = getattr(opt, "thresh_opa_prune", 0.005)
+
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint)
         gaussians.restore(model_params, opt)
 
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
+    
+    ### ここに追加 ###
+    training_report(
+        tb_writer, first_iter,
+        Ll1=torch.tensor(0.0, device="cuda"),
+        loss=torch.tensor(0.0, device="cuda"),
+        l1_loss=l1_loss,
+        elapsed=0.0,
+        testing_iterations=[first_iter],
+        scene=scene,
+        renderFunc=render,
+        renderArgs=(pipe, background),
+        loss_dict=None
+    )
+    ### ここまで ###
 
     iter_start = torch.cuda.Event(enable_timing = True)
     iter_end = torch.cuda.Event(enable_timing = True)
@@ -77,12 +102,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     gaussians.env_map = env_map
         
     training_dataset = scene.getTrainCameras()
-    training_dataloader = DataLoader(training_dataset, batch_size=batch_size, shuffle=True, num_workers=12 if dataset.dataloader else 0, collate_fn=lambda x: x, drop_last=True)
+    training_dataloader = DataLoader(training_dataset, batch_size=batch_size, shuffle=True, num_workers=0 if dataset.dataloader else 0, collate_fn=lambda x: x, drop_last=True)
      
     iteration = first_iter
     while iteration < opt.iterations + 1:
         for batch_data in training_dataloader:
             iteration += 1
+            DBG_ITERS = {3500, 3990, 4000, 4010, 4500}
+            if iteration in DBG_ITERS:
+                print(f"[DBG] iter={iteration} num_gauss={gaussians.get_xyz.shape[0]}")
             if iteration > opt.iterations:
                 break
 
@@ -91,8 +119,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             
             # Every 1000 its we increase the levels of SH up to a maximum degree
             if iteration % opt.sh_increase_interval == 0:
+                print(f"[DBG] iter={iteration} BEFORE oneupSHdegree  num_gauss={gaussians.get_xyz.shape[0]}")
                 gaussians.oneupSHdegree()
-                
+                print(f"[DBG] iter={iteration} AFTER  oneupSHdegree  num_gauss={gaussians.get_xyz.shape[0]}")
+
             # Render
             if (iteration - 1) == debug_from:
                 pipe.debug = True
@@ -117,17 +147,31 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * Lssim
                 
                 ###### opa mask Loss ######
+                # EMAログが Lopa_mask を参照するので、常に定義しておく
+                Lopa_mask = torch.tensor(0.0, device="cuda")
+
                 if opt.lambda_opa_mask > 0:
                     o = alpha.clamp(1e-6, 1-1e-6)
-                    sky = 1 - viewpoint_cam.gt_alpha_mask
+
+                    # 1) gt_alpha_mask があればそれを使う
+                    if getattr(viewpoint_cam, "gt_alpha_mask", None) is not None:
+                        sky = 1 - viewpoint_cam.gt_alpha_mask
+
+                    # 2) 無ければGT画像から背景(黒)を推定
+                    else:
+                        lum = 0.2126 * gt_image[0] + 0.7152 * gt_image[1] + 0.0722 * gt_image[2]  # [H,W]
+                        sky_thr = 0.02
+                        sky = (lum < sky_thr).float().unsqueeze(0)  # [1,H,W]
 
                     Lopa_mask = (- sky * torch.log(1 - o)).mean()
-
-                    # lambda_opa_mask = opt.lambda_opa_mask * (1 - 0.99 * min(1, iteration/opt.iterations))
-                    lambda_opa_mask = opt.lambda_opa_mask
-                    loss = loss + lambda_opa_mask * Lopa_mask
+                    loss = loss + opt.lambda_opa_mask * Lopa_mask
                 ###### opa mask Loss ######
-                
+                if iteration < 5:
+                    m = getattr(viewpoint_cam, "gt_alpha_mask", None)
+                    if m is None:
+                        print("[DBG] gt_alpha_mask = None")
+                    else:
+                        print("[DBG] gt_alpha_mask", m.shape, m.dtype, m.device, "min/max", float(m.min()), float(m.max()), "mean", float(m.mean()))
                 ###### rigid loss ######
                 if opt.lambda_rigid > 0:
                     k = 20
@@ -228,19 +272,62 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     scene.save(iteration)
 
                 # Densification
-                if iteration < opt.densify_until_iter and (opt.densify_until_num_points < 0 or gaussians.get_xyz.shape[0] < opt.densify_until_num_points):
+                if iteration < opt.densify_until_iter:
                     # Keep track of max radii in image-space for pruning
-                    gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
-                    if batch_size == 1:
-                        gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter, batch_t_grad if gaussians.gaussian_dim == 4 else None)
-                    else:
-                        gaussians.add_densification_stats_grad(batch_viewspace_point_grad, visibility_filter, batch_t_grad if gaussians.gaussian_dim == 4 else None)
-                        
+                    gaussians.max_radii2D[visibility_filter] = torch.max(
+                        gaussians.max_radii2D[visibility_filter],
+                        radii[visibility_filter]
+                    )
+
+                    # 点数上限未満のときだけ densify 用統計を蓄積
+                    can_densify = (
+                        opt.densify_until_num_points < 0
+                        or gaussians.get_xyz.shape[0] < opt.densify_until_num_points
+                    )
+
+                    if can_densify:
+                        if batch_size == 1:
+                            gaussians.add_densification_stats(
+                                viewspace_point_tensor,
+                                visibility_filter,
+                                batch_t_grad if gaussians.gaussian_dim == 4 else None
+                            )
+                        else:
+                            gaussians.add_densification_stats_grad(
+                                batch_viewspace_point_grad,
+                                visibility_filter,
+                                batch_t_grad if gaussians.gaussian_dim == 4 else None
+                            )
+
                     if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
                         size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                        gaussians.densify_and_prune(opt.densify_grad_threshold, opt.thresh_opa_prune, scene.cameras_extent, size_threshold, opt.densify_grad_t_threshold)
-                    
-                    if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
+
+                        if can_densify:
+                            # 上限未満: 増やしてから減らす
+                            gaussians.densify_and_prune(
+                                opt.densify_grad_threshold,
+                                thresh_opa_prune,
+                                scene.cameras_extent,
+                                size_threshold,
+                                densify_grad_t_threshold,
+                                prune_only=False
+                            )
+                            print(f"[DBG] iter={iteration} densify_and_prune(prune_only=False)  num_gauss={gaussians.get_xyz.shape[0]}")
+                        else:
+                            # 上限以上: 増やさず減らすだけ
+                            gaussians.densify_and_prune(
+                                opt.densify_grad_threshold,
+                                thresh_opa_prune,
+                                scene.cameras_extent,
+                                size_threshold,
+                                densify_grad_t_threshold,
+                                prune_only=True
+                            )
+                            print(f"[DBG] iter={iteration} densify_and_prune(prune_only=True)   num_gauss={gaussians.get_xyz.shape[0]}")
+
+                    if iteration % opt.opacity_reset_interval == 0 or (
+                        dataset.white_background and iteration == opt.densify_from_iter
+                    ):
                         gaussians.reset_opacity()
                         
                 # Optimizer step
@@ -323,7 +410,23 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
                         grid = [gt_image, image, alpha, depth]
                         grid = make_grid(grid, nrow=2)
                         tb_writer.add_images(config['name'] + "_view_{}/gt_vs_render".format(viewpoint.image_name), grid[None], global_step=iteration)
-                            
+
+                    # --- dump PNGs to disk (first few views) ---
+                    dump_root = os.path.join(scene.model_path, "renders_png", f"iter_{iteration:06d}", config['name'])
+                    os.makedirs(dump_root, exist_ok=True)
+
+                    if idx < 5:
+                        def _save_chw01(t, path):
+                            # t: [3,H,W] float 0..1
+                            arr = (t.detach().clamp(0,1).permute(1,2,0).cpu().numpy() * 255).astype(np.uint8)
+                            Image.fromarray(arr).save(path)
+
+                        _save_chw01(gt_image, os.path.join(dump_root, f"{idx:03d}_gt.png"))
+                        _save_chw01(image,    os.path.join(dump_root, f"{idx:03d}_render.png"))
+                        _save_chw01(alpha,    os.path.join(dump_root, f"{idx:03d}_alpha.png"))
+                        _save_chw01(depth,    os.path.join(dump_root, f"{idx:03d}_depth.png"))
+                    # --- end dump ---
+
                     l1_test += l1_loss(image, gt_image).mean().double()
                     psnr_test += psnr(image, gt_image).mean().double()
                     ssim_test += ssim(image, gt_image).mean().double()

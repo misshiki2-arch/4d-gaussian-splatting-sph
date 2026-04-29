@@ -1,0 +1,58 @@
+gaussian_dim: 4
+rot_4d: True
+time_duration: [0.0, 33.0]
+num_pts: 600000
+
+ModelParams:
+  source_path: /home/demo/data/4dgs_sph_scene
+  model_path:  /home/demo/outputs/sph_scene_4dgs
+  loaded_pth:  /home/demo/outputs/sph_scene_4dgs/chkpnt30000.pth
+    #loaded_pth:  /home/demo/data/4dgs_sph_scene/init_from_3dgs_35_200_aligned_sigmaT0p05.pth
+  images: images
+  resolution: 1
+  white_background: False
+  extension: ""
+  dataloader: True
+
+PipelineParams:
+  eval_shfs_4d: True
+
+OptimizationParams:
+  iterations: 12000
+
+  # --- densifyを暴走させないための上限（最重要） ---
+  densify_until_num_points: 2500000   # 例：250万で頭打ち（まずはここから）
+
+  sh_increase_interval: 1000000000
+  # 位置は少しだけ動ける（崩壊防止のため lr は下げる）
+  position_lr_init: 0.00005
+  position_lr_final: 0.0000005
+  position_lr_delay_mult: 0.01
+  position_lr_max_steps: 12000
+
+  # ★半径を動かしすぎない（毛羽立ちの最大要因）
+  scaling_lr: 0.0003
+
+  # 回転も控えめ（4D rot での暴れ防止）
+  rotation_lr: 0.0003
+
+  # opacity は調整できるが、マスクで飽和させすぎない
+  opacity_lr: 0.015
+
+  # ★opacity リセットは「良い初期値」を壊すので実質無効化
+  opacity_reset_interval: 1000000000
+
+  # ★densify/prune もまず止める（初期値の形を固定して gt に寄せる）
+  densify_from_iter: 200
+  densify_until_iter: 3000 
+  densify_grad_threshold: 0.0006
+  densification_interval: 400
+  thresh_opa_prune: 0.05
+
+  # ★マスク損失は強すぎると内部が潰れるので下げる
+  lambda_opa_mask: 0.01
+
+  # ★rigid は渦を消す方向に効きやすいので一旦 0
+  lambda_rigid: 0.0
+  lambda_motion: 0.0
+

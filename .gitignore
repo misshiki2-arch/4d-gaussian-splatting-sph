@@ -1,3 +1,4 @@
+# Existing ignores
 *.pyc
 data
 output
@@ -21,3 +22,87 @@ eggs/
 .eggs/
 *.egg
 *.sh
+
+# Local datasets / training outputs
+# Keep source code in git, but do not commit datasets, rendered outputs, checkpoints, or logs.
+data/
+outputs/
+output/
+logs/
+runs/
+wandb/
+tensorboard/
+
+# Model checkpoints / generated arrays / heavy artifacts
+*.pth
+*.pt
+*.ckpt
+*.npy
+*.npz
+*.ply
+*.splat
+*.splat4d
+
+# Rendered images / videos / intermediate render products
+# Do not ignore *.png globally, because documentation or sample images may be intentional.
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.exr
+*.tiff
+*.tif
+
+# Python / packaging / build metadata
+*.egg-info/
+*.dist-info/
+*.egg
+build/
+dist/
+.eggs/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# CUDA / C++ build products
+*.o
+*.so
+*.a
+*.dll
+*.dylib
+*.pyd
+*.cuo
+CMakeFiles/
+CMakeCache.txt
+cmake-build-*/
+
+# Local backups / temporary files
+*_backup.py
+train_backup.py
+*.bak
+*.tmp
+*.swp
+*~
+
+# Local environment / editor state
+.env
+.venv/
+.envrc
+.vscode/
+.idea/
+
+# Project-specific generated package metadata
+# These are created by local installs/builds and should not be committed.
+diff-gaussian-rasterization/diff_gaussian_rasterization.egg-info/
+diff-gaussian-rasterization/build/
+diff-gaussian-rasterization/dist/
+simple-knn/simple_knn.egg-info/
+pointops2/pointops2.egg-info/
+
+# Windows alternate data stream metadata copied from Windows/WSL
+*Zone.Identifier
+*:Zone.Identifier

@@ -20,7 +20,7 @@ class CameraDataset(Dataset):
                 im_data = np.array(image_load.convert("RGBA"))
             norm_data = im_data / 255.0
             arr = norm_data[:,:,:3] * norm_data[:, :, 3:4] + self.bg * (1 - norm_data[:, :, 3:4])
-            image_load = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "RGB")
+            image_load = Image.fromarray(np.array(arr*255.0, dtype=np.uint8), "RGB")
             resized_image_rgb = PILtoTorch(image_load, viewpoint_cam.resolution)
             viewpoint_image = resized_image_rgb[:3, ...].clamp(0.0, 1.0)
             if resized_image_rgb.shape[1] == 4:
@@ -30,7 +30,29 @@ class CameraDataset(Dataset):
                 viewpoint_image *= torch.ones((1, viewpoint_cam.image_height, viewpoint_cam.image_width))
         else:
             viewpoint_image = viewpoint_cam.image
-            
+
+        # ====== ADD: load binary mask from sibling "masks/" and set gt_alpha_mask ======
+        # images/.../xxx.png -> masks/.../xxx.png に置き換え
+        mask_path = viewpoint_cam.image_path
+        mask_path = mask_path.replace(f"{os.sep}images{os.sep}", f"{os.sep}masks{os.sep}")
+
+        if os.path.exists(mask_path):
+            with Image.open(mask_path) as m:
+                m = m.convert("L")  # 0..255
+                m_np = np.array(m, dtype=np.uint8)
+
+            # 2値（0/1）にする：255を前景、0を背景として扱う
+            # （あなたのmasksは2値なのでこれでOK）
+            m_bin = (m_np >= 128).astype(np.float32)  # [H,W] in {0,1}
+
+            # torch: [1,H,W]
+            viewpoint_cam.gt_alpha_mask = torch.from_numpy(m_bin).unsqueeze(0)
+
+        else:
+            # masksが無い場合は None のまま（opa_maskを使うなら masks を必ず用意）
+            viewpoint_cam.gt_alpha_mask = getattr(viewpoint_cam, "gt_alpha_mask", None)
+        # ====== ADD END ======
+
         return viewpoint_image, viewpoint_cam
     
     def __len__(self):
