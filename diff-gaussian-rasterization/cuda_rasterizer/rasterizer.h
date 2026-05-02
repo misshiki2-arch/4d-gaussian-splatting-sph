@@ -62,7 +62,12 @@ namespace CudaRasterizer
 			float* out_depth,
 			float* out_T,
 			int* radii = nullptr,
-			bool debug = false);
+			bool debug = false,
+			float* debug_pixel_buffer = nullptr,
+			int debug_pixel_x = -1,
+			int debug_pixel_y = -1,
+			int debug_pixel_max_entries = 0,
+			int debug_pixel_stride = 0);
 
 		static void backward(
 			const int P, int D, int D_t, int M, int R,

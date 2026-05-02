@@ -230,7 +230,12 @@ int CudaRasterizer::Rasterizer::forward(
 	float* out_depth,
 	float* out_T,
 	int* radii,
-	bool debug)
+	bool debug,
+	float* debug_pixel_buffer,
+	int debug_pixel_x,
+	int debug_pixel_y,
+	int debug_pixel_max_entries,
+	int debug_pixel_stride)
 {
 	const float focal_y = height / (2.0f * tan_fovy);
 	const float focal_x = width / (2.0f * tan_fovx);
@@ -357,7 +362,12 @@ int CudaRasterizer::Rasterizer::forward(
 		background,
 		out_color,
 		out_flow,
-		out_depth), debug)
+		out_depth,
+		debug_pixel_buffer,
+		debug_pixel_x,
+		debug_pixel_y,
+		debug_pixel_max_entries,
+		debug_pixel_stride), debug)
 
 	CHECK_CUDA(cudaMemcpy(out_T, imgState.accum_alpha, width * height * sizeof(float), cudaMemcpyDeviceToDevice), debug);
 	return num_rendered;

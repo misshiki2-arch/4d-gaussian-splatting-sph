@@ -514,7 +514,12 @@ renderCUDA(
 	const float* __restrict__ bg_color,
 	float* __restrict__ out_color,
 	float* __restrict__ out_flow,
-	float* __restrict__ out_depth)
+	float* __restrict__ out_depth,
+	float* __restrict__ debug_pixel_buffer,
+	int debug_pixel_x,
+	int debug_pixel_y,
+	int debug_pixel_max_entries,
+	int debug_pixel_stride)
 {
 	// Identify current tile and associated min/max pixel range.
 	auto block = cg::this_thread_block();
@@ -534,6 +539,17 @@ renderCUDA(
 	uint2 range = ranges[block.group_index().y * horizontal_blocks + block.group_index().x];
 	const int rounds = ((range.y - range.x + BLOCK_SIZE - 1) / BLOCK_SIZE);
 	int toDo = range.y - range.x;
+	const bool debug_pixel = debug_pixel_buffer != nullptr
+		&& debug_pixel_max_entries > 0
+		&& debug_pixel_stride >= 32
+		&& inside
+		&& pix.x == (uint32_t)debug_pixel_x
+		&& pix.y == (uint32_t)debug_pixel_y;
+	int debug_record_count = 0;
+	int debug_contribution_count = 0;
+	int debug_power_skip_count = 0;
+	int debug_alpha_skip_count = 0;
+	int debug_early_out_local_order = -1;
 
 	// Allocate storage for batches of collectively fetched data.
 	__shared__ int collected_id[BLOCK_SIZE];
@@ -572,6 +588,10 @@ renderCUDA(
 		{
 			// Keep track of current position in range
 			contributor++;
+			const float T_before = T;
+			const int coll_id = collected_id[j];
+			const int local_order = contributor - 1;
+			const int global_range_offset = range.x + local_order;
 
 			// Resample using conic matrix (cf. "Surface 
 			// Splatting" by Zwicker et al., 2001)
@@ -580,18 +600,95 @@ renderCUDA(
 			float4 con_o = collected_conic_opacity[j];
 			float power = -0.5f * (con_o.x * d.x * d.x + con_o.z * d.y * d.y) - con_o.y * d.x * d.y;
 			if (power > 0.0f)
+			{
+				if (debug_pixel)
+				{
+					debug_power_skip_count++;
+					if (debug_record_count < debug_pixel_max_entries)
+					{
+						float* row = debug_pixel_buffer + (debug_record_count + 1) * debug_pixel_stride;
+						row[0] = (float)local_order;
+						row[1] = (float)global_range_offset;
+						row[2] = (float)coll_id;
+						row[3] = depths[coll_id];
+						row[4] = xy.x; row[5] = xy.y;
+						row[6] = con_o.x; row[7] = con_o.y; row[8] = con_o.z; row[9] = con_o.w;
+						row[10] = features[coll_id * CHANNELS + 0];
+						row[11] = features[coll_id * CHANNELS + 1];
+						row[12] = features[coll_id * CHANNELS + 2];
+						row[13] = d.x; row[14] = d.y; row[15] = power;
+						row[16] = -1.0f; row[17] = -1.0f; row[18] = 1.0f;
+						row[19] = T_before; row[20] = T_before; row[21] = T;
+						row[22] = 0.0f; row[23] = 0.0f; row[24] = 0.0f;
+						row[25] = C[0]; row[26] = C[1]; row[27] = C[2];
+						row[28] = 0.0f; row[29] = (float)last_contributor; row[30] = D; row[31] = 0.0f;
+						debug_record_count++;
+					}
+				}
 				continue;
+			}
 
 			// Eq. (2) from 3D Gaussian splatting paper.
 			// Obtain alpha by multiplying with Gaussian opacity
 			// and its exponential falloff from mean.
 			// Avoid numerical instabilities (see paper appendix). 
-			float alpha = min(0.99f, con_o.w * exp(power));
+			float raw_alpha = con_o.w * exp(power);
+			float alpha = min(0.99f, raw_alpha);
 			if (alpha < 1.0f / 255.0f)
+			{
+				if (debug_pixel)
+				{
+					debug_alpha_skip_count++;
+					if (debug_record_count < debug_pixel_max_entries)
+					{
+						float* row = debug_pixel_buffer + (debug_record_count + 1) * debug_pixel_stride;
+						row[0] = (float)local_order;
+						row[1] = (float)global_range_offset;
+						row[2] = (float)coll_id;
+						row[3] = depths[coll_id];
+						row[4] = xy.x; row[5] = xy.y;
+						row[6] = con_o.x; row[7] = con_o.y; row[8] = con_o.z; row[9] = con_o.w;
+						row[10] = features[coll_id * CHANNELS + 0];
+						row[11] = features[coll_id * CHANNELS + 1];
+						row[12] = features[coll_id * CHANNELS + 2];
+						row[13] = d.x; row[14] = d.y; row[15] = power;
+						row[16] = raw_alpha; row[17] = alpha; row[18] = 2.0f;
+						row[19] = T_before; row[20] = T_before; row[21] = T;
+						row[22] = 0.0f; row[23] = 0.0f; row[24] = 0.0f;
+						row[25] = C[0]; row[26] = C[1]; row[27] = C[2];
+						row[28] = 0.0f; row[29] = (float)last_contributor; row[30] = D; row[31] = 0.0f;
+						debug_record_count++;
+					}
+				}
 				continue;
+			}
 			float test_T = T * (1 - alpha);
 			if (test_T < 0.0001f)
 			{
+				if (debug_pixel)
+				{
+					debug_early_out_local_order = local_order;
+					if (debug_record_count < debug_pixel_max_entries)
+					{
+						float* row = debug_pixel_buffer + (debug_record_count + 1) * debug_pixel_stride;
+						row[0] = (float)local_order;
+						row[1] = (float)global_range_offset;
+						row[2] = (float)coll_id;
+						row[3] = depths[coll_id];
+						row[4] = xy.x; row[5] = xy.y;
+						row[6] = con_o.x; row[7] = con_o.y; row[8] = con_o.z; row[9] = con_o.w;
+						row[10] = features[coll_id * CHANNELS + 0];
+						row[11] = features[coll_id * CHANNELS + 1];
+						row[12] = features[coll_id * CHANNELS + 2];
+						row[13] = d.x; row[14] = d.y; row[15] = power;
+						row[16] = raw_alpha; row[17] = alpha; row[18] = 3.0f;
+						row[19] = T_before; row[20] = test_T; row[21] = T;
+						row[22] = 0.0f; row[23] = 0.0f; row[24] = 0.0f;
+						row[25] = C[0]; row[26] = C[1]; row[27] = C[2];
+						row[28] = 0.0f; row[29] = (float)last_contributor; row[30] = D; row[31] = 0.0f;
+						debug_record_count++;
+					}
+				}
 				done = true;
 				continue;
 			}
@@ -608,6 +705,32 @@ renderCUDA(
 			// Keep track of last range entry to update this
 			// pixel.
 			last_contributor = contributor;
+			if (debug_pixel)
+			{
+				debug_contribution_count++;
+				if (debug_record_count < debug_pixel_max_entries)
+				{
+					float* row = debug_pixel_buffer + (debug_record_count + 1) * debug_pixel_stride;
+					row[0] = (float)local_order;
+					row[1] = (float)global_range_offset;
+					row[2] = (float)coll_id;
+					row[3] = depths[coll_id];
+					row[4] = xy.x; row[5] = xy.y;
+					row[6] = con_o.x; row[7] = con_o.y; row[8] = con_o.z; row[9] = con_o.w;
+					row[10] = features[coll_id * CHANNELS + 0];
+					row[11] = features[coll_id * CHANNELS + 1];
+					row[12] = features[coll_id * CHANNELS + 2];
+					row[13] = d.x; row[14] = d.y; row[15] = power;
+					row[16] = raw_alpha; row[17] = alpha; row[18] = 0.0f;
+					row[19] = T_before; row[20] = test_T; row[21] = T;
+					row[22] = features[coll_id * CHANNELS + 0] * alpha * T_before;
+					row[23] = features[coll_id * CHANNELS + 1] * alpha * T_before;
+					row[24] = features[coll_id * CHANNELS + 2] * alpha * T_before;
+					row[25] = C[0]; row[26] = C[1]; row[27] = C[2];
+					row[28] = 1.0f; row[29] = (float)last_contributor; row[30] = D; row[31] = 0.0f;
+					debug_record_count++;
+				}
+			}
 		}
 	}
 
@@ -622,6 +745,34 @@ renderCUDA(
 		for (int ch = 0; ch < 2; ch++)
 			out_flow[ch * H * W + pix_id] = Flow[ch];
 		out_depth[pix_id] = D;
+		if (debug_pixel)
+		{
+			float* header = debug_pixel_buffer;
+			header[0] = 1.0f;
+			header[1] = (float)W; header[2] = (float)H;
+			header[3] = (float)debug_pixel_x; header[4] = (float)debug_pixel_y;
+			header[5] = (float)pix.x; header[6] = (float)pix.y;
+			header[7] = (float)block.group_index().x; header[8] = (float)block.group_index().y;
+			header[9] = (float)(block.group_index().y * horizontal_blocks + block.group_index().x);
+			header[10] = (float)range.x; header[11] = (float)range.y; header[12] = (float)(range.y - range.x);
+			header[13] = (float)debug_record_count;
+			header[14] = (float)contributor;
+			header[15] = (float)last_contributor;
+			header[16] = T;
+			header[17] = C[0]; header[18] = C[1]; header[19] = C[2];
+			header[20] = D;
+			header[21] = debug_early_out_local_order >= 0 ? 1.0f : 0.0f;
+			header[22] = (float)debug_early_out_local_order;
+			header[23] = 1.0f;
+			header[24] = done ? 1.0f : 0.0f;
+			header[25] = (float)debug_contribution_count;
+			header[26] = (float)debug_power_skip_count;
+			header[27] = (float)debug_alpha_skip_count;
+			header[28] = C[0] + T * bg_color[0];
+			header[29] = C[1] + T * bg_color[1];
+			header[30] = C[2] + T * bg_color[2];
+			header[31] = 0.0f;
+		}
 	}
 }
 
@@ -640,7 +791,12 @@ void FORWARD::render(
 	const float* bg_color,
 	float* out_color,
 	float* out_flow,
-	float* out_depth)
+	float* out_depth,
+	float* debug_pixel_buffer,
+	int debug_pixel_x,
+	int debug_pixel_y,
+	int debug_pixel_max_entries,
+	int debug_pixel_stride)
 {
 	renderCUDA<NUM_CHANNELS> << <grid, block >> > (
 		ranges,
@@ -656,7 +812,12 @@ void FORWARD::render(
 		bg_color,
 		out_color,
 		out_flow,
-		out_depth);
+		out_depth,
+		debug_pixel_buffer,
+		debug_pixel_x,
+		debug_pixel_y,
+		debug_pixel_max_entries,
+		debug_pixel_stride);
 }
 
 void FORWARD::preprocess(int P, int D, int D_t, int M,

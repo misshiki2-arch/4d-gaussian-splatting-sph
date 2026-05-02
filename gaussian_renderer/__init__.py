@@ -12,6 +12,7 @@
 import torch
 from torch.nn import functional as F
 import math
+import os
 from .diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh, eval_shfs_4d
@@ -34,6 +35,16 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
     tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
 
+    debug_pixel_env = os.environ.get("STEP90_CUDA_DEBUG_PIXEL", "")
+    debug_pixel_x = int(getattr(pipe, "debug_pixel_x", -1))
+    debug_pixel_y = int(getattr(pipe, "debug_pixel_y", -1))
+    if debug_pixel_env and debug_pixel_x < 0 and debug_pixel_y < 0:
+        try:
+            debug_pixel_x, debug_pixel_y = [int(part.strip()) for part in debug_pixel_env.split(",", 1)]
+        except Exception:
+            debug_pixel_x, debug_pixel_y = -1, -1
+    debug_pixel_max_entries = int(getattr(pipe, "debug_pixel_max_entries", os.environ.get("STEP90_CUDA_DEBUG_MAX_ENTRIES", 0)))
+
     raster_settings = GaussianRasterizationSettings(
         image_height=int(viewpoint_camera.image_height),
         image_width=int(viewpoint_camera.image_width),
@@ -52,7 +63,10 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         gaussian_dim=pc.gaussian_dim,
         force_sh_3d=pc.force_sh_3d,
         prefiltered=False,
-        debug=pipe.debug
+        debug=pipe.debug,
+        debug_pixel_x=debug_pixel_x,
+        debug_pixel_y=debug_pixel_y,
+        debug_pixel_max_entries=debug_pixel_max_entries
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
@@ -147,7 +161,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             flow_2d = flow_2d[mask]
     
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
-    rendered_image, radii, depth, alpha, flow, covs_com = rasterizer(
+    rendered_image, radii, depth, alpha, flow, covs_com, cuda_pixel_debug = rasterizer(
         means3D = means3D,
         means2D = means2D,
         shs = shs,
@@ -191,4 +205,5 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             "radii": radii_all,
             "depth": depth,
             "alpha": alpha,
-            "flow": flow}
+            "flow": flow,
+            "cuda_pixel_debug": cuda_pixel_debug}

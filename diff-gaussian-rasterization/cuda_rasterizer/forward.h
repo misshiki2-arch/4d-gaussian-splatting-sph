@@ -71,7 +71,12 @@ namespace FORWARD
 		const float* bg_color,
 		float* out_color,
 		float* out_flow,
-		float* out_depth);
+		float* out_depth,
+		float* debug_pixel_buffer,
+		int debug_pixel_x,
+		int debug_pixel_y,
+		int debug_pixel_max_entries,
+		int debug_pixel_stride);
 }
 
 
