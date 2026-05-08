@@ -44,6 +44,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         except Exception:
             debug_pixel_x, debug_pixel_y = -1, -1
     debug_pixel_max_entries = int(getattr(pipe, "debug_pixel_max_entries", os.environ.get("STEP90_CUDA_DEBUG_MAX_ENTRIES", 0)))
+    debug_preprocess_target_index = int(getattr(pipe, "debug_preprocess_target_index", os.environ.get("STEP90_CUDA_DEBUG_PREPROCESS_INDEX", -1)))
 
     raster_settings = GaussianRasterizationSettings(
         image_height=int(viewpoint_camera.image_height),
@@ -66,7 +67,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         debug=pipe.debug,
         debug_pixel_x=debug_pixel_x,
         debug_pixel_y=debug_pixel_y,
-        debug_pixel_max_entries=debug_pixel_max_entries
+        debug_pixel_max_entries=debug_pixel_max_entries,
+        debug_preprocess_target_index=debug_preprocess_target_index
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
@@ -161,7 +163,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             flow_2d = flow_2d[mask]
     
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
-    rendered_image, radii, depth, alpha, flow, covs_com, cuda_pixel_debug = rasterizer(
+    rendered_image, radii, depth, alpha, flow, covs_com, cuda_pixel_debug, cuda_preprocess_debug = rasterizer(
         means3D = means3D,
         means2D = means2D,
         shs = shs,
@@ -206,4 +208,5 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             "depth": depth,
             "alpha": alpha,
             "flow": flow,
-            "cuda_pixel_debug": cuda_pixel_debug}
+            "cuda_pixel_debug": cuda_pixel_debug,
+            "cuda_preprocess_debug": cuda_preprocess_debug}

@@ -119,19 +119,20 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.debug_pixel_x,
             raster_settings.debug_pixel_y,
             raster_settings.debug_pixel_max_entries,
+            raster_settings.debug_preprocess_target_index,
         )
 
         # Invoke C++/CUDA rasterizer
         if raster_settings.debug:
             cpu_args = cpu_deep_copy_tuple(args) # Copy them before they can be corrupted
             try:
-                num_rendered, color, flow, depth, T, radii, geomBuffer, binningBuffer, imgBuffer, covs_com, out_means3D, debug_pixel = _C.rasterize_gaussians(*args)
+                num_rendered, color, flow, depth, T, radii, geomBuffer, binningBuffer, imgBuffer, covs_com, out_means3D, debug_pixel, debug_preprocess = _C.rasterize_gaussians(*args)
             except Exception as ex:
                 torch.save(cpu_args, "snapshot_fw.dump")
                 print("\nAn error occured in forward. Please forward snapshot_fw.dump for debugging.")
                 raise ex
         else:
-            num_rendered, color, flow, depth, T, radii, geomBuffer, binningBuffer, imgBuffer, covs_com, out_means3D, debug_pixel = _C.rasterize_gaussians(*args)
+            num_rendered, color, flow, depth, T, radii, geomBuffer, binningBuffer, imgBuffer, covs_com, out_means3D, debug_pixel, debug_preprocess = _C.rasterize_gaussians(*args)
 
         # Keep relevant tensors for backward
         ctx.raster_settings = raster_settings
@@ -140,10 +141,10 @@ class _RasterizeGaussians(torch.autograd.Function):
         ctx.save_for_backward(colors_precomp, means3D, out_means3D, scales, rotations, cov3Ds_precomp, radii, sh, 
                                 flow_2d, opacities, ts, scales_t, rotations_r,
                                 geomBuffer, binningBuffer, imgBuffer)
-        return color, radii, depth, 1-T, flow, covs_com, debug_pixel
+        return color, radii, depth, 1-T, flow, covs_com, debug_pixel, debug_preprocess
 
     @staticmethod
-    def backward(ctx, grad_out_color, grad_radii, grad_depth, grad_alpha, grad_flow, grad_covs_com, grad_debug_pixel):
+    def backward(ctx, grad_out_color, grad_radii, grad_depth, grad_alpha, grad_flow, grad_covs_com, grad_debug_pixel, grad_debug_preprocess):
 
         # Restore necessary values from context
         num_rendered = ctx.num_rendered
@@ -249,6 +250,7 @@ class GaussianRasterizationSettings(NamedTuple):
     debug_pixel_x: int = -1
     debug_pixel_y: int = -1
     debug_pixel_max_entries: int = 0
+    debug_preprocess_target_index: int = -1
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):

@@ -195,13 +195,14 @@ __device__ glm::vec3 computeColorFromSH_4D(int idx, int deg, int deg_t, int max_
 }
 
 // Forward version of 2D covariance matrix computation
-__device__ float3 computeCov2D(const float3& mean, float focal_x, float focal_y, float tan_fovx, float tan_fovy, const float* cov3D, const float* viewmatrix)
+__device__ float3 computeCov2D(const float3& mean, float focal_x, float focal_y, float tan_fovx, float tan_fovy, const float* cov3D, const float* viewmatrix, float* debug_row = nullptr)
 {
 	// The following models the steps outlined by equations 29
 	// and 31 in "EWA Splatting" (Zwicker et al., 2002). 
 	// Additionally considers aspect / scaling of viewport.
 	// Transposes used to account for row-/column-major conventions.
 	float3 t = transformPoint4x3(mean, viewmatrix);
+	float3 unclamped_t = t;
 
 	const float limx = 1.3f * tan_fovx;
 	const float limy = 1.3f * tan_fovy;
@@ -228,11 +229,35 @@ __device__ float3 computeCov2D(const float3& mean, float focal_x, float focal_y,
 		cov3D[2], cov3D[4], cov3D[5]);
 
 	glm::mat3 cov = glm::transpose(T) * glm::transpose(Vrk) * T;
+	float cov00_before = cov[0][0];
+	float cov01_before = cov[0][1];
+	float cov10_before = cov[1][0];
+	float cov11_before = cov[1][1];
 
 	// Apply low-pass filter: every Gaussian should be at least
 	// one pixel wide/high. Discard 3rd row and column.
 	cov[0][0] += 0.3f;
 	cov[1][1] += 0.3f;
+	if (debug_row != nullptr)
+	{
+		debug_row[32] = unclamped_t.x; debug_row[33] = unclamped_t.y; debug_row[34] = unclamped_t.z;
+		debug_row[35] = t.x; debug_row[36] = t.y; debug_row[37] = t.z;
+		debug_row[38] = J[0][0]; debug_row[39] = J[0][1]; debug_row[40] = J[0][2];
+		debug_row[41] = J[1][0]; debug_row[42] = J[1][1]; debug_row[43] = J[1][2];
+		debug_row[44] = J[2][0]; debug_row[45] = J[2][1]; debug_row[46] = J[2][2];
+		debug_row[47] = W[0][0]; debug_row[48] = W[0][1]; debug_row[49] = W[0][2];
+		debug_row[50] = W[1][0]; debug_row[51] = W[1][1]; debug_row[52] = W[1][2];
+		debug_row[53] = W[2][0]; debug_row[54] = W[2][1]; debug_row[55] = W[2][2];
+		debug_row[56] = T[0][0]; debug_row[57] = T[0][1]; debug_row[58] = T[0][2];
+		debug_row[59] = T[1][0]; debug_row[60] = T[1][1]; debug_row[61] = T[1][2];
+		debug_row[62] = T[2][0]; debug_row[63] = T[2][1]; debug_row[64] = T[2][2];
+		debug_row[65] = cov00_before; debug_row[66] = cov01_before;
+		debug_row[67] = cov10_before; debug_row[68] = cov11_before;
+		debug_row[69] = cov[0][0]; debug_row[70] = cov[0][1];
+		debug_row[71] = cov[1][0]; debug_row[72] = cov[1][1];
+		debug_row[85] = focal_x; debug_row[86] = focal_y;
+		debug_row[87] = tan_fovx; debug_row[88] = tan_fovy;
+	}
 	return { float(cov[0][0]), float(cov[0][1]), float(cov[1][1]) };
 }
 
@@ -385,11 +410,30 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 	float4* conic_opacity,
 	const dim3 grid,
 	uint32_t* tiles_touched,
-	bool prefiltered)
+	bool prefiltered,
+	float* debug_preprocess_buffer,
+	int debug_preprocess_target_index,
+	int debug_preprocess_pixel_x,
+	int debug_preprocess_pixel_y,
+	int debug_preprocess_stride)
 {
 	auto idx = cg::this_grid().thread_rank();
 	if (idx >= P)
 		return;
+	const bool debug_preprocess = debug_preprocess_buffer != nullptr
+		&& debug_preprocess_stride >= 96
+		&& idx == (uint32_t)debug_preprocess_target_index;
+	float* debug_preprocess_row = debug_preprocess ? debug_preprocess_buffer : nullptr;
+	if (debug_preprocess)
+	{
+		for (int i = 0; i < debug_preprocess_stride; i++)
+			debug_preprocess_row[i] = -1.0f;
+		debug_preprocess_row[0] = 1.0f;
+		debug_preprocess_row[1] = (float)idx;
+		debug_preprocess_row[23] = timestamp;
+		debug_preprocess_row[89] = (float)debug_preprocess_pixel_x;
+		debug_preprocess_row[90] = (float)debug_preprocess_pixel_y;
+	}
 
 	// Initialize radius and touched tiles to 0. If this isn't changed,
 	// this Gaussian will not be processed further.
@@ -404,6 +448,33 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 	// Transform point by projecting
 	float3 p_orig = { orig_points[3 * idx], orig_points[3 * idx + 1], orig_points[3 * idx + 2] };
 	float opacity = opacities[idx];
+	const float opacity_before_time = opacity;
+	if (debug_preprocess)
+	{
+		debug_preprocess_row[2] = p_orig.x; debug_preprocess_row[3] = p_orig.y; debug_preprocess_row[4] = p_orig.z;
+		debug_preprocess_row[8] = opacity_before_time;
+		if (scales != nullptr)
+		{
+			debug_preprocess_row[10] = scales[idx].x; debug_preprocess_row[11] = scales[idx].y; debug_preprocess_row[12] = scales[idx].z;
+		}
+		if (scales_t != nullptr)
+			debug_preprocess_row[13] = scales_t[idx];
+		if (rotations != nullptr)
+		{
+			debug_preprocess_row[14] = rotations[idx].x; debug_preprocess_row[15] = rotations[idx].y;
+			debug_preprocess_row[16] = rotations[idx].z; debug_preprocess_row[17] = rotations[idx].w;
+		}
+		if (rotations_r != nullptr)
+		{
+			debug_preprocess_row[18] = rotations_r[idx].x; debug_preprocess_row[19] = rotations_r[idx].y;
+			debug_preprocess_row[20] = rotations_r[idx].z; debug_preprocess_row[21] = rotations_r[idx].w;
+		}
+		if (ts != nullptr)
+		{
+			debug_preprocess_row[22] = ts[idx];
+			debug_preprocess_row[24] = timestamp - ts[idx];
+		}
+	}
 
 	// If 3D covariance matrix is precomputed, use it, otherwise compute
 	// from scaling and rotation parameters.
@@ -418,6 +489,8 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 		computeCov3D_conditional(scales[idx], scales_t[idx], scale_modifier,
 			rotations[idx], rotations_r[idx], cov3Ds + idx * 6, p_orig, ts[idx], timestamp, idx, time_mask, opacity,
 			prefilter_var);
+		if (debug_preprocess)
+			debug_preprocess_row[25] = time_mask ? 1.0f : 0.0f;
 		if (!time_mask) return;
 		cov3D = cov3Ds + idx * 6;
 		out_means3D[idx*3+0]=p_orig.x;
@@ -436,6 +509,13 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 		    opacity *= marginal_t;
 		}
 	}
+	if (debug_preprocess)
+	{
+		debug_preprocess_row[5] = p_orig.x; debug_preprocess_row[6] = p_orig.y; debug_preprocess_row[7] = p_orig.z;
+		debug_preprocess_row[9] = opacity;
+		debug_preprocess_row[26] = cov3D[0]; debug_preprocess_row[27] = cov3D[1]; debug_preprocess_row[28] = cov3D[2];
+		debug_preprocess_row[29] = cov3D[3]; debug_preprocess_row[30] = cov3D[4]; debug_preprocess_row[31] = cov3D[5];
+	}
 
 	// Perform near culling, quit if outside.
 	float3 p_view;
@@ -448,14 +528,20 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 	float3 p_proj = { p_hom.x * p_w, p_hom.y * p_w, p_hom.z * p_w };
 
 	// Compute 2D screen-space covariance matrix
-	float3 cov = computeCov2D(p_orig, focal_x, focal_y, tan_fovx, tan_fovy, cov3D, viewmatrix);
+	float3 cov = computeCov2D(p_orig, focal_x, focal_y, tan_fovx, tan_fovy, cov3D, viewmatrix, debug_preprocess_row);
 
 	// Invert covariance (EWA algorithm)
 	float det = (cov.x * cov.z - cov.y * cov.y);
+	if (debug_preprocess)
+		debug_preprocess_row[73] = det;
 	if (det == 0.0f)
 		return;
 	float det_inv = 1.f / det;
 	float3 conic = { cov.z * det_inv, -cov.y * det_inv, cov.x * det_inv };
+	if (debug_preprocess)
+	{
+		debug_preprocess_row[74] = conic.x; debug_preprocess_row[75] = conic.y; debug_preprocess_row[76] = conic.z;
+	}
 
 	// Compute extent in screen space (by finding eigenvalues of
 	// 2D covariance matrix). Use extent to compute a bounding rectangle
@@ -468,6 +554,27 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 	float2 point_image = { ndc2Pix(p_proj.x, W), ndc2Pix(p_proj.y, H) };
 	uint2 rect_min, rect_max;
 	getRect(point_image, my_radius, rect_min, rect_max, grid);
+	if (debug_preprocess)
+	{
+		debug_preprocess_row[77] = my_radius;
+		debug_preprocess_row[78] = (float)rect_min.x; debug_preprocess_row[79] = (float)rect_min.y;
+		debug_preprocess_row[80] = (float)rect_max.x; debug_preprocess_row[81] = (float)rect_max.y;
+		debug_preprocess_row[82] = point_image.x; debug_preprocess_row[83] = point_image.y;
+		debug_preprocess_row[84] = p_view.z;
+		if (debug_preprocess_pixel_x >= 0 && debug_preprocess_pixel_y >= 0)
+		{
+			float dx = point_image.x - (float)debug_preprocess_pixel_x;
+			float dy = point_image.y - (float)debug_preprocess_pixel_y;
+			float power = -0.5f * (conic.x * dx * dx + conic.z * dy * dy) - conic.y * dx * dy;
+			float raw_alpha = opacity * exp(power);
+			float alpha = min(0.99f, raw_alpha);
+			debug_preprocess_row[91] = dx;
+			debug_preprocess_row[92] = dy;
+			debug_preprocess_row[93] = power;
+			debug_preprocess_row[94] = raw_alpha;
+			debug_preprocess_row[95] = alpha;
+		}
+	}
 	if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0 || ((int)my_radius <= 0.4))
 		return;
 
@@ -852,7 +959,12 @@ void FORWARD::preprocess(int P, int D, int D_t, int M,
 	float4* conic_opacity,
 	const dim3 grid,
 	uint32_t* tiles_touched,
-	bool prefiltered)
+	bool prefiltered,
+	float* debug_preprocess_buffer,
+	int debug_preprocess_target_index,
+	int debug_preprocess_pixel_x,
+	int debug_preprocess_pixel_y,
+	int debug_preprocess_stride)
 {
 	preprocessCUDA<NUM_CHANNELS> << <(P + 255) / 256, 256 >> > (
 		P, D, D_t, M,
@@ -887,6 +999,11 @@ void FORWARD::preprocess(int P, int D, int D_t, int M,
 		conic_opacity,
 		grid,
 		tiles_touched,
-		prefiltered
+		prefiltered,
+		debug_preprocess_buffer,
+		debug_preprocess_target_index,
+		debug_preprocess_pixel_x,
+		debug_preprocess_pixel_y,
+		debug_preprocess_stride
 		);
 }

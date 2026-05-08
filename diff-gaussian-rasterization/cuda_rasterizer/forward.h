@@ -53,7 +53,12 @@ namespace FORWARD
 		float4* conic_opacity,
 		const dim3 grid,
 		uint32_t* tiles_touched,
-		bool prefiltered);
+		bool prefiltered,
+		float* debug_preprocess_buffer,
+		int debug_preprocess_target_index,
+		int debug_preprocess_pixel_x,
+		int debug_preprocess_pixel_y,
+		int debug_preprocess_stride);
 
 	// Main rasterization method.
 	void render(

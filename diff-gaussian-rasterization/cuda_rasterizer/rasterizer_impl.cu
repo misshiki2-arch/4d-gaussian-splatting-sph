@@ -235,7 +235,12 @@ int CudaRasterizer::Rasterizer::forward(
 	int debug_pixel_x,
 	int debug_pixel_y,
 	int debug_pixel_max_entries,
-	int debug_pixel_stride)
+	int debug_pixel_stride,
+	float* debug_preprocess_buffer,
+	int debug_preprocess_target_index,
+	int debug_preprocess_pixel_x,
+	int debug_preprocess_pixel_y,
+	int debug_preprocess_stride)
 {
 	const float focal_y = height / (2.0f * tan_fovy);
 	const float focal_x = width / (2.0f * tan_fovx);
@@ -295,7 +300,12 @@ int CudaRasterizer::Rasterizer::forward(
 		geomState.conic_opacity,
 		tile_grid,
 		geomState.tiles_touched,
-		prefiltered
+		prefiltered,
+		debug_preprocess_buffer,
+		debug_preprocess_target_index,
+		debug_preprocess_pixel_x,
+		debug_preprocess_pixel_y,
+		debug_preprocess_stride
 	), debug)
 
 	// Compute prefix sum over full list of touched tile counts by Gaussians
