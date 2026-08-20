@@ -526,6 +526,12 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 	float4 p_hom = transformPoint4x4(p_orig, projmatrix);
 	float p_w = 1.0f / (p_hom.w + 0.0000001f);
 	float3 p_proj = { p_hom.x * p_w, p_hom.y * p_w, p_hom.z * p_w };
+	if (debug_preprocess)
+	{
+		debug_preprocess_row[85] = p_hom.x; debug_preprocess_row[86] = p_hom.y;
+		debug_preprocess_row[87] = p_hom.z; debug_preprocess_row[88] = p_hom.w;
+		debug_preprocess_row[56] = p_proj.x; debug_preprocess_row[57] = p_proj.y; debug_preprocess_row[58] = p_proj.z;
+	}
 
 	// Compute 2D screen-space covariance matrix
 	float3 cov = computeCov2D(p_orig, focal_x, focal_y, tan_fovx, tan_fovy, cov3D, viewmatrix, debug_preprocess_row);
