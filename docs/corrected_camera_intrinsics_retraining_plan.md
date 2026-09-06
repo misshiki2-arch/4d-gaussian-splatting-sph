@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-only / Investigation1-4 static audit complete / audit integration documented / five-formal-policy-groups-approved / remaining-formal-policy-open / source-fixes-not-started / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-only / Investigation1-4 static audit complete / audit integration documented / six-formal-policy-groups-approved / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -49,14 +49,16 @@ The Fudan Native model configuration, existing train/test-only dataset and
 evaluation policy, checkpoint-foundation/exact-resume staging policy, and
 formal camera/effective-`eval` policy were approved by the user on 2026-09-03
 JST. The formal renderer invocation policy was approved on 2026-09-04 JST.
-All five policy groups are integrated below. Remaining formal policy selection,
-source fixes, focused validation, pilot training, formal retraining, corrected
-artifact generation, and Viewer restart have not started. P0 findings block
-only the gate whose accepted output would reach the defect; Viewer-only defects
-do not unnecessarily block corrected training, and training-state defects
-cannot be deferred to artifact generation. Policy approval and document
-synchronization do not close P0-0, P0-1, P0-2, or P0-3 or constitute source-
-fix, focused-validation, runtime, or scientific acceptance.
+The alpha-cap derivative policy was approved by the user and synchronized here
+on 2026-09-06 JST. All six policy groups are integrated below. Remaining
+formal policy selection, source fixes, focused validation, CUDA execution,
+pilot training, formal retraining, corrected artifact generation, and Viewer
+restart have not started. P0 findings block only the gate whose accepted output
+would reach the defect; Viewer-only defects do not unnecessarily block
+corrected training, and training-state defects cannot be deferred to artifact
+generation. Policy approval and document synchronization do not close any
+P0/P1 finding or Gate A and do not constitute source-fix, focused-validation,
+runtime, or scientific acceptance.
 
 ## Repository identity
 
@@ -270,9 +272,9 @@ Original-mean SH, spatial degree 2, disabled temporal SH, or any other reduced
 configuration is unreachable for the formal baseline and must fail closed.
 This policy repairs the implementation while preserving the paper-intended
 spatiotemporal Fudan Native model; it is not a request to reproduce inconsistent
-official-code behavior. The alpha-cap derivative and other genuinely undecided
-renderer behavior remain open. The invocation branches selected below are no
-longer policy-open.
+official-code behavior. The alpha-cap derivative is decided independently
+below; other genuinely undecided renderer behavior remains open. The
+invocation branches selected below are no longer policy-open.
 
 ### Approved formal renderer invocation contract
 
@@ -313,6 +315,71 @@ API, location, error schema, and mechanism that guarantees failure before
 renderer import/CUDA JIT remain implementation-open. Future support for any
 rejected branch requires separate policy, any necessary Fix and validation,
 and a distinct run or artifact identity when semantics differ.
+
+### Approved alpha-cap derivative contract
+
+The user approved this corrected mathematical contract as Candidate A on
+2026-09-06 JST. For each contributing Gaussian/pixel pair, define
+
+`G = exp(power)`
+
+`raw_alpha = effective_opacity * G`
+
+`alpha = min(0.99f, raw_alpha)`
+
+The forward `0.99f` cap is preserved. Backward applies the piecewise derivative
+
+`s(raw_alpha) = 1` when `raw_alpha < 0.99f`, and
+`s(raw_alpha) = 0` when `raw_alpha >= 0.99f`,
+
+so that `dL/draw_alpha = s(raw_alpha) * dL/dalpha`. Bitwise equality with the
+float32 value `0.99f` is on the saturated branch and its selected subgradient
+is zero. CUDA therefore uses `raw_alpha < 0.99f` as the only uncapped test; it
+must not use `<=` or infer the branch from a rounded or already capped value.
+
+RGB, flow, depth, mask, and background contributions continue to aggregate
+into the existing `dL/dalpha`. The raw-alpha gate is applied exactly once after
+that aggregation. It gates only the alpha-mediated chain: opacity, `G`, screen
+mean x/y, conic/covariance, and the downstream 3D/4D parameters reached through
+those quantities. It does not gate the direct gradients to color values, flow
+values, or depth values, nor the direct depth-to-screen-mean-z path. A parameter
+may also receive gradients through a direct path, an uncapped contribution, or
+another pixel, so its total gradient is not promised to be zero merely because
+one contribution is saturated.
+
+This contract changes no forward output or visibility decision. The `0.99f`
+cap, alpha-below-`1/255` skip, early termination, contributor ordering, tile
+membership, and visibility semantics remain unchanged. The formal baseline
+does not adopt a straight-through or other surrogate derivative above the cap,
+remove the cap, replace it with a smooth cap, or reject a formal input merely
+because it reaches the cap.
+
+The official-code ungated backward is source-lineage evidence, not the formal
+derivative. This corrected baseline instead differentiates the piecewise graph
+actually executed by forward while retaining its numerical-stability
+semantics. No external paper is claimed to prescribe this exact threshold,
+parameter-chain boundary, or equality subgradient; the contract rests on
+executed-graph consistency, preservation of the existing forward behavior,
+isolatable validation, and explicit user approval.
+
+The CPU oracle must implement this branch independently and must not inherit
+whatever equality subgradient a framework `min` or `clamp` happens to choose.
+Boundary fixtures distinguish float32 `c = 0.99f`,
+`nextafterf(c, -infinity)`, bitwise equality with `c`, and
+`nextafterf(c, +infinity)`. Central finite difference at equality is not an
+acceptance criterion. At equality, validation separately checks the left
+one-sided slope of one, the right one-sided slope of zero, and the selected
+analytic subgradient of zero.
+
+The first candidate for a future, separately authorized minimal Fix is local
+to `backward.cu`: derive the gate from the already recomputed uncapped
+`raw_alpha`, then apply it once to the aggregated `dL/dalpha` before the
+alpha-mediated chain. This is a candidate implementation boundary, not an
+implementation instruction or evidence that the Fix exists. Only if focused
+runtime validation cannot establish float32 forward/backward branch parity may
+a separately reviewed design consider storing a cap-active flag from forward.
+Expansion into buffers, headers, bindings, or the Python API is not authorized
+by this policy or documentation sync.
 
 ## Confirmed training-lifecycle P0 blockers
 
@@ -524,8 +591,8 @@ silently available:
   the approved model contract);
 - non-equivalent Python-precompute and CUDA-direct branches (Python covariance
   and SH precompute are unsupported);
-- disagreement between the forward alpha `0.99` clamp and its backward
-  derivative (still policy-open);
+- disagreement between the forward alpha `0.99` clamp and its ungated backward
+  derivative (policy decided; source Fix and focused validation not started);
 - missing scale-gradient factors and Python temporal-marginal inconsistency
   when `scaling_modifier != 1` (non-unit and nonfinite values are unsupported);
 - a factor-of-two z-gradient error in projected 2D covariance outside the
@@ -536,13 +603,14 @@ silently available:
 
 An issue needed by the selected formal branch must be corrected and validated.
 An unused branch must be rejected explicitly rather than left silently
-available. Alpha-cap derivative policy remains open. Python covariance/SH
-precompute, non-unit scaling, environment maps, and color override are decided
-as unsupported for the first formal baseline; their historical findings remain
-recorded, but their adoption is not an open policy question. The camera policy
-above is decided but its P0-0 source Fix and focused validation have not
-started. P0-1, P0-2, and P0-3 source fixes and validation have likewise not
-started.
+available. The alpha-cap derivative policy is decided, but its source Fix,
+focused validation, and float32 runtime branch-parity confirmation have not
+started. Python covariance/SH precompute, non-unit scaling, environment maps,
+and color override are decided as unsupported for the first formal baseline;
+their historical findings remain recorded, but their adoption is not an open
+policy question. The camera policy above is decided but its P0-0 source Fix and
+focused validation have not started. P0-1, P0-2, and P0-3 source fixes and
+validation have likewise not started.
 
 ## Bounded P2 findings
 
@@ -568,7 +636,7 @@ them.
 | Owner group | P1 disposition | P2 or bounded follow-up |
 |---|---|---|
 | camera/projection policy | Support only complete centered intrinsics and complete geometrically valid FoV-only input; reject mixed/partial/ambiguous/nonfinite/off-center input; keep raw sentinel separate from canonical effective state; preserve projection `0.01`/`100.0` and CUDA near-cull `0.2` with no far-cull. One common builder owns execution; P0-A6 separately owns later publication. | Define centered tolerance, field-level validation/error schema, and bounded supported-mode fixtures; any future off-center or visibility-semantics change needs separate policy and validation. |
-| renderer branch policy | Implement conditional-mean SH, spatial degree 3, temporal degree 2 with the fixed 48-slot layout, `rot_4d=true`, and `force_sh_3d=false`; enforce `compute_cov3D_python=False`, `convert_SHs_python=False`, exact `scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None` before any formal renderer; resolve alpha-cap derivative and remaining supported-path findings separately. | Determinant epsilon, radius inflation, empty population, overflow, radius-threshold diagnostics, and separately identified future support for rejected invocation branches. |
+| renderer branch policy | Implement conditional-mean SH, spatial degree 3, temporal degree 2 with the fixed 48-slot layout, `rot_4d=true`, and `force_sh_3d=false`; enforce `compute_cov3D_python=False`, `convert_SHs_python=False`, exact `scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None` before any formal renderer; apply the separately owned alpha-cap piecewise derivative to the alpha-mediated chain while preserving direct value/depth-z paths; resolve other supported-path findings separately. | Determinant epsilon, radius inflation, empty population, overflow, radius-threshold diagnostics, and separately identified future support for rejected invocation branches. |
 | optimizer/learning-rate policy | Define temporal-position LR scheduling and supported parameter-group behavior; do not infer it from the spatial-only scheduler. | Log effective per-group LR without adding a second schedule owner. |
 | densification/population policy | Define temporal selection, strict point-cap semantics, clone/split/prune ordering, prune-only behavior, opacity reset, and screen/world pruning. | Measure cap overshoot, nonfinite accumulator frequency, and memory pressure in bounded pilot runs. |
 | evaluation/metric policy | Preserve the approved train/test identity, create no validation population, keep test selection-free, and use the pre-fixed final completed checkpoint. Test-report metric/cadence and clamp/channel/background remain open; any future best branch needs a separate experiment policy. | Keep diagnostic train samples separate from test reporting and visualization. |
@@ -664,7 +732,7 @@ runtime artifact acceptance as applicable.
 ## Formal policy decisions and intentionally open items
 
 Audit integration classifies when each remaining decision is required. The
-five user-approved policy groups are decided here; temporary candidates for
+six user-approved policy groups are decided here; temporary candidates for
 the remaining items must not be presented as the formal contract.
 
 | Decision stage | Required decisions |
@@ -675,7 +743,8 @@ the remaining items must not be presented as the formal contract.
 | decided: dataset/evaluation | Preserve train as all 5,146 `v01-v31` frames and test as all 166 `v00` frames; require effective `eval=True` after CLI/config merge; reject effective `eval=False`, which yields 5,312 train and zero test cameras; keep the populations disjoint; add no validation population; keep `v31` in training; never use test for training, selection, tuning, or early stopping; use the pre-fixed final completed iteration as canonical; any validation-based experiment gets a separate identity/output owner. |
 | decided: checkpoint/resume staging | Normalize completed-state checkpoints, exact completed-update labels, versioned semantics, diagnostics, and provenance independently of resume; prohibit pilot resume and every legacy warm-start; treat exact resume as a later independent root Fix with an equivalence gate; until accepted, resume fails closed and only uninterrupted completed formal runs can be canonical. |
 | decided: renderer invocation | Require one effective contract everywhere: `compute_cov3D_python=False`, `convert_SHs_python=False`, `scaling_modifier=1.0` exactly, `env_map_res=0`, and `override_color=None`; reject every other or nonfinite value before renderer import/CUDA JIT or formal render; training, evaluation/test render, CUDA Reference, and checkpoint consumers share the same validated identity and may not substitute defaults. This decision does not accept the current CUDA-direct renderer, which remains blocked on P0-1/P0-2/P0-3 source fixes and focused validation. |
-| required before implementation | Alpha-cap derivative; camera centered-tolerance, field-level validation/error schema, and common-builder API/location; exact shared renderer-validator API/location/error schema and pre-import/JIT failure mechanism; remaining field-level formal run mode and checkpoint schema; evaluation/save/densification/reset/step ordering consistent with completed updates; temporal densification policy; strict point-cap/prune/opacity-reset policy. |
+| decided: alpha-cap derivative | Keep `alpha=min(0.99f, raw_alpha)` in forward; after aggregating all `dL/dalpha`, use the independent piecewise gate `raw_alpha < 0.99f` for the alpha-mediated opacity/G/screen-xy/conic/covariance chain and zero that chain for `raw_alpha >= 0.99f`, including a zero selected subgradient at bitwise-equal float32 `0.99f`; preserve direct color/flow/depth and depth-to-screen-z gradients. Do not use an STE/surrogate, cap removal, smooth cap, or cap-triggered formal rejection. Source Fix and focused validation remain required. |
+| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; exact shared renderer-validator API/location/error schema and pre-import/JIT failure mechanism; remaining field-level formal run mode and checkpoint schema; evaluation/save/densification/reset/step ordering consistent with completed updates; temporal densification policy; strict point-cap/prune/opacity-reset policy. |
 | required before formal retraining | Numeric final iteration and pilot/formal schedules; pilot/formal point caps; densification/prune/reset numeric schedules; complete effective-config snapshot; deterministic seed ownership details; test-report metric/cadence; nonfinite/OOM/partial-failure policy; immutable output directory and atomic publication; and, only if resume will be enabled, field-level restore state plus numerical/bitwise equivalence acceptance thresholds. |
 | required before formal artifact generation | SPL4-v2 log/linear scale representation; PNG clamp/round/color/codec; full/range CUDA Reference purposes; manifest schema and validator; source-to-binary build provenance; bundle/index/external-digest ownership; direct evidence as formal same-invocation evidence or diagnostic-only. |
 | required before Viewer restart | Corrected population and fixed range; Viewer provenance binding; strict parser acceptance; removal or versioned isolation of historical hard-coded ranges; Viewer capture/comparison bundle identity. |
@@ -698,6 +767,7 @@ this documentation sync.
 | 8 | Conditional resume-equivalence test across uninterrupted and separate-process restored continuation; required only before enabling resume | P0-T5/T6 and resume fidelity |
 | 9 | Camera handoff numeric test that projection and rasterizer forward/backward consume identical canonical focal/tan values for centered intrinsics and valid FoV-only cameras | P0-0, camera P1 |
 | 10 | Independent one-Gaussian forward oracle for projection, covariance, SH, alpha, and compositor | P0-1/P0-2/P0-3 and renderer P1 |
+| 10a | Independent single-Gaussian/single-pixel CPU alpha-cap oracle and focused gradient suite: well below/above the cap; float32 nextafter below/equal/above; individual and mixed RGB/flow/depth/mask loss paths; nonzero background; multiple contributors; opacity plus screen-mean or conic gradients; non-crossing finite differences below/above; separate equality one-sided slopes and selected subgradient; pre-Fix negative regression; unchanged direct gradients and forward output; and both 3D and 4D CUDA-direct paths under the exact five-field invocation | alpha-cap renderer-math responsibility |
 | 11 | CPU autograd and finite differences for xyz/time/scale/qL/qR/opacity/SH/screen mean | P0-1/P0-2/P0-3 and gradient P1 |
 | 12 | CUDA forward and gradient smoke over the one supported renderer invocation and every supported camera boundary; verify identical effective invocation across training, evaluation/test render, CUDA Reference, and checkpoint consumers, with every unsupported input rejected before CUDA/formal rendering | P0-0 through P0-3, P0-T7 reachability, branch P1 |
 | 13 | SPL4-v2 golden header/payload byte test | SPL4 representation and exporter P1 |
@@ -727,6 +797,30 @@ are not assumed to be independent oracles. One-sided checks cover temporal
 eligibility, near/far, alpha skip/cap, early termination, determinant validity,
 and tile bounds. The relevant validation report must be reviewed before its
 next gate is opened.
+
+For the alpha-cap contract specifically, the focused fixture keeps alpha well
+above the `1/255` skip for every perturbation, never crosses the early-
+termination boundary, and fixes contributor order, tile membership, and
+visibility. It covers raw alpha well below and above `0.99f`, the immediate
+float32 values below/equal/above it, RGB/flow/depth/mask separately and mixed,
+a nonzero background, and multiple contributors. It observes opacity and at
+least one screen-mean or conic gradient. Below and above the cap, finite-
+difference perturbations must remain on their own side; equality uses separate
+left/right one-sided checks, never a central-difference pass criterion. Before
+the Fix, the focused negative regression must isolate the current nonzero
+analytic alpha-mediated gradient above the cap against a zero forward finite
+difference; after the Fix, that regression must pass. Below-cap gradients must
+match the independent oracle and finite difference within the later approved
+tolerance; above-cap alpha-mediated gradients must be zero. Direct color,
+flow-value, depth-value, and depth-to-screen-z gradients, and all forward
+outputs, must remain unchanged. The suite covers 3D and 4D CUDA-direct paths
+with `compute_cov3D_python=False`, `convert_SHs_python=False`, exact
+`scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None`.
+
+Numeric tolerance is intentionally not guessed here. A future focused-
+validation instruction must state dtype, independent-oracle arithmetic,
+finite-difference step, and acceptance tolerance. The source Fix, fixture,
+CUDA build, and CUDA execution have not been implemented or run.
 
 For camera/evaluation specifically, the future focused validation must derive
 the positive SPH canonical focal/tan values on CPU; prove that a raw negative
@@ -851,7 +945,8 @@ the approved conditional-mean, spatial-degree-3, temporal-degree-2 48-slot
 branch with `rot_4d=true` and `force_sh_3d=false`; the exact approved renderer
 invocation `compute_cov3D_python=False`, `convert_SHs_python=False`,
 `scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None`; the pilot-
-reachable parts of P0-0 through P0-3; P0-T1, P0-T2, and P0-T3; one formal run
+reachable parts of P0-0 through P0-3; the approved alpha-cap derivative;
+P0-T1, P0-T2, and P0-T3; one formal run
 mode and effective config whose post-merge `eval` is true; a new non-
 overwriting output owner; a minimum versioned completed-state checkpoint
 foundation; fail-closed finite/failure behavior; and the approved train/test-
@@ -867,6 +962,10 @@ Pilot training may start only when:
   focused camera forward/gradient validation is accepted;
 - P0-1, P0-2, and P0-3 on the selected CUDA-direct branch are corrected in
   source and their focused forward/gradient validation is accepted;
+- the alpha-cap piecewise derivative is implemented in source as its separate
+  renderer-math responsibility, and its independent CPU-oracle, float32-
+  boundary, finite-difference, negative-regression, direct-gradient, unchanged-
+  forward, and 3D/4D CUDA-direct focused validation is accepted;
 - the requested update count is exact, including the final update;
 - checkpoint/save state boundaries are unambiguous;
 - densification iterations preserve the intended gradient/update transaction;
@@ -971,6 +1070,7 @@ a second copy of the policy.
 |---|---|---|
 | common camera contract | P0-0; explicit two-mode validation, raw/effective separation, post-resolution canonical camera identity, projection/rasterizer forward/backward handoff, and pre-GPU rejection; excludes off-center expansion and visibility-semantics retuning | manifest/runtime camera publication in P0-A6 after P0-0 acceptance |
 | renderer forward/backward | P0-1 plus conditional-mean P0-2 and spatial-3/temporal-2 fixed-48-slot P0-3 under `rot_4d=true`, `force_sh_3d=false`; this math Fix does not own formal-config enforcement; remaining supported-path renderer P1 is separately bounded | training validation and CUDA Reference semantics |
+| alpha-cap derivative (separate renderer math) | Preserve the forward `0.99f` cap and direct value/depth-z paths; gate the aggregated `dL/dalpha` once for the alpha-mediated chain with uncapped `raw_alpha < 0.99f` and equality saturated. The first future candidate is a local `backward.cu` Fix; it is not part of P0-1/P0-2/P0-3 and does not authorize buffer/binding/Python expansion. | focused independent oracle, float32 boundary/branch-parity, finite-difference, negative-regression, unchanged-forward, and 3D/4D CUDA-direct acceptance before Gate A |
 | training state machine | P0-T1, P0-T2 | checkpoint labels and P0-A1 |
 | optimizer/densification transaction | P0-T3 and population policy | final checkpoint population identity |
 | dataset/evaluation policy | P0-T4; post-merge effective `eval=True`, exact `v01-v31` train and `v00` test identity, no validation population, test non-selection, and formal rejection of `eval=False` | fixed-final checkpoint selection and P0-A8 |
@@ -1027,12 +1127,14 @@ the historical `[524288,1048576)` range.
    checkpoint/resume-staging, and camera/effective-`eval` policies.
    **Complete in this document.**
 4. Integrate the approved one-path renderer invocation contract.
-   **Complete in this document.** The next authorized milestone is
-   investigation and decision of the remaining formal policy fields, including
-   alpha-cap derivative, camera implementation details, run mode/transaction,
-   and densification policy—not source implementation. Confirm one root owner
-   and one bounded Fix responsibility at a time only after the applicable
-   policy is decided.
+   **Complete in this document.** Integrate the approved alpha-cap derivative
+   contract. **Complete in this document on 2026-09-06 JST.** After document
+   review and the user-owned Git checkpoint, the next candidate remains policy
+   investigation—not source implementation—and is the completed-update
+   training-transaction ordering related to P0-T1/P0-T2/P0-T3. Camera
+   implementation details, run mode, densification, and other remaining policy
+   fields stay undecided. Confirm one root owner and one bounded Fix
+   responsibility at a time only after the applicable policy is decided.
 
 ### Phase 1: training-critical foundation
 
@@ -1122,7 +1224,10 @@ Complete at this milestone:
   camera/effective-`eval` policies; and
 - repository synchronization of the user-approved formal renderer invocation
   contract: `compute_cov3D_python=False`, `convert_SHs_python=False`, exact
-  `scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None`.
+  `scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None`; and
+- repository synchronization of the user-approved 2026-09-06 JST alpha-cap
+  derivative contract, including saturated equality with selected subgradient
+  zero and the future focused-validation boundary.
 
 Not complete and not authorized by this document sync:
 
@@ -1138,8 +1243,10 @@ Not complete and not authorized by this document sync:
 
 ## Open items
 
-- alpha-cap derivative and any other still-undecided supported-path renderer
-  behavior;
+- alpha-cap source Fix, focused validation, runtime float32 forward/backward
+  branch-parity confirmation, and validation tolerance; the derivative policy
+  itself is decided;
+- any other still-undecided supported-path renderer behavior;
 - renderer-invocation enforcement details: exact shared pure-validator API and
   location, error schema, consumer integration, and the mechanism that fails
   before renderer import/CUDA JIT;
@@ -1177,11 +1284,13 @@ Not complete and not authorized by this document sync:
   policy, necessary Fix and validation, and distinct run/artifact identity when
   semantics differ. None is an open adoption choice for this baseline.
 
-No camera, renderer, SH, backward, training-state, checkpoint, exporter,
+No camera, renderer, alpha-cap, SH, backward, training-state, checkpoint, exporter,
 parser, CUDA Reference, manifest, or Viewer fix; build; test; CUDA execution;
 render; training; export; artifact generation; branch operation; commit; or
-push has been performed by this documentation sync. The formal camera/eval and
-renderer-invocation policies are synchronized, but their enforcement is not
-implemented. P0-0, P0-1, P0-2, P0-3, and P0-A6 remain open until their
-separate source responsibilities and required validation are completed and
-accepted; P0-T7 remains unfixed but unreachable for the first baseline.
+push has been performed by this documentation sync. The formal camera/eval,
+renderer-invocation, and alpha-cap derivative policies are synchronized, but
+their enforcement and source corrections are not implemented. P0-0, P0-1,
+P0-2, P0-3, the separate alpha-cap renderer-math responsibility, and P0-A6
+remain open until their source responsibilities and required validation are
+completed and accepted; P0-T7 remains unfixed but unreachable for the first
+baseline.
