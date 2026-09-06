@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-only / Investigation1-4 static audit complete / audit integration documented / seven-formal-policy-groups-approved / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-only / Investigation1-4 and Issue-#10 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -46,6 +46,10 @@ artifact audit, not implementation or post-fix runtime validation.
   evaluation boundaries, and optimizer/densification parameter identity is
   complete and was independently reviewed before the policy below was
   approved by the user.
+- Issue #10's read-only static investigation of formal configuration
+  resolution, import/JIT order, output identity, and downstream consumer
+  authority is complete. Its independently reviewed policy is approved by the
+  user and synchronized here under Issue #11.
 - The Investigation1-4 findings, dependencies, ownership boundaries, and
   pre-implementation gates are integrated in this document.
 
@@ -56,7 +60,9 @@ JST. The formal renderer invocation policy was approved on 2026-09-04 JST.
 The alpha-cap derivative policy was approved by the user and synchronized here
 on 2026-09-06 JST. The completed-update training transaction policy was then
 approved by the user after independent review and synchronized here on
-2026-09-06 JST. All seven policy groups are integrated below. Remaining formal
+2026-09-06 JST. The independent formal-entry/effective-configuration policy was
+subsequently approved after the Issue #10 investigation and is synchronized
+under Issue #11. All eight policy groups are integrated below. Remaining formal
 policy selection, source fixes, focused validation, CUDA execution, pilot
 training, formal retraining, corrected artifact generation, and Viewer restart
 have not started. P0 findings block only the gate whose accepted output would
@@ -323,6 +329,73 @@ API, location, error schema, and mechanism that guarantees failure before
 renderer import/CUDA JIT remain implementation-open. Future support for any
 rejected branch requires separate policy, any necessary Fix and validation,
 and a distinct run or artifact identity when semantics differ.
+
+### Approved independent formal entry and effective-configuration contract
+
+The first formal baseline has one authoritative, pure resolver/validator for
+its effective execution state. It must be independent of `torch`, the renderer,
+`Scene`, and CUDA-related modules. In the same training process it resolves one
+explicit formal configuration, validates it fail closed, and produces one
+verified typed state before any import of the renderer, `Scene`, CUDA extension,
+or other module that can initialize or JIT-compile the heavy path. Investigation
+#10 Candidate B, the common authority, and Candidate A, the in-process pre-JIT
+bootstrap, are complementary parts of this contract rather than alternatives.
+Candidate C, a parent process that launches the existing training program as a
+subprocess, and Candidate D, validation inside training after renderer import or
+JIT, are rejected because neither establishes the required same-process,
+pre-heavy-import authority boundary.
+
+Semantic CLI overrides are forbidden. The resolver must accept exactly one
+explicit formal input authority, resolve and validate it once, and reject a
+missing or unknown field, an implicit semantic default, duplicate or competing
+authorities, and any later semantic overwrite. The exact allowlist of purely
+operational CLI controls remains undecided; this policy does not invent option
+names. Helper name, file placement, API, error schema, and the concrete typed-
+state representation also remain implementation-open.
+
+The verified state must bind the already approved dataset/evaluation, Fudan
+Native model, camera/effective state, and five-field renderer values; effective
+post-merge completed-update count `N`; and a unique non-overwriting output
+identity. It must prove no resume, warm-start, best-checkpoint, environment-map
+checkpoint, legacy output, or pre-existing output-directory state is admitted.
+`scaling_modifier=1.0` and `override_color=None` are explicit verified fields,
+not call-site defaults. The final-checkpoint condition and test/save lists must
+be constructed only from verified post-merge `N`. This does not move ownership
+of the P0-T1/T2 state machine or P0-T3 optimizer/densification transaction into
+the resolver; those remain separate source responsibilities that consume the
+verified state.
+
+The same verified identity is consumed by training and, later, by formal
+evaluation and CUDA Reference generation. Those consumers may not reconstruct
+values from local defaults. `cfg_args` is neither a complete execution identity
+nor a formal input authority, and a formal consumer must not retain an
+executable `eval` route for it. Checkpoint/manifest publication may record and
+verify the identity, but cannot become another policy owner. The resolver does
+not own camera or renderer mathematics, the checkpoint schema in P0-T6, atomic
+publication, deterministic seed details, reporting policy, exact resume, or the
+P0-T1/T2/P0-T3 transaction.
+
+The present source does not implement this contract:
+
+- `train.py` imports `gaussian_renderer` and `Scene` before parsing formal
+  input, while `gaussian_renderer/diff_gaussian_rasterization.py` performs
+  module-level `torch.utils.cpp_extension.load()`;
+- `save_iterations` receives the CLI/default `iterations` value before YAML is
+  loaded, then the recursive YAML merge overwrites parsed CLI/default fields;
+- repository YAMLs are legacy/general configurations rather than a complete
+  formal authority, and some carry `loaded_pth` or best-checkpoint paths that
+  the formal entry must reject;
+- output setup reuses an existing directory, overwrites `cfg_args`, and then
+  `Scene` can write camera/input artifacts or load `loaded_pth` state;
+- the initial training report occurs before any optimizer update;
+- renderer calls rely on the default `scaling_modifier=1.0` and
+  `override_color=None` rather than an explicit verified identity; and
+- `get_combined_args` can execute `eval()` on `cfg_args`, while its merge route
+  is not unified with the training YAML route or any formal consumer contract.
+
+These are current-source findings, not completed Fixes. No resolver,
+pre-heavy-import enforcement, typed state, consumer integration, or focused
+validation has been implemented by this synchronization.
 
 ### Approved alpha-cap derivative contract
 
@@ -819,7 +892,7 @@ runtime artifact acceptance as applicable.
 ## Formal policy decisions and intentionally open items
 
 Audit integration classifies when each remaining decision is required. The
-seven user-approved policy groups are decided here; temporary candidates for
+eight user-approved policy groups are decided here; temporary candidates for
 the remaining items must not be presented as the formal contract.
 
 | Decision stage | Required decisions |
@@ -832,7 +905,8 @@ the remaining items must not be presented as the formal contract.
 | decided: renderer invocation | Require one effective contract everywhere: `compute_cov3D_python=False`, `convert_SHs_python=False`, `scaling_modifier=1.0` exactly, `env_map_res=0`, and `override_color=None`; reject every other or nonfinite value before renderer import/CUDA JIT or formal render; training, evaluation/test render, CUDA Reference, and checkpoint consumers share the same validated identity and may not substitute defaults. This decision does not accept the current CUDA-direct renderer, which remains blocked on P0-1/P0-2/P0-3 source fixes and focused validation. |
 | decided: alpha-cap derivative | Keep `alpha=min(0.99f, raw_alpha)` in forward; after aggregating all `dL/dalpha`, use the independent piecewise gate `raw_alpha < 0.99f` for the alpha-mediated opacity/G/screen-xy/conic/covariance chain and zero that chain for `raw_alpha >= 0.99f`, including a zero selected subgradient at bitwise-equal float32 `0.99f`; preserve direct color/flow/depth and depth-to-screen-z gradients. Do not use an STE/surrogate, cap removal, smooth cap, or cap-triggered formal rejection. Source Fix and focused validation remain required. |
 | decided: completed-update transaction | Start from completed count zero and execute `k=1..N` exactly once with no `N+1` fetch; apply schedules before forward; forward/loss/backward; collect and apply current densification statistics before Parameter replacement; same-Parameter optimizer step including `k=N`; zero-grad; scheduled densify/clone/split/prune; scheduled opacity reset; then declare completed state `k`, save checkpoint `k`, and evaluate that same state. Densify/prune precedes reset when simultaneous; prune reads post-step/pre-reset opacity; children derive from post-step parents; reset reaches survivors and children. Final checkpoint `N` is mandatory from effective post-merge `N`. Optimization input loss `k` remains distinct from completed-state test metric `k`; initial state zero is not an update or selection state. Candidate B is adopted and A/C/D are rejected for the bounded reasons above. Source Fix and focused validation remain required. |
-| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; exact shared renderer-validator API/location/error schema and pre-import/JIT failure mechanism; remaining field-level formal run mode and checkpoint schema; concrete training loop/helper API; temporal densification policy; strict numeric point-cap/prune/opacity-reset policy. The completed-update event order itself is not open. |
+| decided: independent formal entry/effective configuration | Use one pure resolver/validator, independent of `torch`, renderer, `Scene`, and CUDA modules, as the sole authority for one explicit formal configuration; combine the common owner of Investigation #10 Candidate B with the same-process pre-JIT bootstrap of Candidate A; reject parent-subprocess Candidate C and post-JIT Candidate D; forbid semantic CLI override and fail closed on missing/unknown fields, implicit semantic defaults, multiple authorities, later semantic overwrite, resume/warm-start/best/environment-map checkpoint state, legacy output, and pre-existing output directories before renderer import/JIT/CUDA/render/output write. Bind approved dataset/model/camera/renderer values, explicit `scaling_modifier=1.0` and `override_color=None`, verified post-merge `N`, final-checkpoint/test/save construction, and output identity once for all consumers. `cfg_args` is not a formal authority or complete identity and no formal consumer may execute it. Exact operational CLI allowlist, helper/API/location/error schema, and typed representation remain implementation-open. |
+| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; independent resolver helper/API/location/error schema/typed state, exact operational CLI allowlist, and same-process pre-heavy-import enforcement; remaining field-level formal run mode and checkpoint schema; concrete training loop/helper API; temporal densification policy; strict numeric point-cap/prune/opacity-reset policy. The completed-update event order and formal-entry authority policy themselves are not open. |
 | required before formal retraining | Numeric final iteration and pilot/formal schedules; pilot/formal point caps; densification/prune/reset numeric schedules; complete effective-config snapshot; deterministic seed ownership details; test-report metric/cadence; nonfinite/OOM/partial-failure policy; immutable output directory and atomic publication; and, only if resume will be enabled, field-level restore state plus numerical/bitwise equivalence acceptance thresholds. |
 | required before formal artifact generation | SPL4-v2 log/linear scale representation; PNG clamp/round/color/codec; full/range CUDA Reference purposes; manifest schema and validator; source-to-binary build provenance; bundle/index/external-digest ownership; direct evidence as formal same-invocation evidence or diagnostic-only. |
 | required before Viewer restart | Corrected population and fixed range; Viewer provenance binding; strict parser acceptance; removal or versioned isolation of historical hard-coded ranges; Viewer capture/comparison bundle identity. |
@@ -846,7 +920,7 @@ this documentation sync.
 | # | Validation layer | Primary findings closed |
 |---:|---|---|
 | 1 | Pure CPU canonical-camera tests for SPH intrinsics, both supported modes, raw-sentinel isolation, dimensions/resolution scaling, clipping/cull separation, and the mixed/partial/nonfinite/invalid/off-center rejection matrix | P0-0 and camera/projection P1; P0-A6 consumes the accepted result later |
-| 2 | Post-merge effective-config tests for `eval` and the five-field renderer invocation, formal-run rejection for `eval=False`, remaining run-mode/legacy-path checks, and unsupported-branch negative matrix before renderer import/CUDA JIT | P0-T4, P0-A2, P0-T6/T7, renderer/config/run-mode P1 |
+| 2 | Pure resolver/validator tests, with no `torch`, renderer, `Scene`, or CUDA dependency: accept one explicit authority and the approved dataset/model/camera/renderer state; prove effective post-merge `eval=True`, explicit `scaling_modifier=1.0`/`override_color=None`, verified `N`, final-checkpoint/test/save construction from that `N`, and unique output identity; reject missing/unknown fields, implicit defaults, duplicate authority or overwrite, legacy/general YAML, `eval=False`, resume/warm-start/best/environment checkpoint state, legacy or pre-existing output, and every unsupported branch before renderer import/CUDA JIT/output write | independent formal-entry policy, P0-T4, P0-A2, P0-T6/T7, renderer/config/run-mode P1 |
 | 3 | Versioned checkpoint field serialization, semantic validation, diagnostic provenance, and rejection matrix; consume rather than redefine the completed-state label from P0-T1/T2 | P0-T6, P0-A1/A2 |
 | 4 | Training state-machine mock proving completed count starts at zero, `k=1..N` performs exactly `N` batch fetches and optimizer steps including final `N`, no `N+1` fetch occurs, and checkpoint-first/test-second both observe the post-topology/post-reset completed state | P0-T1/T2 |
 | 5 | Optimizer transaction test proving current visibility/radii/screen/time statistics are captured before replacement, the backward-owned Parameter is stepped, zero-grad precedes mutation, and ordinary/final/reset/topology transactions follow the approved event order | P0-T3, optimizer P1 |
@@ -893,6 +967,15 @@ prove that training, evaluation/test rendering, CUDA Reference generation, and
 checkpoint consumers use one effective identity rather than independently
 matching defaults. These tests and the enforcement they require do not yet
 exist.
+
+Formal-entry validation must additionally prove import order without importing
+the heavy path in the test fixture: resolution and validation finish first,
+then and only then may the same process import renderer/`Scene`/CUDA-related
+modules. It must prove the verified state is the sole semantic authority, that
+operational CLI handling cannot change it, and that formal evaluation and CUDA
+Reference consumers later receive the same identity without defaults or
+`cfg_args` reconstruction. The exact operational allowlist and implementation
+API/location remain open, so no speculative flag names are acceptance criteria.
 
 Independent forward oracles precede CUDA comparison; Python-precompute paths
 are not assumed to be independent oracles. One-sided checks cover temporal
@@ -1056,9 +1139,16 @@ only pilot evaluation policy.
 
 Pilot training may start only when:
 
-- a common post-merge formal validator enforces the exact five-field renderer
-  invocation before renderer import/CUDA JIT, and every unsupported branch
-  rejects without reaching CUDA or a formal render;
+- the pure formal resolver/validator is the sole effective-state authority,
+  finishes in the same process before importing renderer, `Scene`, or CUDA-
+  related modules, and every invalid/unsupported input rejects before JIT,
+  CUDA, rendering, output-directory creation, or any output write;
+- one explicit formal authority binds the approved dataset/model/camera/
+  renderer values, verified post-merge `N`, final checkpoint and test/save
+  lists derived only from that `N`, and a new output identity; semantic CLI
+  overwrite, implicit defaults, multiple authorities, legacy/general config,
+  `cfg_args`, resume/warm-start/best/environment checkpoint state, and existing
+  output directories all fail closed;
 - P0-0 uses one canonical effective-camera state for projection and rasterizer
   forward/backward, every unsupported camera input rejects before GPU, and the
   focused camera forward/gradient validation is accepted;
@@ -1102,13 +1192,16 @@ Pilot training may start only when:
 
 The pilot is a bounded intermediate run, not a formal checkpoint.
 The approved policy and this document synchronization alone do not satisfy
-Gate A. The common enforcement path, P0 source fixes, and validation above are
-all still unimplemented.
+Gate A. The pure resolver, pre-heavy-import enforcement path, P0 source fixes,
+consumer integration, and validation above are all still unimplemented.
 
 ### Gate B: before formal retraining
 
-Gate B requires accepted pilot evidence; a frozen canonical camera/eval
-contract and publication identity, including the supported camera mode,
+Gate B requires accepted pilot evidence; the accepted pure resolver and its
+same-process pre-heavy-import boundary; one frozen verified state connected to,
+but not owned by, the accepted P0-T1/T2/P0-T3 completed transaction; a frozen
+canonical camera/eval contract and publication identity, including the
+supported camera mode,
 effective dimensions/intrinsics/FoV/tan, centered-only disposition, distinct
 projection/cull semantics, and post-merge `eval=True`; the frozen and published
 five-field renderer invocation identity shared by every formal entrypoint,
@@ -1138,6 +1231,7 @@ test-non-selection policy, which still requires implementation and validation.
 Approved `env_map_res=0` makes P0-T7 unreachable for this baseline but does not
 fix it; every environment-map checkpoint or invocation state must fail closed.
 Every forbidden branch must fail closed rather than remain a silent option.
+Neither Gate A nor Gate B is passed.
 
 ### Gate C: before corrected SPL4 and CUDA Reference generation
 
@@ -1175,9 +1269,11 @@ Each Fix should close one root responsibility and its necessary tests. It must
 not mix unrelated changes from several owners merely because they share a
 later gate.
 
-The post-merge formal launcher is the candidate owner for one shared pure
-renderer-invocation validator. Training, evaluation/test render, CUDA Reference,
-and checkpoint consumers must import or consume that same contract definition;
+The independent formal-entry resolver/validator is the approved sole owner of
+the complete verified effective state. Investigation #10 Candidate B supplies
+the common authority and Candidate A supplies its same-process pre-JIT bootstrap;
+they are complementary. Training, evaluation/test render, CUDA Reference, and
+checkpoint consumers must consume that same verified identity;
 they must not become independent default or policy owners. The exact API,
 location, error schema, and import/JIT-before-validation prevention mechanism
 remain implementation-open. Configuration enforcement must be a bounded
@@ -1195,7 +1291,7 @@ a second copy of the policy.
 | dataset/evaluation policy | P0-T4; post-merge effective `eval=True`, exact `v01-v31` train and `v00` test identity, no validation population, test non-selection, and formal rejection of `eval=False` | fixed-final checkpoint selection and P0-A8 |
 | evaluation/best policy | Formal reporting is selection-free and the best branch is unsupported; any future validation/best experiment needs a separate policy, identity, and output owner | conditional best lineage in P0-T5/A8 only outside this baseline |
 | fixed-final checkpoint selection | Canonical identity is mandatory final checkpoint `N`, constructed from effective post-merge `N` and saved after update/topology/reset at its exact completed boundary, not `chkpnt_best.pth` | P0-A8 manifest and artifact consumers |
-| config/run launcher / shared pure validator candidate | complete post-merge effective config including required `eval=True`; enforce the exact five renderer fields once before renderer import/CUDA JIT; reject alternate/nonfinite values, environment-map checkpoint state, and legacy paths | all formal renderer entrypoints consume the same definition; P0-A2 and manifest publish/verify rather than redefine it |
+| independent formal entry / pure effective-state resolver | Sole owner of one explicit formal authority and verified typed state, independent of `torch`, renderer, `Scene`, and CUDA modules; resolve and reject before heavy import/JIT/output creation; bind approved dataset/model/camera/renderer values, effective `eval=True`, explicit scale/color fields, post-merge `N`, derived final-checkpoint/test/save conditions, and unique output identity; forbid semantic CLI override, competing authorities, defaults, legacy/loaded/best/resume/environment state, existing output, and executable `cfg_args`. Excludes P0-T1/T2/T3, P0-T6, camera/renderer math, seed, reporting, exact resume, and atomic publication. | same-process bootstrap imports heavy modules only after acceptance; training and later evaluation/CUDA Reference consume the state; P0-A2 and manifest publish/verify rather than redefine it |
 | diagnostic checkpoint foundation | P0-T6: version, field-level schema, semantic validation, diagnostics, and provenance; consume the P0-T1/T2 completed label without owning loop or optimizer order | P0-A1/A2/A8 consumers |
 | exact resume (conditional independent root) | Complete continuation state and equivalence, including any resume-reachable P0-T5/T6 handling, only after known P0/transaction stability; do not merge it into the diagnostic foundation or transaction Fix | formal continuation only after gate acceptance; otherwise fail closed |
 | environment-map lifecycle (future conditional root) | P0-T7 remains unfixed but unreachable under `env_map_res=0`; any future enablement requires separate policy and complete lifecycle/checkpoint/optimizer/resume validation | first-baseline CUDA reconstruction must reject environment state; future runtime publication follows only after separate acceptance |
@@ -1250,20 +1346,26 @@ the historical `[524288,1048576)` range.
    contract. **Complete in this document on 2026-09-06 JST.** Integrate the
    approved completed-update training transaction as a named Phase-0 policy
    work package without creating a new roadmap number. **Complete in this
-   document on 2026-09-06 JST.** Its source Fix and focused validation have not
-   started. After document review and the user-owned Git checkpoint, the
+   document on 2026-09-06 JST.** Integrate the Issue #10 approved independent
+   formal-entry/effective-configuration policy under Issue #11, combining the
+   common owner with same-process pre-JIT bootstrap. **Complete in this
+   document.** Its source Fix and focused validation have not started. After
+   document review and the user-owned Git checkpoint, the
    desktop advisor determines the next formal candidate; this document sync
    and CODEX do not select or start it. Camera implementation details, complete
    run mode, numeric densification/population fields, checkpoint schema, and
    other remaining policy fields stay undecided. Confirm one root owner and one
    bounded Fix responsibility at a time only after the applicable policy is
-   decided.
+   decided. The formal-entry authority is decided, while its helper/API/location,
+   typed state, exact operational CLI allowlist, and integration are not.
 
 ### Phase 1: training-critical foundation
 
-5. After the remaining prerequisite policy decisions, define the complete
-   effective-config, run-mode, and non-overwriting output identity contract,
-   including the shared renderer-invocation enforcement boundary.
+5. Implement the approved pure resolution/validation boundary, then its same-
+   process pre-heavy-import enforcement, and only afterward integrate the
+   verified state into downstream training fixes and formal consumers. Complete
+   the still-open run-mode fields, operational CLI allowlist, and non-overwriting
+   output identity without creating a second semantic authority.
 6. After its field-level schema policy is approved, implement the minimum
    versioned P0-T6 diagnostic checkpoint foundation independently of the
    training-state-machine and exact-resume roots; consume the approved
@@ -1362,12 +1464,18 @@ Complete at this milestone:
   statistics before same-Parameter step, zero-grad before topology, densify/
   prune before opacity reset, completed checkpoint `k` before test evaluation,
   mandatory effective-final checkpoint `N`, loss/metric separation, and the
-  initial-state-zero boundary.
+  initial-state-zero boundary; and
+- Investigation #10 and repository synchronization under Issue #11 of the
+  user-approved independent formal-entry/effective-configuration policy: one
+  pure authority, same-process pre-JIT enforcement, Candidate B plus Candidate
+  A, Candidate C/D rejection, explicit verified identity, and fail-closed
+  exclusion of competing/default/legacy/resume/best/environment/output reuse.
 
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
-- source, config, test, or tool fixes, including P0-T1/T2/T3 transaction fixes;
+- source, config, test, or tool fixes, including the formal resolver/bootstrap,
+  consumer integration, and P0-T1/T2/T3 transaction fixes;
 - focused validation or CUDA build;
 - pilot training or formal retraining, including any exact-resume Fix or
   equivalence acceptance;
@@ -1382,9 +1490,10 @@ Not complete and not authorized by this document sync:
   branch-parity confirmation, and validation tolerance; the derivative policy
   itself is decided;
 - any other still-undecided supported-path renderer behavior;
-- renderer-invocation enforcement details: exact shared pure-validator API and
-  location, error schema, consumer integration, and the mechanism that fails
-  before renderer import/CUDA JIT;
+- formal-entry implementation details: exact pure resolver helper/API/location,
+  typed verified-state representation, error schema, exact operational CLI
+  allowlist, consumer integration, and same-process mechanism that completes
+  before renderer, `Scene`, or CUDA-related import/JIT;
 - camera implementation details: centered-principal-point numerical tolerance,
   field-level validation/error schema, and exact common-builder API/location;
 - remaining field-level formal run-mode specification; effective `eval=True`
@@ -1409,7 +1518,9 @@ Not complete and not authorized by this document sync:
   or bitwise equivalence threshold;
 - deterministic seed ownership details and nonfinite/OOM/partial-failure
   policy;
-- complete effective-config, dataset, source, environment, and build identity;
+- remaining fields of the complete effective-config, dataset, source,
+  environment, and build identity; the single-authority/pre-JIT policy is
+  decided;
 - formal output owner, atomic publication, completion index, and digest;
 - new checkpoint iteration and population count;
 - SPL4-v2 representation and export identity;
@@ -1428,9 +1539,10 @@ No camera, renderer, alpha-cap, SH, backward, training-state, checkpoint,
 exporter, parser, CUDA Reference, manifest, or Viewer fix; build; test; CUDA
 execution; render; training; export; artifact generation; branch operation;
 commit; or push has been performed by this documentation sync. The formal
-camera/eval, renderer-invocation, alpha-cap derivative, and completed-update
-transaction policies are synchronized, but their enforcement, source fixes,
-and focused validation are not implemented. P0-0, P0-1, P0-2, P0-3,
+camera/eval, renderer-invocation, alpha-cap derivative, completed-update
+transaction, and independent formal-entry/effective-configuration policies are
+synchronized, but their enforcement, source fixes, consumer integration, and
+focused validation are not implemented. P0-0, P0-1, P0-2, P0-3,
 P0-T1, P0-T2, P0-T3, the separate alpha-cap renderer-math responsibility, and
 P0-A6 remain open until their source responsibilities and required validation
 are completed and accepted; P0-T7 remains unfixed but unreachable for the
