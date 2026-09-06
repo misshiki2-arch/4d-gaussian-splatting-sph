@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-only / Investigation1-4 static audit complete / audit integration documented / six-formal-policy-groups-approved / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-only / Investigation1-4 static audit complete / audit integration documented / seven-formal-policy-groups-approved / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -42,6 +42,10 @@ artifact audit, not implementation or post-fix runtime validation.
 - Investigation4 is complete for checkpoint consumers, PLY/SPL4 export, SPL4
   parsing, checkpoint-SPL4 provenance, CUDA Reference reconstruction,
   manifest, cross-binding, Viewer handoff, and output ownership/atomicity.
+- Issue #8's static investigation of completed-update count, checkpoint and
+  evaluation boundaries, and optimizer/densification parameter identity is
+  complete and was independently reviewed before the policy below was
+  approved by the user.
 - The Investigation1-4 findings, dependencies, ownership boundaries, and
   pre-implementation gates are integrated in this document.
 
@@ -50,15 +54,17 @@ evaluation policy, checkpoint-foundation/exact-resume staging policy, and
 formal camera/effective-`eval` policy were approved by the user on 2026-09-03
 JST. The formal renderer invocation policy was approved on 2026-09-04 JST.
 The alpha-cap derivative policy was approved by the user and synchronized here
-on 2026-09-06 JST. All six policy groups are integrated below. Remaining
-formal policy selection, source fixes, focused validation, CUDA execution,
-pilot training, formal retraining, corrected artifact generation, and Viewer
-restart have not started. P0 findings block only the gate whose accepted output
-would reach the defect; Viewer-only defects do not unnecessarily block
-corrected training, and training-state defects cannot be deferred to artifact
-generation. Policy approval and document synchronization do not close any
-P0/P1 finding or Gate A and do not constitute source-fix, focused-validation,
-runtime, or scientific acceptance.
+on 2026-09-06 JST. The completed-update training transaction policy was then
+approved by the user after independent review and synchronized here on
+2026-09-06 JST. All seven policy groups are integrated below. Remaining formal
+policy selection, source fixes, focused validation, CUDA execution, pilot
+training, formal retraining, corrected artifact generation, and Viewer restart
+have not started. P0 findings block only the gate whose accepted output would
+reach the defect; Viewer-only defects do not unnecessarily block corrected
+training, and training-state defects cannot be deferred to artifact generation.
+Policy approval and document synchronization do not close any P0/P1 finding or
+Gate A and do not constitute source-fix, focused-validation, runtime, or
+scientific acceptance.
 
 ## Repository identity
 
@@ -121,8 +127,10 @@ than introducing a validation split:
 - no validation population is created;
 - test is not used for checkpoint selection, parameter tuning, or early
   stopping; and
-- the canonical checkpoint is the completed state at a final iteration fixed
-  before the run, not a validation- or test-selected best checkpoint.
+- the canonical checkpoint is mandatory checkpoint `N`, where numeric final
+  `N` is fixed before the run, the save condition is built from effective
+  post-merge `N`, and the saved state includes update `N` plus its scheduled
+  topology/reset; it is not a validation- or test-selected best checkpoint.
 
 The numeric final iteration, training schedule, and test-reporting cadence
 remain open. Any future validation-based experiment requires a separate
@@ -389,18 +397,30 @@ They retain their original IDs.
 ### P0-T1: iteration and optimizer off-by-one
 
 The loop increments `iteration` before processing a batch and executes
-`optimizer.step()` only while `iteration < opt.iterations`. The first update
-number and the final requested iteration therefore do not form an exact
-one-update-per-iteration transaction. This is unconditional for the current
-training loop and must be fixed before pilot training.
+`optimizer.step()` only while `iteration < opt.iterations`. From scratch, the
+current source processes labels `2..N`, calls the optimizer at most `N-2`
+times, omits the final update at label `N`, and fetches an extra batch before
+breaking at `N+1`. The approved contract instead starts with completed update
+count zero and executes transactions `k=1..N` exactly once each, with one
+batch fetch and one optimizer step per transaction, including `k=N`, and no
+batch fetch for `N+1`. Requested count, transaction label, and completed update
+count must have this single consistent meaning. The source Fix and focused
+validation have not started, so P0-T1 remains open and blocks pilot training.
 
 ### P0-T2: checkpoint iteration is not a completed-state boundary
 
 Evaluation and checkpoint save occur before densification, opacity reset, and
 the optimizer step for the same iteration. A checkpoint labelled with that
 iteration does not represent the completed state transition named by the
-label. This is unconditional for saved checkpoints on the current path and
-must be fixed before pilot training.
+label. Under the approved contract, completed state `k` exists only after the
+optimizer update and every scheduled topology and opacity-reset event for
+transaction `k` have succeeded. A checkpoint labelled `k` saves that completed
+state, never the state before those events. Checkpoint save precedes test
+evaluation when both observe the same completed state. Final checkpoint `N` is
+mandatory, and its save condition must be constructed and verified from the
+effective `N` after CLI/config merge. Atomic write, incomplete-state recovery,
+and field-level checkpoint schema remain separate open responsibilities. The
+source Fix and focused validation have not started, so P0-T2 remains open.
 
 ### P0-T3: Gaussian gradients are lost on densification iterations
 
@@ -409,7 +429,69 @@ same iteration's optimizer step. The freshly installed parameters do not own
 the gradients produced by the just-completed backward pass, so the Gaussian
 update is silently lost on those iterations. Densification topology helpers
 may still preserve record alignment; the defect is the transaction ordering,
-not an SPL4 record-order defect.
+not an SPL4 record-order defect. The approved transaction collects current
+visibility, radii, screen-space gradient, and time gradient and applies the
+required densification statistics before any Parameter replacement. It then
+steps the same Parameter identities that received backward gradients, performs
+optimizer zero-grad, and only then executes scheduled densification/clone/
+split/prune followed by scheduled opacity reset. The source Fix and focused
+validation have not started, so P0-T3 remains open.
+
+### Approved completed-update training transaction
+
+For every requested transaction `k=1..N`, execution starts at completed state
+`k-1` and has this conceptual order:
+
+1. fetch exactly the one batch used by transaction `k`;
+2. apply the learning-rate schedule and SH schedule event associated with `k`
+   before forward;
+3. run forward, compute optimization input loss `k`, and run backward;
+4. capture the current render's visibility, radii, screen-space gradient, and
+   time gradient before Parameter replacement and update the required
+   densification statistics;
+5. apply one optimizer step to the same Parameter identities used by backward,
+   including at `k=N`, then perform optimizer zero-grad;
+6. execute scheduled densification/clone/split/prune, then scheduled opacity
+   reset; and
+7. after every required event succeeds, declare completed state `k`, save any
+   scheduled checkpoint with completed label `k`, then evaluate the same
+   completed state for scheduled test reporting.
+
+When densification/prune and opacity reset coincide, their relative order is
+densification/prune first and opacity reset second. Pruning reads post-step,
+pre-reset opacity; clone/split children derive from post-step parent state; and
+opacity reset applies to survivors and new children. The formal opacity group
+is stepped before reset, and reset is an explicit algorithm event rather than
+an implicit skipped opacity update. Numeric thresholds, intervals, point cap,
+prune schedule, opacity-reset schedule, and temporal densification policy remain
+open.
+
+Optimization input loss `k` is computed by the forward from completed state
+`k-1` and is the input that produces optimizer update `k`. A completed-state
+test metric `k` is obtained by newly rendering completed state `k` after its
+optimizer, topology, and reset events. Moving training-loss output processing
+after transaction completion does not turn that loss into a completed-state
+metric. Test remains selection-free. Checkpoint-first and test-evaluation-
+second does not decide run acceptance after evaluation failure, atomic
+publication, or a general partial-failure policy.
+
+Initial state `0` is not an optimizer update, formal iteration, completed
+checkpoint, or test-selection state. Whether the current unconditional
+`training_report(0)` is retained is deferred to the reporting policy. If
+retained, it is a selection-free initial-state diagnostic; its PNG,
+TensorBoard, CUDA-cache, and failure contracts remain open.
+
+Candidate B is the approved contract because it applies the current gradient
+to the same Parameter before existing topology helpers replace that Parameter,
+and therefore needs no new gradient-transport mechanism. Candidate A, the
+current order, does not close P0-T1/T2/T3. Candidate C, pre-step mutation plus
+gradient transfer, would require new clone/split/prune/reset gradient mappings
+without need. Candidate D, step then checkpoint before mutation, would omit
+transaction `k`'s scheduled topology/reset from checkpoint `k`. This selection
+rests on completed-transaction consistency and bug isolation, not identity
+with official code. Helper boundaries, loop syntax, and local names remain
+implementation decisions; no source or validation work is completed by this
+policy synchronization.
 
 ### P0-T4: held-out evaluation and best selection under `eval=False`
 
@@ -465,11 +547,13 @@ validation before it can become reachable.
 ### Approved checkpoint foundation and exact-resume staging
 
 Checkpoint normalization is required independently of whether continuation is
-ever enabled. The initial training-lifecycle responsibility must provide a
-versioned semantic schema, exact completed-update labels, completed-transaction
-save boundaries, diagnostic state, and dataset/config/source/renderer
-provenance. Incomplete, unknown-version, or semantically incompatible state
-must fail closed. The schema's field-level design remains open.
+ever enabled. The diagnostic-checkpoint foundation consumes the approved
+completed-state label and save boundary from P0-T1/T2, but separately owns
+P0-T6's versioned semantic schema, diagnostic state, semantic validation, and
+dataset/config/source/renderer provenance. It does not own the loop count,
+same-Parameter optimizer transaction, or exact-resume continuation state.
+Incomplete, unknown-version, or semantically incompatible state must fail
+closed. The schema's field-level design remains open.
 
 Pilot runs start from iteration 0, prohibit resume, and reject every resume
 entry. Legacy checkpoint warm-start is always prohibited. Exact resume is not
@@ -565,7 +649,8 @@ cause is not patched twice:
 
 | Root finding | Dependent finding | Required boundary |
 |---|---|---|
-| P0-T1/T2/T6 | P0-A1 | Fix the training/checkpoint transaction first; make the loader verify and publish it second. |
+| P0-T1/T2 | P0-A1 | Fix the exact-N training state machine and completed checkpoint boundary first; make the loader verify and publish its label second. |
+| P0-T6 | P0-A1/A2 | Define the diagnostic checkpoint's versioned field semantics, validation, and provenance independently of the transaction loop and exact resume; make consumers reject and publish them second. |
 | P0-T6/T7 plus incomplete config snapshot | P0-A2 | Define effective config/checkpoint semantics first; for the first baseline reject every environment-map state under `env_map_res=0`; reconstruct and assert the accepted five-field renderer invocation in the CUDA loader second. |
 | P0-T4 | P0-A8 | Enforce the approved train/test identity, test non-selection, and pre-fixed final completed checkpoint policy first; require that identity at artifact selection second. |
 | P0-T5 | P0-A8 when resume and best tracking are enabled | Keep both branches unreachable for the formal baseline; any future validation-selected resume branch requires a separate policy/identity and verified global lineage. |
@@ -638,10 +723,12 @@ them.
 | camera/projection policy | Support only complete centered intrinsics and complete geometrically valid FoV-only input; reject mixed/partial/ambiguous/nonfinite/off-center input; keep raw sentinel separate from canonical effective state; preserve projection `0.01`/`100.0` and CUDA near-cull `0.2` with no far-cull. One common builder owns execution; P0-A6 separately owns later publication. | Define centered tolerance, field-level validation/error schema, and bounded supported-mode fixtures; any future off-center or visibility-semantics change needs separate policy and validation. |
 | renderer branch policy | Implement conditional-mean SH, spatial degree 3, temporal degree 2 with the fixed 48-slot layout, `rot_4d=true`, and `force_sh_3d=false`; enforce `compute_cov3D_python=False`, `convert_SHs_python=False`, exact `scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None` before any formal renderer; apply the separately owned alpha-cap piecewise derivative to the alpha-mediated chain while preserving direct value/depth-z paths; resolve other supported-path findings separately. | Determinant epsilon, radius inflation, empty population, overflow, radius-threshold diagnostics, and separately identified future support for rejected invocation branches. |
 | optimizer/learning-rate policy | Define temporal-position LR scheduling and supported parameter-group behavior; do not infer it from the spatial-only scheduler. | Log effective per-group LR without adding a second schedule owner. |
-| densification/population policy | Define temporal selection, strict point-cap semantics, clone/split/prune ordering, prune-only behavior, opacity reset, and screen/world pruning. | Measure cap overshoot, nonfinite accumulator frequency, and memory pressure in bounded pilot runs. |
+| densification/population policy | Preserve the approved post-step topology boundary and densify/prune-before-reset relative order; define temporal selection, strict point-cap semantics, clone/split/prune internal behavior, prune-only behavior, numeric reset schedule, and screen/world pruning. | Measure cap overshoot, nonfinite accumulator frequency, and memory pressure in bounded pilot runs. |
 | evaluation/metric policy | Preserve the approved train/test identity, create no validation population, keep test selection-free, and use the pre-fixed final completed checkpoint. Test-report metric/cadence and clamp/channel/background remain open; any future best branch needs a separate experiment policy. | Keep diagnostic train samples separate from test reporting and visualization. |
 | config/run mode/provenance | Require effective `eval=True` after CLI/config merge, reject effective `eval=False`, define the remaining formal run-mode fields and precedence, reject legacy output/path reuse, capture the complete effective config, and replace executable config parsing where it reaches formal tooling. | Report path-remap and duplicate-basename ambiguity as bounded diagnostics. |
-| checkpoint foundation | P0-T1/T2/T6 own completed transaction, exact update label, versioned semantic schema, provenance, and diagnostic state independently of resume; atomic writes and field-level state remain to be defined. | Record interruption/OOM behavior and checkpoint-size/hash cost. |
+| training state machine | P0-T1/T2 own exact `k=1..N`, the final step, no `N+1` batch fetch, completed labels, and the completed-state checkpoint/test boundary. | Keep loop/helper API local; consumers verify rather than redefine completed count. |
+| optimizer/densification transaction | P0-T3 owns current statistics capture, same-Parameter step, zero-grad, then topology and reset mutation, with densify/prune before reset when simultaneous. | Numeric temporal selection, cap, threshold, interval, and prune/reset schedules remain separate population policy. |
+| diagnostic checkpoint foundation | P0-T6 owns versioned field semantics, semantic validation, provenance, and diagnostic state; it consumes the P0-T1/T2 completed label but does not own loop order or exact resume. Atomic writes and field-level state remain to be defined. | Record interruption/OOM behavior and checkpoint-size/hash cost. |
 | exact resume (conditional) | After known P0 and transaction stability, a separate root Fix owns complete restore and resume equivalence; until acceptance, resume fails closed. | Compare scheduler/RNG/sampler/dataloader, optimizer, population, and topology continuation only if resume will be enabled. |
 | dataset/mask | Bind the approved `v01-v31` train and `v00` test transforms/images/masks without adding validation; define whether alpha mask or luminance-derived sky participates in the formal loss. | Measure missing-mask/fallback incidence; do not infer correctness from a few debug images. |
 | PLY/legacy v1/diagnostic export | Exclude 3D-sequence PLY from formal parity; exclude lossy SPL4-v1; either specify PLY SH property order and metadata or keep PLY diagnostic-only. | External SuperSplat PLY convention remains unverified. |
@@ -732,7 +819,7 @@ runtime artifact acceptance as applicable.
 ## Formal policy decisions and intentionally open items
 
 Audit integration classifies when each remaining decision is required. The
-six user-approved policy groups are decided here; temporary candidates for
+seven user-approved policy groups are decided here; temporary candidates for
 the remaining items must not be presented as the formal contract.
 
 | Decision stage | Required decisions |
@@ -744,7 +831,8 @@ the remaining items must not be presented as the formal contract.
 | decided: checkpoint/resume staging | Normalize completed-state checkpoints, exact completed-update labels, versioned semantics, diagnostics, and provenance independently of resume; prohibit pilot resume and every legacy warm-start; treat exact resume as a later independent root Fix with an equivalence gate; until accepted, resume fails closed and only uninterrupted completed formal runs can be canonical. |
 | decided: renderer invocation | Require one effective contract everywhere: `compute_cov3D_python=False`, `convert_SHs_python=False`, `scaling_modifier=1.0` exactly, `env_map_res=0`, and `override_color=None`; reject every other or nonfinite value before renderer import/CUDA JIT or formal render; training, evaluation/test render, CUDA Reference, and checkpoint consumers share the same validated identity and may not substitute defaults. This decision does not accept the current CUDA-direct renderer, which remains blocked on P0-1/P0-2/P0-3 source fixes and focused validation. |
 | decided: alpha-cap derivative | Keep `alpha=min(0.99f, raw_alpha)` in forward; after aggregating all `dL/dalpha`, use the independent piecewise gate `raw_alpha < 0.99f` for the alpha-mediated opacity/G/screen-xy/conic/covariance chain and zero that chain for `raw_alpha >= 0.99f`, including a zero selected subgradient at bitwise-equal float32 `0.99f`; preserve direct color/flow/depth and depth-to-screen-z gradients. Do not use an STE/surrogate, cap removal, smooth cap, or cap-triggered formal rejection. Source Fix and focused validation remain required. |
-| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; exact shared renderer-validator API/location/error schema and pre-import/JIT failure mechanism; remaining field-level formal run mode and checkpoint schema; evaluation/save/densification/reset/step ordering consistent with completed updates; temporal densification policy; strict point-cap/prune/opacity-reset policy. |
+| decided: completed-update transaction | Start from completed count zero and execute `k=1..N` exactly once with no `N+1` fetch; apply schedules before forward; forward/loss/backward; collect and apply current densification statistics before Parameter replacement; same-Parameter optimizer step including `k=N`; zero-grad; scheduled densify/clone/split/prune; scheduled opacity reset; then declare completed state `k`, save checkpoint `k`, and evaluate that same state. Densify/prune precedes reset when simultaneous; prune reads post-step/pre-reset opacity; children derive from post-step parents; reset reaches survivors and children. Final checkpoint `N` is mandatory from effective post-merge `N`. Optimization input loss `k` remains distinct from completed-state test metric `k`; initial state zero is not an update or selection state. Candidate B is adopted and A/C/D are rejected for the bounded reasons above. Source Fix and focused validation remain required. |
+| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; exact shared renderer-validator API/location/error schema and pre-import/JIT failure mechanism; remaining field-level formal run mode and checkpoint schema; concrete training loop/helper API; temporal densification policy; strict numeric point-cap/prune/opacity-reset policy. The completed-update event order itself is not open. |
 | required before formal retraining | Numeric final iteration and pilot/formal schedules; pilot/formal point caps; densification/prune/reset numeric schedules; complete effective-config snapshot; deterministic seed ownership details; test-report metric/cadence; nonfinite/OOM/partial-failure policy; immutable output directory and atomic publication; and, only if resume will be enabled, field-level restore state plus numerical/bitwise equivalence acceptance thresholds. |
 | required before formal artifact generation | SPL4-v2 log/linear scale representation; PNG clamp/round/color/codec; full/range CUDA Reference purposes; manifest schema and validator; source-to-binary build provenance; bundle/index/external-digest ownership; direct evidence as formal same-invocation evidence or diagnostic-only. |
 | required before Viewer restart | Corrected population and fixed range; Viewer provenance binding; strict parser acceptance; removal or versioned isolation of historical hard-coded ranges; Viewer capture/comparison bundle identity. |
@@ -759,10 +847,10 @@ this documentation sync.
 |---:|---|---|
 | 1 | Pure CPU canonical-camera tests for SPH intrinsics, both supported modes, raw-sentinel isolation, dimensions/resolution scaling, clipping/cull separation, and the mixed/partial/nonfinite/invalid/off-center rejection matrix | P0-0 and camera/projection P1; P0-A6 consumes the accepted result later |
 | 2 | Post-merge effective-config tests for `eval` and the five-field renderer invocation, formal-run rejection for `eval=False`, remaining run-mode/legacy-path checks, and unsupported-branch negative matrix before renderer import/CUDA JIT | P0-T4, P0-A2, P0-T6/T7, renderer/config/run-mode P1 |
-| 3 | Versioned checkpoint serialization/validation, completed-state boundary, and exact completed-update label test | P0-T1/T2/T6, P0-A1 |
-| 4 | Training state-machine mock for iteration, evaluate, save, densify, reset, and step ordering | P0-T1/T2 |
-| 5 | Optimizer-step and current-gradient preservation test | P0-T3, optimizer P1 |
-| 6 | Densification clone/split/prune topology and Adam-row-state test | P0-T3 boundary, population P1 |
+| 3 | Versioned checkpoint field serialization, semantic validation, diagnostic provenance, and rejection matrix; consume rather than redefine the completed-state label from P0-T1/T2 | P0-T6, P0-A1/A2 |
+| 4 | Training state-machine mock proving completed count starts at zero, `k=1..N` performs exactly `N` batch fetches and optimizer steps including final `N`, no `N+1` fetch occurs, and checkpoint-first/test-second both observe the post-topology/post-reset completed state | P0-T1/T2 |
+| 5 | Optimizer transaction test proving current visibility/radii/screen/time statistics are captured before replacement, the backward-owned Parameter is stepped, zero-grad precedes mutation, and ordinary/final/reset/topology transactions follow the approved event order | P0-T3, optimizer P1 |
+| 6 | Densification clone/split/prune and opacity-reset test proving post-step parent/survivor values, Adam-row preservation or zero initialization, post-step/pre-reset prune opacity, densify/prune-before-reset when simultaneous, and reset coverage of survivors and children | P0-T3 boundary, population P1 |
 | 7 | Approved train/test identity with effective `eval=True` yielding 5,146/166, explicit rejection of `eval=False` yielding 5,312/0, disjointness, no-validation policy, test non-selection, and pre-fixed final completed-checkpoint selection test | P0-T4/A8 |
 | 8 | Conditional resume-equivalence test across uninterrupted and separate-process restored continuation; required only before enabling resume | P0-T5/T6 and resume fidelity |
 | 9 | Camera handoff numeric test that projection and rasterizer forward/backward consume identical canonical focal/tan values for centered intrinsics and valid FoV-only cameras | P0-0, camera P1 |
@@ -779,6 +867,20 @@ this documentation sync.
 | 19 | Viewer bundle wrong-pair, stale provenance, wrong range, and historical-range rejection | P0-A3/A4 |
 | 20 | Bounded no-resume pilot acceptance for updates, metrics, nonfinite state, checkpoints, and completion | all reachable Gate A and no-resume Gate B training findings |
 | 21 | Formal output completeness, atomicity, index, external digest, and parent-binding check | publication P1 and P0-A6/A7/A8 |
+
+The focused transaction suite must preserve the current-source negative
+regression for requested `N=1,2,3`, where optimizer-step calls are currently
+`0,0,1`, and require the corrected result `1,2,3`. It must trace ordinary,
+final, densify, prune-only, reset-only, and simultaneous topology/reset cases;
+inspect Parameter identity, gradient, value, and Adam state before and after
+each boundary; prove the final update affects parameters; and prove final
+checkpoint `N` is scheduled from the effective post-merge value. It must also
+show that a checkpoint includes its transaction's topology/reset, checkpoint
+and test evaluation observe the same completed state in that order, training
+loss retains optimization-input meaning, and any retained initial diagnostic
+cannot enter formal iteration, checkpoint, test selection, or best selection.
+The state-machine, optimizer/densification, checkpoint-schema, and exact-resume
+fixtures remain separately owned even where they share `train.py` boundaries.
 
 Renderer-invocation validation must positively accept the exact tuple
 `(False, False, 1.0, 0, None)` in the field order above. It must reject
@@ -946,9 +1048,9 @@ branch with `rot_4d=true` and `force_sh_3d=false`; the exact approved renderer
 invocation `compute_cov3D_python=False`, `convert_SHs_python=False`,
 `scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None`; the pilot-
 reachable parts of P0-0 through P0-3; the approved alpha-cap derivative;
-P0-T1, P0-T2, and P0-T3; one formal run
-mode and effective config whose post-merge `eval` is true; a new non-
-overwriting output owner; a minimum versioned completed-state checkpoint
+the approved completed-update transaction for P0-T1, P0-T2, and P0-T3; one
+formal run mode and effective config whose post-merge `eval` is true; a new
+non-overwriting output owner; a minimum versioned completed-state checkpoint
 foundation; fail-closed finite/failure behavior; and the approved train/test-
 only pilot evaluation policy.
 
@@ -966,9 +1068,23 @@ Pilot training may start only when:
   renderer-math responsibility, and its independent CPU-oracle, float32-
   boundary, finite-difference, negative-regression, direct-gradient, unchanged-
   forward, and 3D/4D CUDA-direct focused validation is accepted;
-- the requested update count is exact, including the final update;
-- checkpoint/save state boundaries are unambiguous;
-- densification iterations preserve the intended gradient/update transaction;
+- completed count starts at zero, transactions `k=1..N` fetch exactly `N`
+  batches and perform exactly `N` optimizer steps including final `N`, and no
+  batch is fetched for `N+1`;
+- each transaction applies its LR/SH schedule before forward, captures and
+  applies current densification statistics before Parameter replacement, steps
+  the backward-owned Parameter, zeroes gradients, and only then performs
+  scheduled densification/prune followed by opacity reset;
+- clone/split children derive from post-step parents, pruning reads post-step/
+  pre-reset opacity, and a simultaneous reset reaches every survivor and new
+  child;
+- completed state and checkpoint label `k` include the optimizer update and
+  every scheduled topology/reset event for `k`; checkpoint save occurs before
+  test evaluation of that same state, and final checkpoint `N` is guaranteed
+  from the effective post-merge `N`;
+- optimization input loss `k` is kept distinct from completed-state test
+  metric `k`, and any retained initial-state-zero report is diagnostic-only and
+  cannot participate in formal iteration, checkpoint, or selection;
 - train is all 5,146 `v01-v31` frames, test is all 166 `v00` frames, the
   populations are disjoint, no validation population is created, and the
   effective value after CLI/config merge is `eval=True`;
@@ -999,15 +1115,18 @@ five-field renderer invocation identity shared by every formal entrypoint,
 with no alternate path able to substitute defaults or reach rendering
 silently; frozen remaining formal config and schedule; the exact approved
 train/test identity; test non-selection; a pre-fixed numeric final iteration
-whose completed state is canonical; clean source revision; reproducible build/
-runtime identity; corrected and validated P0-1/P0-2/P0-3 renderer behavior;
-approved training, densification, reporting, seed, and failure policies; the
-full versioned checkpoint/iteration transaction; immutable atomic output
-publication; no legacy checkpoint warm-start; and no legacy output reuse. A
-validation-based best checkpoint is not part of this baseline. Policy approval
-and document synchronization alone do not satisfy Gate A or Gate B; source
-correction, shared enforcement, focused validation, pilot evidence, and every
-other listed requirement remain necessary.
+whose completed state is canonical; accepted exact-N, final-step, same-
+Parameter-step, zero-grad-before-mutation, densify/prune-before-reset,
+checkpoint-first/test-second transaction evidence; clean source revision;
+reproducible build/runtime identity; corrected and validated P0-1/P0-2/P0-3
+renderer behavior; approved remaining numeric densification, reporting, seed,
+and failure policies; the full versioned checkpoint schema and iteration
+transaction; immutable atomic output publication; no legacy checkpoint warm-
+start; and no legacy output reuse. A validation-based best checkpoint is not
+part of this baseline. Policy approval and document synchronization alone do
+not satisfy Gate A or Gate B; source correction, shared enforcement, focused
+validation, pilot evidence, and every other listed requirement remain
+necessary.
 
 Resume support is not an unconditional Gate-B prerequisite. If it has not been
 implemented and accepted as an independent root Fix with the resume-equivalence
@@ -1071,14 +1190,14 @@ a second copy of the policy.
 | common camera contract | P0-0; explicit two-mode validation, raw/effective separation, post-resolution canonical camera identity, projection/rasterizer forward/backward handoff, and pre-GPU rejection; excludes off-center expansion and visibility-semantics retuning | manifest/runtime camera publication in P0-A6 after P0-0 acceptance |
 | renderer forward/backward | P0-1 plus conditional-mean P0-2 and spatial-3/temporal-2 fixed-48-slot P0-3 under `rot_4d=true`, `force_sh_3d=false`; this math Fix does not own formal-config enforcement; remaining supported-path renderer P1 is separately bounded | training validation and CUDA Reference semantics |
 | alpha-cap derivative (separate renderer math) | Preserve the forward `0.99f` cap and direct value/depth-z paths; gate the aggregated `dL/dalpha` once for the alpha-mediated chain with uncapped `raw_alpha < 0.99f` and equality saturated. The first future candidate is a local `backward.cu` Fix; it is not part of P0-1/P0-2/P0-3 and does not authorize buffer/binding/Python expansion. | focused independent oracle, float32 boundary/branch-parity, finite-difference, negative-regression, unchanged-forward, and 3D/4D CUDA-direct acceptance before Gate A |
-| training state machine | P0-T1, P0-T2 | checkpoint labels and P0-A1 |
-| optimizer/densification transaction | P0-T3 and population policy | final checkpoint population identity |
+| training state machine | P0-T1/P0-T2: exact `k=1..N`, final step, no `N+1` batch fetch, completed labels, checkpoint after every scheduled mutation, and checkpoint-first/test-second completed-state observation | diagnostic checkpoint foundation consumes the label/boundary; P0-A1 verifies it later |
+| optimizer/densification transaction | P0-T3: collect current statistics before replacement, same-Parameter step, zero-grad, scheduled topology, then scheduled reset; densify/prune precedes reset when simultaneous | final checkpoint population identity; numeric population policy remains separate |
 | dataset/evaluation policy | P0-T4; post-merge effective `eval=True`, exact `v01-v31` train and `v00` test identity, no validation population, test non-selection, and formal rejection of `eval=False` | fixed-final checkpoint selection and P0-A8 |
 | evaluation/best policy | Formal reporting is selection-free and the best branch is unsupported; any future validation/best experiment needs a separate policy, identity, and output owner | conditional best lineage in P0-T5/A8 only outside this baseline |
-| fixed-final checkpoint selection | Canonical identity is the pre-fixed final iteration at an exact completed-update boundary, not `chkpnt_best.pth` | P0-A8 manifest and artifact consumers |
+| fixed-final checkpoint selection | Canonical identity is mandatory final checkpoint `N`, constructed from effective post-merge `N` and saved after update/topology/reset at its exact completed boundary, not `chkpnt_best.pth` | P0-A8 manifest and artifact consumers |
 | config/run launcher / shared pure validator candidate | complete post-merge effective config including required `eval=True`; enforce the exact five renderer fields once before renderer import/CUDA JIT; reject alternate/nonfinite values, environment-map checkpoint state, and legacy paths | all formal renderer entrypoints consume the same definition; P0-A2 and manifest publish/verify rather than redefine it |
-| diagnostic checkpoint foundation | P0-T1/T2/T6; versioned semantics, completed-state boundary, exact update label, diagnostics, and provenance independent of resume | P0-A1/A2/A8 consumers |
-| exact resume (conditional independent root) | P0-T5/T6 plus complete continuation state and equivalence, only after known P0/transaction stability | formal continuation only after gate acceptance; otherwise fail closed |
+| diagnostic checkpoint foundation | P0-T6: version, field-level schema, semantic validation, diagnostics, and provenance; consume the P0-T1/T2 completed label without owning loop or optimizer order | P0-A1/A2/A8 consumers |
+| exact resume (conditional independent root) | Complete continuation state and equivalence, including any resume-reachable P0-T5/T6 handling, only after known P0/transaction stability; do not merge it into the diagnostic foundation or transaction Fix | formal continuation only after gate acceptance; otherwise fail closed |
 | environment-map lifecycle (future conditional root) | P0-T7 remains unfixed but unreachable under `env_map_res=0`; any future enablement requires separate policy and complete lifecycle/checkpoint/optimizer/resume validation | first-baseline CUDA reconstruction must reject environment state; future runtime publication follows only after separate acceptance |
 | SPL4 exporter/provenance | v2 representation, atomic export, exact population binding | Viewer bundle input |
 | SPL4 parser | P0-A3 | production evaluation inputs |
@@ -1128,28 +1247,36 @@ the historical `[524288,1048576)` range.
    **Complete in this document.**
 4. Integrate the approved one-path renderer invocation contract.
    **Complete in this document.** Integrate the approved alpha-cap derivative
-   contract. **Complete in this document on 2026-09-06 JST.** After document
-   review and the user-owned Git checkpoint, the next candidate remains policy
-   investigation—not source implementation—and is the completed-update
-   training-transaction ordering related to P0-T1/P0-T2/P0-T3. Camera
-   implementation details, run mode, densification, and other remaining policy
-   fields stay undecided. Confirm one root owner and one bounded Fix
-   responsibility at a time only after the applicable policy is decided.
+   contract. **Complete in this document on 2026-09-06 JST.** Integrate the
+   approved completed-update training transaction as a named Phase-0 policy
+   work package without creating a new roadmap number. **Complete in this
+   document on 2026-09-06 JST.** Its source Fix and focused validation have not
+   started. After document review and the user-owned Git checkpoint, the
+   desktop advisor determines the next formal candidate; this document sync
+   and CODEX do not select or start it. Camera implementation details, complete
+   run mode, numeric densification/population fields, checkpoint schema, and
+   other remaining policy fields stay undecided. Confirm one root owner and one
+   bounded Fix responsibility at a time only after the applicable policy is
+   decided.
 
 ### Phase 1: training-critical foundation
 
 5. After the remaining prerequisite policy decisions, define the complete
    effective-config, run-mode, and non-overwriting output identity contract,
    including the shared renderer-invocation enforcement boundary.
-6. Implement the minimum versioned diagnostic checkpoint foundation and exact
-   completed-update transaction independently of resume; leave field-level
-   schema choices pending their later implementation policy approval.
+6. After its field-level schema policy is approved, implement the minimum
+   versioned P0-T6 diagnostic checkpoint foundation independently of the
+   training-state-machine and exact-resume roots; consume the approved
+   completed label/boundary rather than redefining it.
 7. Implement the common P0-0 camera-handoff Fix with the approved two-mode,
    centered-only, fail-closed, and distinct projection/cull contract; do not
    mix P0-A6 publication, off-center expansion, or visibility retuning into it.
 8. Implement selected-branch renderer forward/backward P0 Fixes.
-9. Implement the training iteration/step/evaluate/save transaction Fix.
-10. Implement densification gradient and optimizer-mutation transaction Fix.
+9. Implement the approved P0-T1/T2 exact-N training-state-machine Fix, including
+   final step, no extra batch fetch, completed labels, final-save construction
+   from effective `N`, and checkpoint-first/test-second completed observation.
+10. Implement the approved P0-T3 optimizer/densification transaction Fix:
+    current statistics, same-Parameter step, zero-grad, topology, then reset.
 11. Implement post-merge effective `eval=True`, the approved train/test
     separation, test non-selection, and fixed-final completed-checkpoint
     selection; reject `eval=False`, validation/best, and resume branches at
@@ -1167,7 +1294,9 @@ the historical `[524288,1048576)` range.
     cull, and pre-GPU rejection cases.
 16. Run CPU autograd and finite differences.
 17. Build the selected CUDA source and run CUDA forward/gradient validation.
-18. Run training state-machine, optimizer, and densification mocks.
+18. Run separately owned training-state-machine and optimizer/densification
+    mocks for the shared approved event boundary; do not fold P0-T6 schema or
+    exact-resume equivalence into these fixtures.
 19. Run train/test identity, test-non-selection, fixed-final checkpoint, and
     output-identity tests.
 20. Run an integrated bounded small-scene smoke.
@@ -1227,12 +1356,18 @@ Complete at this milestone:
   `scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None`; and
 - repository synchronization of the user-approved 2026-09-06 JST alpha-cap
   derivative contract, including saturated equality with selected subgradient
-  zero and the future focused-validation boundary.
+  zero and the future focused-validation boundary; and
+- repository synchronization of the user-approved completed-update training
+  transaction: exact `k=1..N`, final step, no extra batch fetch, current
+  statistics before same-Parameter step, zero-grad before topology, densify/
+  prune before opacity reset, completed checkpoint `k` before test evaluation,
+  mandatory effective-final checkpoint `N`, loss/metric separation, and the
+  initial-state-zero boundary.
 
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
-- source, config, test, or tool fixes;
+- source, config, test, or tool fixes, including P0-T1/T2/T3 transaction fixes;
 - focused validation or CUDA build;
 - pilot training or formal retraining, including any exact-resume Fix or
   equivalence acceptance;
@@ -1254,8 +1389,13 @@ Not complete and not authorized by this document sync:
   field-level validation/error schema, and exact common-builder API/location;
 - remaining field-level formal run-mode specification; effective `eval=True`
   is already decided and is not an open item;
-- exact training-transaction ordering and implementation details for
-  evaluation, save, densification, reset, and optimizer step;
+- completed-update transaction source Fix, focused validation, and concrete
+  loop/helper API; the exact-N, final-step, same-Parameter-step, zero-grad,
+  densify/prune-then-reset, completed-checkpoint, and checkpoint-first/test-
+  second event order is approved and is not open;
+- whether to retain the current unconditional initial-state-zero diagnostic,
+  and, if retained, its PNG/TensorBoard/CUDA-cache/failure contract; it remains
+  outside formal iteration, checkpoint, test selection, and best selection;
 - numeric final iteration and pilot/formal training schedules;
 - numeric pilot/formal point caps and densification, prune, and opacity-reset
   schedules and detailed policy;
@@ -1284,13 +1424,16 @@ Not complete and not authorized by this document sync:
   policy, necessary Fix and validation, and distinct run/artifact identity when
   semantics differ. None is an open adoption choice for this baseline.
 
-No camera, renderer, alpha-cap, SH, backward, training-state, checkpoint, exporter,
-parser, CUDA Reference, manifest, or Viewer fix; build; test; CUDA execution;
-render; training; export; artifact generation; branch operation; commit; or
-push has been performed by this documentation sync. The formal camera/eval,
-renderer-invocation, and alpha-cap derivative policies are synchronized, but
-their enforcement and source corrections are not implemented. P0-0, P0-1,
-P0-2, P0-3, the separate alpha-cap renderer-math responsibility, and P0-A6
-remain open until their source responsibilities and required validation are
-completed and accepted; P0-T7 remains unfixed but unreachable for the first
-baseline.
+No camera, renderer, alpha-cap, SH, backward, training-state, checkpoint,
+exporter, parser, CUDA Reference, manifest, or Viewer fix; build; test; CUDA
+execution; render; training; export; artifact generation; branch operation;
+commit; or push has been performed by this documentation sync. The formal
+camera/eval, renderer-invocation, alpha-cap derivative, and completed-update
+transaction policies are synchronized, but their enforcement, source fixes,
+and focused validation are not implemented. P0-0, P0-1, P0-2, P0-3,
+P0-T1, P0-T2, P0-T3, the separate alpha-cap renderer-math responsibility, and
+P0-A6 remain open until their source responsibilities and required validation
+are completed and accepted; P0-T7 remains unfixed but unreachable for the
+first baseline. Checkpoint field schema/semantic validation remains the P0-T6
+diagnostic-foundation root, while exact resume remains a later independent
+root.
