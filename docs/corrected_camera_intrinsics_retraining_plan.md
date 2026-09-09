@@ -25,6 +25,16 @@ Because renderer RGB/alpha affects loss and gradients, and visibility/radii
 affect densification plus clone/split/prune, a checkpoint is not independent of
 the renderer semantics that produced it.
 
+### Program-wide role boundary
+
+The program-wide research purpose and project roles are owned by
+[`50_4DGS_RESEARCH_PROGRAM_GOALS_JA.md`](../../4dgs-development-governance/50_4DGS_RESEARCH_PROGRAM_GOALS_JA.md).
+Within that hierarchy, Corrected 4DGS is the normal image-reconstruction-based
+comparison baseline and the reference system supporting Viewer semantic
+correctness. It is not a required input, algorithm, or design owner for the
+direct converter. The corrected-baseline work in this plan remains necessary,
+but it is not itself the central research result of the program.
+
 ## Audit status and current boundary
 
 The pre-fix source audit is complete. Its purpose was to prevent a local camera
