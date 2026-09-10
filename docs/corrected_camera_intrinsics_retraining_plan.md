@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-only / Investigation1-4 and Issue-#10 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-only / Investigation1-4 and Issue-#10/#12 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -60,6 +60,10 @@ artifact audit, not implementation or post-fix runtime validation.
   resolution, import/JIT order, output identity, and downstream consumer
   authority is complete. Its independently reviewed policy is approved by the
   user and synchronized here under Issue #11.
+- Issue #12's read-only investigation of the formal-entry implementation
+  boundary and execution environment is complete. Its independently reviewed
+  implementation-boundary and `4dgs310` environment clarifications are
+  approved by the user and synchronized here under Issue #17.
 - The Investigation1-4 findings, dependencies, ownership boundaries, and
   pre-implementation gates are integrated in this document.
 
@@ -72,9 +76,12 @@ on 2026-09-06 JST. The completed-update training transaction policy was then
 approved by the user after independent review and synchronized here on
 2026-09-06 JST. The independent formal-entry/effective-configuration policy was
 subsequently approved after the Issue #10 investigation and is synchronized
-under Issue #11. All eight policy groups are integrated below. Remaining formal
-policy selection, source fixes, focused validation, CUDA execution, pilot
-training, formal retraining, corrected artifact generation, and Viewer restart
+under Issue #11. Issue #12's approved implementation and environment
+clarifications refine that formal-entry policy without adding a ninth policy
+group and are synchronized under Issue #17. All eight policy groups are
+integrated below. Remaining formal policy selection, source fixes, focused
+validation, CUDA execution, pilot training, formal retraining, corrected
+artifact generation, and Viewer restart
 have not started. P0 findings block only the gate whose accepted output would
 reach the defect; Viewer-only defects do not unnecessarily block corrected
 training, and training-state defects cannot be deferred to artifact generation.
@@ -355,13 +362,24 @@ subprocess, and Candidate D, validation inside training after renderer import or
 JIT, are rejected because neither establishes the required same-process,
 pre-heavy-import authority boundary.
 
+The approved implementation boundary separates a lightweight formal-only
+bootstrap, a stdlib-only pure resolver, and the heavy training runtime. The
+bootstrap's top-level dependency graph must remain lightweight; only after the
+resolver and read-only preflight accept the state may the same process load the
+runtime that imports `torch`, the renderer, `Scene`, or CUDA-related modules.
+The existing general CLI and legacy configuration path remain historical/non-
+formal paths and cannot invoke or bypass this formal authority.
+
 Semantic CLI overrides are forbidden. The resolver must accept exactly one
 explicit formal input authority, resolve and validate it once, and reject a
 missing or unknown field, an implicit semantic default, duplicate or competing
-authorities, and any later semantic overwrite. The exact allowlist of purely
-operational CLI controls remains undecided; this policy does not invent option
-names. Helper name, file placement, API, error schema, and the concrete typed-
-state representation also remain implementation-open.
+authorities, and any later semantic overwrite. A versioned strict-JSON formal
+configuration is the first implementation candidate. The initial formal CLI
+accepts only its configuration locator; `quiet` is excluded because its current
+call path is coupled to RNG and CUDA-device side effects. Helper and file names,
+local API and error-code details, and internal control structure remain bounded
+source-implementation choices for CODEX. A four-file layout is a first
+candidate, not an immutable change cap or architecture requirement.
 
 The verified state must bind the already approved dataset/evaluation, Fudan
 Native model, camera/effective state, and five-field renderer values; effective
@@ -374,6 +392,22 @@ be constructed only from verified post-merge `N`. This does not move ownership
 of the P0-T1/T2 state machine or P0-T3 optimizer/densification transaction into
 the resolver; those remain separate source responsibilities that consume the
 verified state.
+
+The typed state is limited to the formal semantic authority, approved fixed
+values, conditions derived from that authority such as final/test/save
+schedules, proof that unsupported branches are absent, and the output identity.
+Repository and dataset digests, runtime/toolchain identity, checkpoint and
+manifest state, camera mathematics, seed, reporting, and publication lifecycle
+remain with their existing owners and may bind to or verify the state without
+becoming fields merely to centralize provenance.
+
+Existing-output rejection is a read-only pre-heavy-import preflight. After that
+preflight, heavy loading/JIT and side-effect-free runtime preparation must
+succeed before an exclusive output claim is made immediately before the first
+writer. Thus a heavy-load or JIT failure does not create the formal output
+identity, while a race appearing after preflight still fails closed at the
+exclusive claim. Atomic publication, cleanup, and completion remain separately
+owned and are not decided by this claim boundary.
 
 The same verified identity is consumed by training and, later, by formal
 evaluation and CUDA Reference generation. Those consumers may not reconstruct
@@ -404,8 +438,45 @@ The present source does not implement this contract:
   is not unified with the training YAML route or any formal consumer contract.
 
 These are current-source findings, not completed Fixes. No resolver,
-pre-heavy-import enforcement, typed state, consumer integration, or focused
-validation has been implemented by this synchronization.
+pre-heavy-import enforcement, typed state, formal-only bootstrap/runtime split,
+consumer integration, environment-provenance capture, or focused validation
+has been implemented by this synchronization.
+
+#### Approved execution-environment clarification
+
+[`environment.yml`](../environment.yml) is the unchanged upstream-release
+specification and records Python 3.7.13, PyTorch 1.12.1, torchvision 0.13.1,
+torchaudio 0.12.1, and CUDA Toolkit 11.6 as historical provenance. Python 3.7
+compatibility is not a formal
+entry requirement, and `environment.yml` is not the execution authority. The
+stdlib-only resolver boundary exists to prevent pre-acceptance PyTorch/CUDA and
+other heavy imports, not to support Python 3.7.
+
+The first candidate environment for pilot training, formal retraining,
+corrected CUDA Reference generation, and CUDA focused validation is
+`4dgs310`. Reproducible commands use
+`/home/demo/miniconda3/envs/4dgs310/bin/python` and verify that the running
+`sys.executable` is that interpreter before relying on it. This candidate
+selection does not authorize an environment or package change.
+
+Current read-only evidence records Python 3.10.14, PyTorch 2.3.1, torchvision
+0.18.1, torchaudio 2.3.1, NumPy 2.2.6, OmegaConf 2.3.0, PyTorch CUDA 12.1,
+cuDNN 8.9.2, system nvcc 12.0.140, and an NVIDIA GeForce RTX 3080 Ti Laptop
+GPU. These are observed current values, not implicit permanent pins for driver
+or host state and not permission to update packages alongside a source Fix.
+
+Conda history, installed-extension timing, TensorBoard events, `cfg_args`, and
+checkpoint timing strongly support that the historical checkpoint was produced
+under `4dgs310`, but no same-invocation command or manifest binds the checkpoint
+to its executable, package state, source revision, or loaded extension binary.
+That relationship remains a strong inference, not formal provenance.
+
+Final toolchain acceptance requires a fresh build from the corrected tracked-
+clean source and focused CUDA validation. It must record the actual Python,
+package, PyTorch CUDA, compiler, driver, GPU, source revision, and loaded
+extension-binary provenance. In particular, the observed PyTorch CUDA 12.1 and
+system nvcc 12.0 separation is evidence to validate, not a reason to silently
+modify the environment or reuse an existing extension cache as authority.
 
 ### Approved alpha-cap derivative contract
 
@@ -879,6 +950,9 @@ The static audit does not establish:
 - CUDA float32, atomic-add, and scheduling behavior;
 - deterministic ordering for equal-depth sort keys;
 - the historical full training/render invocation and effective values;
+- a same-invocation binding between the historical checkpoint and `4dgs310`,
+  including its executable, package state, source revision, and loaded
+  extension binary;
 - the historical checkpoint's internal tensor state, shapes, finite values,
   optimizer state, and internal iteration, because the large checkpoint was
   not loaded during the audit;
@@ -888,6 +962,8 @@ The static audit does not establish:
 - post-fix camera and renderer runtime state;
 - full-scene `num_rendered` and tile-reference population;
 - post-fix forward and gradient correctness;
+- acceptance of the current `4dgs310` candidate for corrected work through a
+  fresh corrected-source build and focused CUDA validation;
 - the runtime frequency and formal-dataset impact of nonfinite values, OOM,
   and other numerical edge cases;
 - the external SuperSplat PLY coefficient/property convention;
@@ -915,8 +991,8 @@ the remaining items must not be presented as the formal contract.
 | decided: renderer invocation | Require one effective contract everywhere: `compute_cov3D_python=False`, `convert_SHs_python=False`, `scaling_modifier=1.0` exactly, `env_map_res=0`, and `override_color=None`; reject every other or nonfinite value before renderer import/CUDA JIT or formal render; training, evaluation/test render, CUDA Reference, and checkpoint consumers share the same validated identity and may not substitute defaults. This decision does not accept the current CUDA-direct renderer, which remains blocked on P0-1/P0-2/P0-3 source fixes and focused validation. |
 | decided: alpha-cap derivative | Keep `alpha=min(0.99f, raw_alpha)` in forward; after aggregating all `dL/dalpha`, use the independent piecewise gate `raw_alpha < 0.99f` for the alpha-mediated opacity/G/screen-xy/conic/covariance chain and zero that chain for `raw_alpha >= 0.99f`, including a zero selected subgradient at bitwise-equal float32 `0.99f`; preserve direct color/flow/depth and depth-to-screen-z gradients. Do not use an STE/surrogate, cap removal, smooth cap, or cap-triggered formal rejection. Source Fix and focused validation remain required. |
 | decided: completed-update transaction | Start from completed count zero and execute `k=1..N` exactly once with no `N+1` fetch; apply schedules before forward; forward/loss/backward; collect and apply current densification statistics before Parameter replacement; same-Parameter optimizer step including `k=N`; zero-grad; scheduled densify/clone/split/prune; scheduled opacity reset; then declare completed state `k`, save checkpoint `k`, and evaluate that same state. Densify/prune precedes reset when simultaneous; prune reads post-step/pre-reset opacity; children derive from post-step parents; reset reaches survivors and children. Final checkpoint `N` is mandatory from effective post-merge `N`. Optimization input loss `k` remains distinct from completed-state test metric `k`; initial state zero is not an update or selection state. Candidate B is adopted and A/C/D are rejected for the bounded reasons above. Source Fix and focused validation remain required. |
-| decided: independent formal entry/effective configuration | Use one pure resolver/validator, independent of `torch`, renderer, `Scene`, and CUDA modules, as the sole authority for one explicit formal configuration; combine the common owner of Investigation #10 Candidate B with the same-process pre-JIT bootstrap of Candidate A; reject parent-subprocess Candidate C and post-JIT Candidate D; forbid semantic CLI override and fail closed on missing/unknown fields, implicit semantic defaults, multiple authorities, later semantic overwrite, resume/warm-start/best/environment-map checkpoint state, legacy output, and pre-existing output directories before renderer import/JIT/CUDA/render/output write. Bind approved dataset/model/camera/renderer values, explicit `scaling_modifier=1.0` and `override_color=None`, verified post-merge `N`, final-checkpoint/test/save construction, and output identity once for all consumers. `cfg_args` is not a formal authority or complete identity and no formal consumer may execute it. Exact operational CLI allowlist, helper/API/location/error schema, and typed representation remain implementation-open. |
-| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; independent resolver helper/API/location/error schema/typed state, exact operational CLI allowlist, and same-process pre-heavy-import enforcement; remaining field-level formal run mode and checkpoint schema; concrete training loop/helper API; temporal densification policy; strict numeric point-cap/prune/opacity-reset policy. The completed-update event order and formal-entry authority policy themselves are not open. |
+| decided: independent formal entry/effective configuration | Use a lightweight formal-only bootstrap, one stdlib-only pure resolver/validator, and a separately loaded heavy runtime. The resolver is the sole authority for one explicit formal configuration and completes read-only validation in the same process before heavy import/JIT. A versioned strict-JSON config is the first implementation candidate; the initial formal CLI accepts only its locator, excludes `quiet`, and permits no semantic override or legacy/general bypass. The typed state is limited to semantic authority, approved fixed values, derived final/test/save schedules, unsupported-branch absence, and output identity; runtime, digest, checkpoint, manifest, camera-math, seed, reporting, and publication owners remain separate. Existing output rejects before heavy import; heavy load/JIT and side-effect-free preparation precede an exclusive claim immediately before the first writer. Candidate C/D remain rejected. Helper/file names, local API/error details, control structure, and whether the first-candidate four-file layout is suitable remain CODEX implementation discretion. |
+| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; realization and focused validation of the approved formal bootstrap/resolver/runtime boundary, including the first-candidate versioned strict-JSON schema or separate review before departing from it; remaining field-level formal run mode and checkpoint schema; concrete training loop/helper API; temporal densification policy; strict numeric point-cap/prune/opacity-reset policy. The completed-update event order, formal-entry authority, formal-only locator CLI, and output-claim ordering are not open. |
 | required before formal retraining | Numeric final iteration and pilot/formal schedules; pilot/formal point caps; densification/prune/reset numeric schedules; complete effective-config snapshot; deterministic seed ownership details; test-report metric/cadence; nonfinite/OOM/partial-failure policy; immutable output directory and atomic publication; and, only if resume will be enabled, field-level restore state plus numerical/bitwise equivalence acceptance thresholds. |
 | required before formal artifact generation | SPL4-v2 log/linear scale representation; PNG clamp/round/color/codec; full/range CUDA Reference purposes; manifest schema and validator; source-to-binary build provenance; bundle/index/external-digest ownership; direct evidence as formal same-invocation evidence or diagnostic-only. |
 | required before Viewer restart | Corrected population and fixed range; Viewer provenance binding; strict parser acceptance; removal or versioned isolation of historical hard-coded ranges; Viewer capture/comparison bundle identity. |
@@ -930,7 +1006,8 @@ this documentation sync.
 | # | Validation layer | Primary findings closed |
 |---:|---|---|
 | 1 | Pure CPU canonical-camera tests for SPH intrinsics, both supported modes, raw-sentinel isolation, dimensions/resolution scaling, clipping/cull separation, and the mixed/partial/nonfinite/invalid/off-center rejection matrix | P0-0 and camera/projection P1; P0-A6 consumes the accepted result later |
-| 2 | Pure resolver/validator tests, with no `torch`, renderer, `Scene`, or CUDA dependency: accept one explicit authority and the approved dataset/model/camera/renderer state; prove effective post-merge `eval=True`, explicit `scaling_modifier=1.0`/`override_color=None`, verified `N`, final-checkpoint/test/save construction from that `N`, and unique output identity; reject missing/unknown fields, implicit defaults, duplicate authority or overwrite, legacy/general YAML, `eval=False`, resume/warm-start/best/environment checkpoint state, legacy or pre-existing output, and every unsupported branch before renderer import/CUDA JIT/output write | independent formal-entry policy, P0-T4, P0-A2, P0-T6/T7, renderer/config/run-mode P1 |
+| 2 | Pure resolver and lightweight-bootstrap tests, with no `torch`, renderer, `Scene`, or CUDA dependency: accept one explicit versioned authority and the approved dataset/model/camera/renderer state; allow only the formal config locator at the initial CLI and reject `quiet`, semantic options, legacy/general entry, missing/unknown/duplicate fields, implicit defaults, authority overwrite, `eval=False`, resume/warm-start/best/environment checkpoint state, legacy or pre-existing output, and every unsupported branch before heavy import/JIT/output write. Prove typed-state scope, effective post-merge `eval=True`, explicit `scaling_modifier=1.0`/`override_color=None`, verified `N`, derived final/test/save conditions, same-process load ordering, and one output identity. Prove heavy/JIT preparation failure creates no claim, a competing writer loses at the exclusive pre-writer claim, and legacy entry cannot bypass formal authority. | independent formal-entry policy, P0-T4, P0-A2, P0-T6/T7, renderer/config/run-mode P1 |
+| 2a | Execution-environment identity test using the `4dgs310` first candidate: invoke its explicit Python path, verify `sys.executable`, record package/PyTorch-CUDA/compiler/driver/GPU identities without changing them, build the extension freshly from tracked-clean corrected source, and bind the loaded binary to that source/build before focused CUDA acceptance. Existing cache and upstream `environment.yml` are rejected as execution authority. | formal environment boundary and P0-A7 build provenance |
 | 3 | Versioned checkpoint field serialization, semantic validation, diagnostic provenance, and rejection matrix; consume rather than redefine the completed-state label from P0-T1/T2 | P0-T6, P0-A1/A2 |
 | 4 | Training state-machine mock proving completed count starts at zero, `k=1..N` performs exactly `N` batch fetches and optimizer steps including final `N`, no `N+1` fetch occurs, and checkpoint-first/test-second both observe the post-topology/post-reset completed state | P0-T1/T2 |
 | 5 | Optimizer transaction test proving current visibility/radii/screen/time statistics are captured before replacement, the backward-owned Parameter is stepped, zero-grad precedes mutation, and ordinary/final/reset/topology transactions follow the approved event order | P0-T3, optimizer P1 |
@@ -982,10 +1059,15 @@ Formal-entry validation must additionally prove import order without importing
 the heavy path in the test fixture: resolution and validation finish first,
 then and only then may the same process import renderer/`Scene`/CUDA-related
 modules. It must prove the verified state is the sole semantic authority, that
-operational CLI handling cannot change it, and that formal evaluation and CUDA
-Reference consumers later receive the same identity without defaults or
-`cfg_args` reconstruction. The exact operational allowlist and implementation
-API/location remain open, so no speculative flag names are acceptance criteria.
+the initial CLI accepts only the formal config locator and cannot change its
+semantics, that `quiet` and every legacy/general entry are excluded, and that
+formal evaluation and CUDA Reference consumers later receive the same identity
+without defaults or `cfg_args` reconstruction. It must separately prove the
+read-only existing-output preflight, side-effect-free runtime preparation, and
+exclusive pre-writer claim order, including no formal output after heavy/JIT
+failure. Helper names, local API/error details, and file boundaries are not
+acceptance criteria when an equally bounded implementation preserves these
+observable contracts.
 
 Independent forward oracles precede CUDA comparison; Python-precompute paths
 are not assumed to be independent oracles. One-sided checks cover temporal
@@ -1159,6 +1241,11 @@ Pilot training may start only when:
   overwrite, implicit defaults, multiple authorities, legacy/general config,
   `cfg_args`, resume/warm-start/best/environment checkpoint state, and existing
   output directories all fail closed;
+- the `4dgs310` first candidate is invoked through its explicit Python path and
+  verified `sys.executable`; its actual package/CUDA/compiler/driver/GPU state
+  is recorded without implicit updates; and a fresh corrected-source extension
+  build plus focused CUDA validation is accepted instead of trusting
+  `environment.yml` or an existing extension cache;
 - P0-0 uses one canonical effective-camera state for projection and rasterizer
   forward/backward, every unsupported camera input rejects before GPU, and the
   focused camera forward/gradient validation is accepted;
@@ -1221,7 +1308,9 @@ train/test identity; test non-selection; a pre-fixed numeric final iteration
 whose completed state is canonical; accepted exact-N, final-step, same-
 Parameter-step, zero-grad-before-mutation, densify/prune-before-reset,
 checkpoint-first/test-second transaction evidence; clean source revision;
-reproducible build/runtime identity; corrected and validated P0-1/P0-2/P0-3
+reproducible accepted execution-environment, build, and runtime identity,
+including the verified interpreter and loaded extension provenance; corrected
+and validated P0-1/P0-2/P0-3
 renderer behavior; approved remaining numeric densification, reporting, seed,
 and failure policies; the full versioned checkpoint schema and iteration
 transaction; immutable atomic output publication; no legacy checkpoint warm-
@@ -1301,7 +1390,7 @@ a second copy of the policy.
 | dataset/evaluation policy | P0-T4; post-merge effective `eval=True`, exact `v01-v31` train and `v00` test identity, no validation population, test non-selection, and formal rejection of `eval=False` | fixed-final checkpoint selection and P0-A8 |
 | evaluation/best policy | Formal reporting is selection-free and the best branch is unsupported; any future validation/best experiment needs a separate policy, identity, and output owner | conditional best lineage in P0-T5/A8 only outside this baseline |
 | fixed-final checkpoint selection | Canonical identity is mandatory final checkpoint `N`, constructed from effective post-merge `N` and saved after update/topology/reset at its exact completed boundary, not `chkpnt_best.pth` | P0-A8 manifest and artifact consumers |
-| independent formal entry / pure effective-state resolver | Sole owner of one explicit formal authority and verified typed state, independent of `torch`, renderer, `Scene`, and CUDA modules; resolve and reject before heavy import/JIT/output creation; bind approved dataset/model/camera/renderer values, effective `eval=True`, explicit scale/color fields, post-merge `N`, derived final-checkpoint/test/save conditions, and unique output identity; forbid semantic CLI override, competing authorities, defaults, legacy/loaded/best/resume/environment state, existing output, and executable `cfg_args`. Excludes P0-T1/T2/T3, P0-T6, camera/renderer math, seed, reporting, exact resume, and atomic publication. | same-process bootstrap imports heavy modules only after acceptance; training and later evaluation/CUDA Reference consume the state; P0-A2 and manifest publish/verify rather than redefine it |
+| independent formal entry / pure effective-state resolver | Sole owner of one explicit formal authority and bounded verified typed state, implemented through a lightweight formal-only bootstrap, stdlib-only resolver, and separately loaded heavy runtime. Initial CLI is config-locator-only and excludes `quiet`; legacy/general entry cannot bypass it. Resolve and reject before heavy import/JIT, run the read-only existing-output preflight, load and prepare the runtime without writers, then claim output exclusively immediately before the first writer. Bind approved semantic values and derived conditions but exclude runtime/digest/checkpoint/manifest/camera-math/seed/reporting/publication owners. | training and later evaluation/CUDA Reference consume the state; P0-A2 and manifest publish/verify rather than redefine it; local names/API/error structure remain CODEX discretion |
 | diagnostic checkpoint foundation | P0-T6: version, field-level schema, semantic validation, diagnostics, and provenance; consume the P0-T1/T2 completed label without owning loop or optimizer order | P0-A1/A2/A8 consumers |
 | exact resume (conditional independent root) | Complete continuation state and equivalence, including any resume-reachable P0-T5/T6 handling, only after known P0/transaction stability; do not merge it into the diagnostic foundation or transaction Fix | formal continuation only after gate acceptance; otherwise fail closed |
 | environment-map lifecycle (future conditional root) | P0-T7 remains unfixed but unreachable under `env_map_res=0`; any future enablement requires separate policy and complete lifecycle/checkpoint/optimizer/resume validation | first-baseline CUDA reconstruction must reject environment state; future runtime publication follows only after separate acceptance |
@@ -1309,7 +1398,7 @@ a second copy of the policy.
 | SPL4 parser | P0-A3 | production evaluation inputs |
 | CUDA Reference loader | P0-A1/A2, selected tensor mapping, fresh render | manifest and bundle output |
 | manifest builder/validator | P0-A5/A6/A8 publication claims, including exact accepted P0-0 camera mode/effective state and projection/raster cull distinction without sentinel substitution | Viewer/comparison acceptance |
-| build provenance | P0-A7 source-to-binary relation | formal CUDA Reference identity |
+| execution environment and build provenance | `4dgs310` is the first candidate for pilot, formal retraining, corrected CUDA Reference, and CUDA focused validation; verify its explicit interpreter and record actual package/CUDA/compiler/driver/GPU state without implicit updates. P0-A7 owns the tracked-clean corrected-source-to-fresh-binary relation; neither upstream `environment.yml` nor an existing cache is execution authority. | Gate A/B runtime acceptance and formal CUDA Reference identity |
 | Viewer handoff/bundle contract | P0-A4, corrected range and wrong-pair rejection | capture/comparison artifacts |
 | output publication | unique owner, atomic write, completion/index/digest | every formal output stage |
 
@@ -1359,23 +1448,32 @@ the historical `[524288,1048576)` range.
    document on 2026-09-06 JST.** Integrate the Issue #10 approved independent
    formal-entry/effective-configuration policy under Issue #11, combining the
    common owner with same-process pre-JIT bootstrap. **Complete in this
-   document.** Its source Fix and focused validation have not started. After
+   document.** Integrate the Issue #12 approved lightweight-bootstrap/pure-
+   resolver/heavy-runtime boundary, formal-only CLI and output-claim ordering,
+   plus the `4dgs310` first-candidate environment contract under Issue #17.
+   **Complete in this document.** Their source Fix, fresh corrected-source
+   build, and focused validation have not started. After
    document review and the user-owned Git checkpoint, the
    desktop advisor determines the next formal candidate; this document sync
    and CODEX do not select or start it. Camera implementation details, complete
    run mode, numeric densification/population fields, checkpoint schema, and
    other remaining policy fields stay undecided. Confirm one root owner and one
    bounded Fix responsibility at a time only after the applicable policy is
-   decided. The formal-entry authority is decided, while its helper/API/location,
-   typed state, exact operational CLI allowlist, and integration are not.
+   decided. The formal-entry authority, component separation, initial formal
+   CLI boundary, typed-state ownership boundary, and output-claim ordering are
+   decided. Helper/file names, local API/error structure, and internal control
+   flow remain implementation discretion rather than separate policy choices.
 
 ### Phase 1: training-critical foundation
 
-5. Implement the approved pure resolution/validation boundary, then its same-
-   process pre-heavy-import enforcement, and only afterward integrate the
-   verified state into downstream training fixes and formal consumers. Complete
-   the still-open run-mode fields, operational CLI allowlist, and non-overwriting
-   output identity without creating a second semantic authority.
+5. Implement the approved lightweight formal-only bootstrap, stdlib-only pure
+   resolver, and separately loaded heavy runtime. Use the config-locator-only
+   initial CLI, keep `quiet` and the legacy/general path outside formal entry,
+   reject existing output in read-only preflight, and claim it exclusively only
+   after side-effect-free runtime preparation and immediately before the first
+   writer. Complete the still-open run-mode fields and non-overwriting output
+   identity without creating a second semantic authority; choose bounded local
+   helper/API/file/error details during the source Fix.
 6. After its field-level schema policy is approved, implement the minimum
    versioned P0-T6 diagnostic checkpoint foundation independently of the
    training-state-machine and exact-resume roots; consume the approved
@@ -1405,7 +1503,11 @@ the historical `[524288,1048576)` range.
     oracles, including supported-mode, sentinel-isolation, scaling, clipping/
     cull, and pre-GPU rejection cases.
 16. Run CPU autograd and finite differences.
-17. Build the selected CUDA source and run CUDA forward/gradient validation.
+17. From the `4dgs310` first candidate's explicit verified interpreter, build
+    the selected corrected CUDA source freshly, record the actual environment/
+    toolchain/source/binary identity, and run CUDA forward/gradient validation
+    without treating the existing cache or upstream `environment.yml` as
+    execution authority.
 18. Run separately owned training-state-machine and optimizer/densification
     mocks for the shared approved event boundary; do not fold P0-T6 schema or
     exact-resume equivalence into these fixtures.
@@ -1416,15 +1518,17 @@ the historical `[524288,1048576)` range.
 ### Phase 3: pilot and formal training
 
 21. Run small corrected pilot training from iteration 0 with resume prohibited
-    after Gate A.
+    after Gate A, using `4dgs310` only after its fresh-build and focused-CUDA
+    environment acceptance succeeds.
 22. Review pilot updates, metrics, topology, checkpoints, and failure evidence.
 23. Only if formal resume is wanted after known P0 and transaction stability,
     implement it under an independent root ticket and accept the resume-
     equivalence gate; otherwise keep resume fail closed.
 24. Freeze the canonical camera/eval publication identity, formal config,
     dataset, source/build, schedule, and remaining policies.
-25. Run the formal corrected baseline from scratch after Gate B, using resume
-    only if step 23 was accepted.
+25. Run the formal corrected baseline from scratch after Gate B in the accepted
+    recorded `4dgs310` execution identity, using resume only if step 23 was
+    accepted.
 26. Select and immutably publish the pre-fixed final completed checkpoint and
     its test-non-selection binding.
 
@@ -1479,13 +1583,19 @@ Complete at this milestone:
   user-approved independent formal-entry/effective-configuration policy: one
   pure authority, same-process pre-JIT enforcement, Candidate B plus Candidate
   A, Candidate C/D rejection, explicit verified identity, and fail-closed
-  exclusion of competing/default/legacy/resume/best/environment/output reuse.
+  exclusion of competing/default/legacy/resume/best/environment/output reuse;
+  and
+- Investigation #12 and repository synchronization under Issue #17 of the
+  approved lightweight-bootstrap/stdlib-only-resolver/heavy-runtime boundary,
+  formal-only locator CLI, typed-state owner boundary, pre-writer exclusive
+  claim order, and `4dgs310` first-candidate environment contract.
 
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
 - source, config, test, or tool fixes, including the formal resolver/bootstrap,
-  consumer integration, and P0-T1/T2/T3 transaction fixes;
+  heavy-runtime separation, consumer integration, environment provenance, and
+  P0-T1/T2/T3 transaction fixes;
 - focused validation or CUDA build;
 - pilot training or formal retraining, including any exact-resume Fix or
   equivalence acceptance;
@@ -1500,10 +1610,12 @@ Not complete and not authorized by this document sync:
   branch-parity confirmation, and validation tolerance; the derivative policy
   itself is decided;
 - any other still-undecided supported-path renderer behavior;
-- formal-entry implementation details: exact pure resolver helper/API/location,
-  typed verified-state representation, error schema, exact operational CLI
-  allowlist, consumer integration, and same-process mechanism that completes
-  before renderer, `Scene`, or CUDA-related import/JIT;
+- formal-entry source Fix and focused validation for the approved lightweight
+  bootstrap, stdlib-only resolver, separately loaded heavy runtime, formal-only
+  locator CLI, typed-state owner boundary, and pre-writer exclusive claim;
+  versioned strict JSON remains the first config-format candidate. Exact local
+  helper/file names, API/error representation, typed implementation, and
+  control structure are CODEX implementation discretion within that contract;
 - camera implementation details: centered-principal-point numerical tolerance,
   field-level validation/error schema, and exact common-builder API/location;
 - remaining field-level formal run-mode specification; effective `eval=True`
@@ -1528,9 +1640,13 @@ Not complete and not authorized by this document sync:
   or bitwise equivalence threshold;
 - deterministic seed ownership details and nonfinite/OOM/partial-failure
   policy;
+- fresh corrected-source build and focused CUDA acceptance of the `4dgs310`
+  first candidate, including the observed PyTorch-CUDA/system-nvcc separation
+  and the required execution/build provenance record; no package update is
+  implied;
 - remaining fields of the complete effective-config, dataset, source,
-  environment, and build identity; the single-authority/pre-JIT policy is
-  decided;
+  environment, and build provenance schema; the single-authority/pre-JIT
+  policy and `4dgs310` first-candidate role are decided;
 - formal output owner, atomic publication, completion index, and digest;
 - new checkpoint iteration and population count;
 - SPL4-v2 representation and export identity;
@@ -1551,8 +1667,9 @@ execution; render; training; export; artifact generation; branch operation;
 commit; or push has been performed by this documentation sync. The formal
 camera/eval, renderer-invocation, alpha-cap derivative, completed-update
 transaction, and independent formal-entry/effective-configuration policies are
-synchronized, but their enforcement, source fixes, consumer integration, and
-focused validation are not implemented. P0-0, P0-1, P0-2, P0-3,
+synchronized together with the Issue #17 implementation/environment
+clarification, but their enforcement, source fixes, consumer integration,
+fresh build, and focused validation are not implemented. P0-0, P0-1, P0-2, P0-3,
 P0-T1, P0-T2, P0-T3, the separate alpha-cap renderer-math responsibility, and
 P0-A6 remain open until their source responsibilities and required validation
 are completed and accepted; P0-T7 remains unfixed but unreachable for the
