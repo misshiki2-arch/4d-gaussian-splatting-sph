@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-only / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-only / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -67,7 +67,8 @@ artifact audit, not implementation or post-fix runtime validation.
 - Issue #18's investigation and supplemented independent review are accepted.
   Its strict nested semantic JSON v1 / immutable verified-state choice and
   shared from-scratch semantic mode are user-adopted and synchronized under
-  Issue #22. Field-level constraints and owner dependencies remain open as
+  Issue #22. Issue #23's user-adopted P1–P6 partial field contracts are
+  synchronized under Issue #24; remaining field/owner/run decisions stay open as
   classified in [the adopted JSON contract](#approved-json-and-single-run-mode-contract).
 - The Investigation1-4 findings, dependencies, ownership boundaries, and
   pre-implementation gates are integrated in this document.
@@ -84,9 +85,11 @@ subsequently approved after the Issue #10 investigation and is synchronized
 under Issue #11. Issue #12's approved implementation and environment
 clarifications refine that formal-entry policy without adding a ninth policy
 group and are synchronized under Issue #17. Issue #22 further concretizes that
-same formal-entry group with Issue #18's adopted JSON/run-mode choices, without
-selecting the remaining field contracts or run values. All eight policy groups
-are integrated below. Remaining formal policy closure, source fixes, focused
+same formal-entry group with Issue #18's adopted JSON/run-mode choices. Issue
+#24 integrates Issue #23's adopted P1–P6 within that group, not a ninth group
+or a wholesale adoption of the 62-field register. Nested required/allowed sets,
+unresolved owner contracts, and run values remain incomplete. All eight policy
+groups are integrated below. Remaining formal policy closure, source fixes, focused
 validation, CUDA execution, pilot training, formal retraining, corrected
 artifact generation, and Viewer restart remain incomplete; source and runtime
 work have not started. P0 findings block only the gate whose accepted output
@@ -457,52 +460,192 @@ has been implemented by this synchronization.
 Issue #18 Candidate B, **strict nested semantic JSON v1 + immutable verified
 state**, is adopted, not merely a first candidate. Its Candidate labels refer
 to JSON alternatives, not the separate #10/#12 architecture comparison.
-The responsibilities are schema identity, run mode, dataset/model/renderer,
-initialization/optimization, report/checkpoint schedule inputs, and output
-identity. This does not fix field paths or exact schema/version/run-mode
-literals, and does not move the existing owners into the resolver.
+Issue #23's P1–P6 below are user-adopted partial external contracts, synchronized
+under Issue #24. These labels identify the proposal clauses, not new P0/P1
+finding IDs or policy groups. They refine this formal-entry owner without
+transferring the existing dataset, camera, renderer, or lifecycle owners.
 
 Pilot and formal retraining share one from-scratch semantic mode, with separate
 schedule, output identity, gate, and acceptance roles. A pilot is not promoted
 to a formal checkpoint. Resume, warm-start, and best-selection remain forbidden
 under the existing first-baseline contract.
 
-Parsing rejects unknown, missing, or duplicate fields recursively, type
-mismatches, nonfinite numbers, bool-as-int, expression strings, implicit
-coercion, aliases, and legacy overrides. Fixed semantic values are explicit
-inputs checked against their approved values, not supplied as hidden defaults.
-Unsupported JSON fields must be absent: `debug=false` is not an exception for a
-legacy input. Runtime adapters' verified inactive values and the approved
-explicit `override_color=null` input are distinct from unsupported fields.
-Consumers cannot mutate or reconstruct the immutable semantic authority.
+##### Adopted P1: structure and explicit fixed inputs
+
+The required literals are `schema="corrected_4dgs_training_config_v1"` and
+`run_mode="from_scratch"`. The closed top level has exactly ten required keys:
+`schema`, `run_mode`, `dataset`, `model`, `renderer`, `initialization`,
+`optimization`, `reporting`, `checkpoint`, and `output`; all except the first
+two are objects. Separate version/profile inputs, changed hierarchy, flat
+legacy names, aliases, and unknown keys are rejected as competing authority.
+Required inputs are explicit, never completed from defaults. The following
+fixed inputs express the already approved semantics or P1's adopted literals:
+
+| JSON path | Required type and value |
+|---|---|
+| `dataset.kind` | string `"nerf_transforms"` |
+| `dataset.eval` | Bool `true` |
+| `model.gaussian_dim` | Int `4` |
+| `model.spatial_sh_degree` | Int `3` |
+| `model.temporal_sh_degree` | Int `2`, with the P3 derivation below |
+| `model.rot_4d` | Bool `true` |
+| `model.force_sh_3d` | Bool `false` |
+| `model.sh_evaluation` | string `"conditional_mean"` |
+| `renderer.compute_cov3D_python` | Bool `false` |
+| `renderer.convert_SHs_python` | Bool `false` |
+| `renderer.scaling_modifier` | Num exactly `1`; JSON `1` and `1.0` are accepted, not `true` or a string; explicit runtime value `1.0` |
+| `renderer.env_map_res` | Int `0` |
+| `renderer.override_color` | explicit `null`, corresponding to the approved runtime `None` |
+
+The transforms reader cannot switch to Colmap or lego/validation branches by
+filesystem discovery. Dataset population retention is still separately
+verified. Raw/effective camera values, near/far, projection, digests, manifest,
+and checkpoint state are not duplicated in this JSON; accepted owner results
+must still be bound or checked. These fixed fields and the top level do not
+complete every nested required/allowed set: D-* below must be resolved before
+runnable v1 is frozen. Any necessary additional field requires prior review
+and canonical synchronization, not a generic extension area or tolerated key.
+
+##### Adopted P2: strict parsing, types, and limits
+
+- Input is UTF-8 without BOM, containing one root object; leading/trailing
+  JSON whitespace is permitted. Reject comments, trailing commas, a second
+  trailing JSON value, YAML, and Python expressions.
+- Limits are 262144 input bytes, container depth 16 with root at depth 1,
+  4096 elements per array, and 4096 Unicode scalar values per string. These
+  are parser limits, not training values or GPU-capacity guarantees. Byte/depth
+  bounds are not checked only after parsing finishes; excess input must not
+  reach heavy import or a writer.
+- Reject invalid UTF-8, isolated surrogates, and control characters in paths.
+  Do not implicitly normalize Unicode or change case.
+- `Int` requires a JSON integer token, not bool, an exponent/fraction token,
+  or a coerced string. The common nonnegative integer upper bound is
+  2147483647; field-specific lower bounds still apply.
+- `Num` requires a JSON number representable as finite binary64, not bool.
+  Reject NaN/Infinity, overflow, and underflow from a nonzero token to zero;
+  enforce each separately approved domain. `Bool` accepts only JSON
+  `true`/`false`, not `0`/`1` or strings.
+- Reject missing, unknown, or duplicate decoded keys recursively, including
+  differently escaped spellings of the same key; reject fixed-value, type,
+  and range mismatches. There is no expression evaluation, implicit coercion
+  or default, environment expansion, YAML merge, `cfg_args` eval, legacy
+  override, or last-value-wins repair.
+- Unsupported fields must be absent: `debug=false` is not an exception.
+  Verified inactive runtime-adapter values and the approved explicit
+  `renderer.override_color=null` are not permission for other null inputs.
+  Immutability covers nested objects and arrays; consumers cannot mutate or
+  reconstruct the semantic authority from another input.
+
+Parser/helper/class/error design remains CODEX's later bounded implementation
+responsibility. This clause does not select a digest serialization scheme;
+GOV-ID and the existing provenance owner retain that responsibility.
+
+##### Adopted P3: one maximum temporal-SH representation
+
+`model.temporal_sh_degree=2` is the sole temporal-SH input. Reject the legacy
+`eval_shfs_4d` boolean, another enabled flag, or an independent layout/slot-count
+input. Derive and verify the approved 48 slots from maximum spatial degree 3
+and temporal degree 2; derive any adapter-required legacy boolean `true` from
+that same state. Maximum degrees are distinct from training-time active degrees.
+D-SH retains initial active degrees, warm-up/increase schedule, intermediate
+supported correctness, and the degree required at each observation. Neither
+the current warm-up nor always-active 3/2 is adopted here; an event-count
+inequality alone cannot prove intermediate renderer correctness.
+
+##### Adopted P4: explicit integer-divisor resolution
+
+`dataset.resolution` is exactly `{"mode":"integer_divisor","divisor":d}`,
+with fixed mode and Int `d >= 1` under P2's common bound. `d=1` preserves raw
+resolution. Both owner-verified raw width and height must be divisible by `d`,
+yielding positive integer effective dimensions. Reject nondivisible dimensions
+instead of rounding/truncating them, auto `-1`, an integer interpreted as a
+target width, float/arbitrary scale inputs, a second `resolution_scales`
+authority, and upscaling. Dataset/camera read-only preflight must verify
+declared dimensions against actual images. Canonical camera generation and
+intrinsics/projection calculation have one camera owner, not a second resolver
+implementation. Actual divisor, interpolation, mask/alpha/depth treatment, and
+FoV-only implementation/validation remain with D-DATA/P0-0.
+
+##### Adopted P5: completed-update save and test inputs
+
+`optimization.total_updates=N` is Int in `1..2147483647`.
+`checkpoint.intermediate_updates` and `reporting.test_updates` are required
+arrays; each may be empty, but omission is not normalized to empty. Both are
+strictly increasing Int sequences: intermediate values satisfy `1 <= k < N`,
+test values `1 <= k <= N`. Reject duplicates, reverse order, zero, negatives,
+out-of-range values, bool, and expressions; do not silently sort or deduplicate.
+Derive immutable `save_updates` by appending `N` exactly once to the intermediate
+sequence. Independent `final_iteration` or `save_iterations` inputs are
+forbidden. Do not automatically add `N` to the test sequence: final-test needs
+are decided by reporting/Gate owners for the approved run schedule.
+
+When both are scheduled, checkpoint then test observe the same completed
+state, without best selection, early stopping, or parameter tuning. Initial
+state-zero diagnostics are outside these schedules and remain a reporting
+decision. Empty-array validity does not waive actual formal-run reporting or
+cadence approval. This closes checkpoint/test list boundaries only, not
+densify/prune/reset/SH/LR event boundaries or numeric run schedules.
+
+##### Adopted P6: locator and output identity
+
+The initial CLI has only one config locator. JSON `dataset.source_path` and
+`output.directory` are explicit absolute POSIX paths; reject empty values,
+`~`, environment/glob expansion, Windows drive/UNC forms, and path controls.
+Windows references used to open a WSL file are not formal Linux path inputs.
+Canonicalize paths once, resolving existing symlinks and checking the resulting
+identity: dataset must be an existing directory and output a new, non-legacy
+directory. Reject existing output, data/output aliases, mutual containment,
+or a destination that writes into dataset/legacy territory. A dangling symlink
+occupies the output name and is rejected, not followed or overwritten by mkdir.
+The explicit `output.directory` is the run output identity; empty-input UUID
+or `OAR_JOB_ID` fallback and competing `run_id`, `model_path`, or `output_root`
+inputs are forbidden. Any later opaque publication identity belongs to its
+separately accepted machine-generated contract, not a new input invented here.
+
+Keep read-only existing-output preflight, then heavy/JIT and side-effect-free
+preparation, then exclusive claim immediately before the first writer.
+Preflight alone cannot exclude a later race. The failure-stage matrix below
+still distinguishes invalid input, heavy failure, and a claim loser; it does
+not require every JIT cache or the competing winner's directory to be absent.
+
+##### Remaining field and owner boundary
 
 Separate ownership does not itself complete a runnable contract. In particular,
 prefilter, loader/mask, and seed/device require accepted owner contracts rather
 than default substitution. Effective `eval=true` alone does not prove that all
 approved train/test frames were retained; time filtering or another implicit
 subset change is not allowed. Distributed time mapping is not, by itself,
-proof of a same-value double-division bug. Temporal SH needs one unambiguous
-JSON representation; configured maximum degree and training-time active degree
-remain distinct, with their schedule interaction still open. None of these
-clarifications reselects the approved Fudan Native branch.
+proof of a same-value double-division bug. P3 now fixes the maximum temporal-SH
+input; its active-degree interaction remains D-SH, not an adopted warm-up.
+None of these clarifications reselects the approved Fudan Native branch.
 
 | Required point | Still undecided | Existing owner boundary |
 |---|---|---|
-| Before the corresponding implementation | Exact schema/version/run-mode literal; field paths, types, required/forbidden sets and detailed constraints; resolution and temporal-SH representations; schedule boundary and duplicate handling; JSON limits | Formal-entry field policy with dataset/camera, renderer, and schedule owners; advisor proposal and user approval precede the affected implementation. Local helper/API/file/error design remains CODEX discretion. |
-| Before executable-path integration | Dataset/time/initialization, prefilter, loader/mask, seed/device, optimizer/population semantics and their validated handoff | Existing dataset/camera/initialization, renderer, determinism/runtime, and optimizer/population owners. No omitted owner result may be replaced by a default; applicable Gate A/B requirements remain. |
+| Before the corresponding implementation | Remaining nested required/allowed sets and D-* meanings/constraints beyond adopted P1–P6, including population and active-SH schedule boundaries | Formal-entry field policy with the relevant existing owners; advisor review and user approval precede affected implementation. Local helper/API/file/error design remains CODEX discretion. |
+| Before executable-path integration | D-DATA, D-TIME, D-INIT, D-PREFILTER, D-OPT, D-DELAY, D-POP, D-SH, D-SEED-DEVICE, and D-REPORT with validated handoffs | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime, and reporting retain their responsibilities. No omitted owner result may be replaced by a default; applicable Gate A/B requirements remain. |
 | Before each run | Numeric `N`, batch, LR/loss, pilot/formal schedules and point cap, test/save cadence, actual output path/run identity | Each existing owner and the user fix explicit run values. Legacy YAML values are not automatically adopted. |
 
+The D-* definitions and investigation-to-field mapping remain in the
+[Issue #23 proposal](../../reports/corrected-4dgs/issue-23/issue-23-formal-json-field-contract-proposal.md).
+In particular, the current caller omits `lr_delay_steps`, whose default is zero,
+so `position_lr_delay_mult` does not act on that inspected path. D-DELAY remains
+an optimizer-owner decision: neither field deletion nor a new delay mechanism
+is adopted, and this static fact does not prove every historical run's behavior.
+
 Unspecified run values and undecided validation specifications are different
-gaps. Choosing the format/mode does not finish runnable v1, authorize source
-Fix or focused validation, or pass Gate A/B. The remaining checkpoint,
+gaps. Do not fill either with defaults, TBD/null, empty placeholder objects,
+tolerated unknown keys, or generic extensions. P1–P6 do not finish runnable v1,
+authorize source Fix or focused validation, or pass Gate A/B. The remaining checkpoint,
 publication, and environment responsibilities retain their separate gates.
 
 Acceptance trace: [Issue #18 advisor review](../../reports/corrected-4dgs/issue-18/issue-18-advisor-review.md),
 [detailed result journal](../../reports/corrected-4dgs/issue-18/issue-18-investigation-journal-105.txt),
 and [user acceptance record](../../reports/corrected-4dgs/issue-18/issue-18-acceptance-notes.txt).
 The 62-field register is investigation evidence, not a copied or wholly adopted
-schema. The review's earlier unapproved wording describes its historical point
-in time; the subsequent acceptance and Issue #22 own this synchronization.
+schema. Issue #23's [partial acceptance record](../../reports/corrected-4dgs/issue-23/issue-23-acceptance-notes.txt)
+adopts P1–P6 only and is synchronized here under Issue #24. Earlier proposal or
+evidence wording such as adoption-pending records its historical point in time;
+it does not undo that acceptance or promote the remaining D-* candidates.
 
 #### Approved execution-environment clarification
 
@@ -1053,9 +1196,9 @@ the remaining items must not be presented as the formal contract.
 | decided: renderer invocation | Require one effective contract everywhere: `compute_cov3D_python=False`, `convert_SHs_python=False`, `scaling_modifier=1.0` exactly, `env_map_res=0`, and `override_color=None`; reject every other or nonfinite value before renderer import/CUDA JIT or formal render; training, evaluation/test render, CUDA Reference, and checkpoint consumers share the same validated identity and may not substitute defaults. This decision does not accept the current CUDA-direct renderer, which remains blocked on P0-1/P0-2/P0-3 source fixes and focused validation. |
 | decided: alpha-cap derivative | Keep `alpha=min(0.99f, raw_alpha)` in forward; after aggregating all `dL/dalpha`, use the independent piecewise gate `raw_alpha < 0.99f` for the alpha-mediated opacity/G/screen-xy/conic/covariance chain and zero that chain for `raw_alpha >= 0.99f`, including a zero selected subgradient at bitwise-equal float32 `0.99f`; preserve direct color/flow/depth and depth-to-screen-z gradients. Do not use an STE/surrogate, cap removal, smooth cap, or cap-triggered formal rejection. Source Fix and focused validation remain required. |
 | decided: completed-update transaction | Start from completed count zero and execute `k=1..N` exactly once with no `N+1` fetch; apply schedules before forward; forward/loss/backward; collect and apply current densification statistics before Parameter replacement; same-Parameter optimizer step including `k=N`; zero-grad; scheduled densify/clone/split/prune; scheduled opacity reset; then declare completed state `k`, save checkpoint `k`, and evaluate that same state. Densify/prune precedes reset when simultaneous; prune reads post-step/pre-reset opacity; children derive from post-step parents; reset reaches survivors and children. Final checkpoint `N` is mandatory from effective post-merge `N`. Optimization input loss `k` remains distinct from completed-state test metric `k`; initial state zero is not an update or selection state. Candidate B is adopted and A/C/D are rejected for the bounded reasons above. Source Fix and focused validation remain required. |
-| decided: independent formal entry/effective configuration | Use a lightweight formal-only bootstrap, one stdlib-only pure resolver/validator, and a separately loaded heavy runtime. The resolver is the sole authority for one explicit formal configuration and completes read-only validation in the same process before heavy import/JIT. Issue #18's strict nested semantic JSON v1 + immutable verified state and single from-scratch mode are adopted under [the JSON contract](#approved-json-and-single-run-mode-contract); the initial formal CLI accepts only its locator, excludes `quiet`, and permits no semantic override or legacy/general bypass. The typed state is limited to semantic authority, approved fixed values, derived final/test/save schedules, unsupported-branch absence, and output identity; runtime, digest, checkpoint, manifest, camera-math, seed, reporting, and publication owners remain separate. Existing output rejects before heavy import; heavy load/JIT and side-effect-free preparation precede an exclusive claim immediately before the first writer. Issue #10 Candidate C/D remain rejected. Helper/file names, local API/error details, control structure, and whether the first-candidate four-file layout is suitable remain CODEX implementation discretion. |
-| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; the adopted JSON/mode's remaining external field contract classified [above](#approved-json-and-single-run-mode-contract), followed by separately authorized realization and focused validation of the bootstrap/resolver/runtime boundary; checkpoint schema; concrete training loop/helper API; temporal densification policy; strict point-cap/prune/opacity-reset semantics and validation constraints. The completed-update event order, formal-entry authority, JSON/mode choice, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
-| required before executable-path integration | The separate dataset/time/initialization, prefilter, loader/mask, seed/device, and optimizer/population owner contracts and validated handoffs classified [above](#approved-json-and-single-run-mode-contract). Owner separation is not permission for implicit defaults or evidence of a runnable v1. |
+| decided: independent formal entry/effective configuration | Use a lightweight formal-only bootstrap, one stdlib-only pure resolver/validator, and a separately loaded heavy runtime. The resolver is the sole authority for one explicit formal configuration and completes read-only validation in the same process before heavy import/JIT. Issue #18's strict nested semantic JSON v1 + immutable verified state and single from-scratch mode, refined by Issue #23's adopted P1–P6 under Issue #24, are fixed under [the JSON contract](#approved-json-and-single-run-mode-contract); the initial formal CLI accepts only its locator, excludes `quiet`, and permits no semantic override or legacy/general bypass. The typed state is limited to semantic authority, approved fixed values, derived final/test/save schedules, unsupported-branch absence, and output identity; runtime, digest, checkpoint, manifest, camera-math, seed, reporting, and publication owners remain separate. Existing output rejects before heavy import; heavy load/JIT and side-effect-free preparation precede an exclusive claim immediately before the first writer. Issue #10 Candidate C/D remain rejected. Helper/file names, local API/error details, control structure, and whether the first-candidate four-file layout is suitable remain CODEX implementation discretion. |
+| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; the remaining nested field/owner contract beyond adopted P1–P6 classified [above](#approved-json-and-single-run-mode-contract), followed by separately authorized realization and focused validation of the bootstrap/resolver/runtime boundary; checkpoint schema; concrete training loop/helper API; temporal densification policy; strict point-cap/prune/opacity-reset semantics and validation constraints. The completed-update event order, formal-entry authority, JSON/mode choice, adopted P1–P6, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
+| required before executable-path integration | The remaining D-* owner contracts and validated handoffs classified [above](#remaining-field-and-owner-boundary). Owner separation is not permission for implicit defaults or evidence of a runnable v1. |
 | required before formal retraining | Numeric final iteration and pilot/formal schedules; pilot/formal point caps; densification/prune/reset numeric schedules; complete effective-config snapshot; deterministic seed ownership details; test-report metric/cadence; nonfinite/OOM/partial-failure policy; immutable output directory and atomic publication; and, only if resume will be enabled, field-level restore state plus numerical/bitwise equivalence acceptance thresholds. |
 | required before formal artifact generation | SPL4-v2 log/linear scale representation; PNG clamp/round/color/codec; full/range CUDA Reference purposes; manifest schema and validator; source-to-binary build provenance; bundle/index/external-digest ownership; direct evidence as formal same-invocation evidence or diagnostic-only. |
 | required before Viewer restart | Corrected population and fixed range; Viewer provenance binding; strict parser acceptance; removal or versioned isolation of historical hard-coded ranges; Viewer capture/comparison bundle identity. |
@@ -1069,7 +1212,7 @@ this documentation sync.
 | # | Validation layer | Primary findings closed |
 |---:|---|---|
 | 1 | Pure CPU canonical-camera tests for SPH intrinsics, both supported modes, raw-sentinel isolation, dimensions/resolution scaling, clipping/cull separation, and the mixed/partial/nonfinite/invalid/off-center rejection matrix | P0-0 and camera/projection P1; P0-A6 consumes the accepted result later |
-| 2 | Pure resolver and lightweight-bootstrap tests for the [adopted strict JSON/single-mode contract](#approved-json-and-single-run-mode-contract), with no `torch`, renderer, `Scene`, or CUDA dependency: accept one explicit authority and the approved dataset/model/camera/renderer state; allow only the locator CLI and reject `quiet`, semantic options, legacy/general bypass, recursive missing/unknown/duplicate fields, type/nonfinite/bool-as-int errors, expressions/coercion/aliases, implicit defaults, authority overwrite, `eval=False`, resume/warm-start/best/environment checkpoint state, unsupported JSON keys even with inactive values, and legacy/pre-existing output at preflight. Prove immutable typed-state scope, explicit fixed values including `scaling_modifier=1.0`/`override_color=None`, verified `N` with mandatory final `N` exactly once, selection-free derived test/save conditions, one output identity, and the separate failure-stage expectations below. | independent formal-entry policy, P0-T4, P0-A2, P0-T6/T7, renderer/config/run-mode P1 |
+| 2 | Pure resolver and lightweight-bootstrap tests for the [adopted strict JSON/single-mode and P1–P6 contract](#approved-json-and-single-run-mode-contract), with no `torch`, renderer, `Scene`, or CUDA dependency: accept one explicit authority and the approved dataset/model/camera/renderer state; allow only the locator CLI and reject `quiet`, semantic options, legacy/general bypass, recursive missing/unknown/duplicate fields, type/nonfinite/bool-as-int errors, expressions/coercion/aliases, implicit defaults, authority overwrite, `eval=False`, resume/warm-start/best/environment checkpoint state, unsupported JSON keys even with inactive values, and legacy/pre-existing output at preflight. Prove immutable typed-state scope, explicit fixed values including `scaling_modifier=1.0`/`override_color=None`, verified `N` with mandatory final `N` exactly once, selection-free derived test/save conditions, one output identity, and the separate failure-stage expectations below. | independent formal-entry policy, P0-T4, P0-A2, P0-T6/T7, renderer/config/run-mode P1 |
 | 2a | Execution-environment identity test using the `4dgs310` first candidate: invoke its explicit Python path, verify `sys.executable`, record package/PyTorch-CUDA/compiler/driver/GPU identities without changing them, build the extension freshly from tracked-clean corrected source, and bind the loaded binary to that source/build before focused CUDA acceptance. Existing cache and upstream `environment.yml` are rejected as execution authority. | formal environment boundary and P0-A7 build provenance |
 | 3 | Versioned checkpoint field serialization, semantic validation, diagnostic provenance, and rejection matrix; consume rather than redefine the completed-state label from P0-T1/T2 | P0-T6, P0-A1/A2 |
 | 4 | Training state-machine mock proving completed count starts at zero, `k=1..N` performs exactly `N` batch fetches and optimizer steps including final `N`, no `N+1` fetch occurs, and checkpoint-first/test-second both observe the post-topology/post-reset completed state | P0-T1/T2 |
@@ -1131,6 +1274,22 @@ exclusive pre-writer claim order, including no formal output after heavy/JIT
 failure. Helper names, local API/error details, and file boundaries are not
 acceptance criteria when an equally bounded implementation preserves these
 observable contracts.
+
+For adopted P1–P6, future focused fixtures must check each fixed literal/value
+and responsibility-object boundary, escaped decoded-key duplicates, invalid
+UTF-8/BOM/surrogates, numeric token types, binary64 overflow/nonzero-to-zero
+underflow, and the byte/depth/array/string limits just below, at, and above
+their boundaries. Derivation tests cover maximum versus active SH without
+choosing D-SH. Camera-owner tests cover divisible/nondivisible dimensions,
+actual-image agreement, and one shared canonical camera for both modes.
+Schedule fixtures include `N=1` with empty intermediates, strictly increasing
+lists, duplicate/reverse-order rejection, intermediate `N` rejection, and final
+save exactly once without automatically adding a final test. They need not
+allocate a list of length `N`. Path fixtures cover POSIX versus Windows input,
+canonical aliases/containment, existing/legacy output, and dangling symlinks.
+These are future acceptance requirements, not tests run by this sync. A complete
+valid-v1 fixture requires the remaining owner contracts to be resolved first;
+unknown fields or placeholder objects cannot manufacture one.
 
 The JSON input's unsupported-field absence must not be confused with a runtime
 adapter's inactive value or the approved explicit null. Validate population
@@ -1456,7 +1615,8 @@ responsibility separate from the P0-1/P0-2/P0-3 renderer-math Fixes. Checkpoint
 and manifest code verify and publish the accepted identity later; neither owns
 a second copy of the policy.
 
-Issue #18's adopted JSON/mode contract refines this same formal-entry owner;
+Issue #18's adopted JSON/mode contract and Issue #23's adopted P1–P6 refine this
+same formal-entry owner;
 its [remaining dependencies](#approved-json-and-single-run-mode-contract) do
 not transfer dataset, renderer, optimizer/population, or seed/device ownership.
 
@@ -1534,18 +1694,21 @@ the historical `[524288,1048576)` range.
    **Complete in this document.** Integrate Issue #18's user-adopted strict
    nested semantic JSON / immutable state and single from-scratch mode under
    Issue #22, retaining the classified undecided field/owner/run boundaries.
+   **Complete in this document.** Integrate Issue #23's adopted P1–P6 partial
+   field contracts under Issue #24, without adopting the whole 62-field
+   register or resolving the remaining D-* and run values.
    **Complete in this document.** Their source Fix, fresh corrected-source
    build, and focused validation have not started. After
    document review and the user-owned Git checkpoint, the
    desktop advisor determines the next formal candidate; this document sync
-   and CODEX do not select or start it. Camera implementation details, exact
-   JSON/run-mode field contracts, densification/population policy and run
+   and CODEX do not select or start it. Camera implementation details, remaining
+   JSON field/owner contracts beyond P1–P6, densification/population policy and run
    values, checkpoint schema, and other remaining policy fields stay undecided.
    Confirm one root owner and one
    bounded Fix responsibility at a time only after the applicable policy is
    decided. The formal-entry authority, component separation, initial formal
-   CLI boundary, JSON/mode choice, typed-state ownership boundary, and
-   output-claim ordering are decided. Helper/file names, local API/error
+   CLI boundary, JSON/mode choice and adopted P1–P6, typed-state ownership
+   boundary, and output-claim ordering are decided. Helper/file names, local API/error
    structure, and internal control
    flow remain implementation discretion rather than separate policy choices.
 
@@ -1556,9 +1719,10 @@ the historical `[524288,1048576)` range.
    initial CLI, keep `quiet` and the legacy/general path outside formal entry,
    reject existing output in read-only preflight, and claim it exclusively only
    after side-effect-free runtime preparation and immediately before the first
-   writer. Apply the adopted JSON/single-mode contract only after the relevant
-   field policy is approved, and bind non-overwriting output identity without
-   creating a second semantic authority; choose bounded local
+   writer. Apply the adopted JSON/single-mode and P1–P6 partial contracts;
+   affected implementation and executable integration still require the
+   remaining relevant field/owner approvals. Bind non-overwriting output identity
+   without creating a second semantic authority; choose bounded local
    helper/API/file/error details during the source Fix.
 6. After its field-level schema policy is approved, implement the minimum
    versioned P0-T6 diagnostic checkpoint foundation independently of the
@@ -1679,7 +1843,11 @@ Complete at this milestone:
   synchronization under Issue #22 of its adopted strict nested semantic JSON /
   immutable verified state, single from-scratch mode, strict parsing and
   failure-stage distinctions, with unresolved field/owner/run decisions kept
-  separate. This is not runnable-v1 or source-implementation acceptance.
+  separate; and
+- repository synchronization under Issue #24 of Issue #23's user-adopted
+  P1–P6 partial field contracts, with remaining D-* and run values explicitly
+  unresolved. This is not whole-register, runnable-v1, source-implementation,
+  focused-validation, or Gate acceptance.
 
 Not complete and not authorized by this document sync:
 
@@ -1705,15 +1873,15 @@ Not complete and not authorized by this document sync:
   bootstrap, stdlib-only resolver, separately loaded heavy runtime, formal-only
   locator CLI, typed-state owner boundary, and pre-writer exclusive claim;
   strict nested semantic JSON v1 / immutable state and the single from-scratch
-  mode are adopted, while the [classified external contract and integration dependencies](#approved-json-and-single-run-mode-contract)
-  remain open. Exact local
+  mode and P1–P6 are adopted, while the [remaining field and integration dependencies](#remaining-field-and-owner-boundary)
+  stay open. Exact local
   helper/file names, API/error representation, typed implementation, and
   control structure are CODEX implementation discretion within that contract;
 - camera implementation details: centered-principal-point numerical tolerance,
   field-level validation/error schema, and exact common-builder API/location;
-- the corresponding pre-implementation JSON/field/type/constraint decisions,
-  pre-integration owner contracts, and per-run values classified
-  [above](#approved-json-and-single-run-mode-contract); the JSON/mode choice and
+- the remaining nested field/type/constraint decisions beyond P1–P6,
+  pre-integration D-* owner contracts, and per-run values classified
+  [above](#remaining-field-and-owner-boundary); P1–P6, the JSON/mode choice, and
   effective `eval=True` are already decided and are not open items;
 - completed-update transaction source Fix, focused validation, and concrete
   loop/helper API; the exact-N, final-step, same-Parameter-step, zero-grad,
@@ -1763,9 +1931,10 @@ commit; or push has been performed by this documentation sync. The formal
 camera/eval, renderer-invocation, alpha-cap derivative, completed-update
 transaction, and independent formal-entry/effective-configuration policies are
 synchronized together with the Issue #17 implementation/environment
-clarification and Issue #22 adopted JSON/single-mode and undecided-boundary
-clarification, but their enforcement, source fixes, consumer integration,
-fresh build, and focused validation are not implemented. P0-0, P0-1, P0-2, P0-3,
+clarification, Issue #22 adopted JSON/single-mode boundary, and Issue #24's
+adopted P1–P6 partial field contracts, but their enforcement, source fixes,
+consumer integration, fresh build, and focused validation are not implemented.
+P0-0, P0-1, P0-2, P0-3,
 P0-T1, P0-T2, P0-T3, the separate alpha-cap renderer-math responsibility, and
 P0-A6 remain open until their source responsibilities and required validation
 are completed and accepted; P0-T7 remains unfixed but unreachable for the
