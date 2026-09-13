@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-only / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-only / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -70,6 +70,11 @@ artifact audit, not implementation or post-fix runtime validation.
   Issue #22. Issue #23's user-adopted P1–P6 partial field contracts are
   synchronized under Issue #24; remaining field/owner/run decisions stay open as
   classified in [the adopted JSON contract](#approved-json-and-single-run-mode-contract).
+- Issue #25's D-PREFILTER investigation, PF-A/PF-B/PF-C, and supplemental
+  safety conditions are user-accepted and synchronized under Issue #26 in
+  [the renderer-owner contract](#approved-temporal-prefilter-contract).
+  Policy adoption is complete; handoff implementation and CUDA safety
+  validation are not. Other unresolved owner/run contracts remain open.
 - The Investigation1-4 findings, dependencies, ownership boundaries, and
   pre-implementation gates are integrated in this document.
 
@@ -89,7 +94,9 @@ same formal-entry group with Issue #18's adopted JSON/run-mode choices. Issue
 #24 integrates Issue #23's adopted P1–P6 within that group, not a ninth group
 or a wholesale adoption of the 62-field register. Nested required/allowed sets,
 unresolved owner contracts, and run values remain incomplete. All eight policy
-groups are integrated below. Remaining formal policy closure, source fixes, focused
+groups are integrated below. Issue #26 supplements the existing renderer policy
+group with the adopted D-PREFILTER contract; it neither reselects the five
+renderer values nor adds a ninth group. Remaining formal policy closure, source fixes, focused
 validation, CUDA execution, pilot training, formal retraining, corrected
 artifact generation, and Viewer restart remain incomplete; source and runtime
 work have not started. P0 findings block only the gate whose accepted output
@@ -357,6 +364,80 @@ renderer import/CUDA JIT remain implementation-open. Future support for any
 rejected branch requires separate policy, any necessary Fix and validation,
 and a distinct run or artifact identity when semantics differ.
 
+#### Approved temporal-prefilter contract
+
+Issue #25's PF-A/PF-B/PF-C and supplemental safety conditions are approved,
+not pending alternatives. They supplement the renderer invocation owner above;
+the existing five-field contract and selected Fudan Native branch are unchanged.
+
+- **PF-A — semantics:** additional temporal variance is disabled for the first
+  corrected baseline. Preserve the original `Σ_tt` temporal marginal,
+  effective-opacity weighting, conditional mean/covariance, and existing
+  temporal cull. This does not disable the Gaussian's learned time variance,
+  repair nonpositive/nonfinite `Σ_tt`, or resolve D-TIME.
+- **PF-B — input:** `renderer.temporal_prefilter` is a required string with
+  exactly the lowercase value `"disabled"`. Reject missing, null, bool, number,
+  empty string, case/whitespace differences, any other value, and duplicate
+  decoded keys. Reject the old `prefilter_var`, separate enabled/variance
+  fields, and aliases at any scope, even with `-1`, `0`, `false`, or `null`.
+  No trimming, coercion, implicit default, or additional semantic CLI is
+  permitted. The P1 fixed-input table records this approved addition; schema
+  literal, ten top-level keys, and the existing P1–P6 meanings are unchanged.
+  Remaining nested required/allowed sets and runnable v1 are still incomplete.
+- **PF-C — handoff:** retain `disabled` in the one immutable verified state.
+  From that state explicitly derive, supply, and verify the internal float
+  `prefilter_var=-1.0` at model construction and actual renderer/rasterizer
+  arguments. Model state, forward's consumed value, and backward's saved `ctx`
+  value must agree. Reject missing, wrong-type, wrong-value, nonfinite, or
+  mismatched state before GPU execution; do not hide invalid input behind a
+  positive-value comparison, `getattr`, `setdefault`, or conversion to disabled.
+  Other nonpositive values are not accepted adapter values. Consumers must not
+  independently default, mutate, or remerge JSON/CLI/YAML authority.
+
+Invalid formal input rejects before heavy import/JIT. Runtime handoff mismatch
+rejects before GPU execution; it is not retroactively a preflight rejection.
+The read-only preflight → heavy/JIT/side-effect-free preparation → exclusive
+claim → first-writer order and the existing failure-stage matrix remain intact.
+Configuration verification alone is not CUDA correctness verification.
+
+Training, test/evaluation, formal CUDA Reference, and checkpoint consumers must
+bind the same accepted policy/config identity. Checkpoint/manifest owners must
+reject missing or wrong identity rather than accept a legacy checkpoint alone
+or a manifest's args/default display as executed-state evidence. Their schema,
+publication, and implementation remain separate responsibilities. Renderer
+semantics stay with this owner; the resolver does not become a second camera,
+time, or mathematics owner.
+
+The [Issue #25 revised report](../../reports/corrected-4dgs/issue-25/issue-25-prefilter-policy-proposal.md)
+distinguishes the papers' original time variance from the later optional
+prefilter feature in the official implementation. Its reviewed paper evidence
+does not establish the added-variance feature or a measured benefit; this is
+not a claim about every paper. The implementer's specific motivation and
+measured improvement remain unconfirmed. The source-level effect of positive
+added variance is broader temporal opacity weighting and potentially changed
+cull membership, not guaranteed training stability, image quality, exposure
+integration, or normalized convolution.
+
+Unlike the camera defect that evaluated the FoV sentinel `-1` as an angle,
+the inspected prefilter consumers add variance only when the argument is
+positive: internal `-1.0` does not subtract one from `Σ_tt`. That static branch
+is not a safety proof for all consumers or the loaded binary. A lost branch,
+direct addition in another consumer, swapped argument, forward/backward
+mismatch, stale binary, or default completion can reintroduce the same kind of
+semantic error. Explicitly passing `-1.0` is necessary but not sufficient;
+the independent value/gradient and source/binary checks
+[below](#temporal-prefilter-validation-requirements) are required.
+
+Successful training does not schedule automatic prefilter enablement or an
+in-run switch. Only demonstrated need may motivate a separately approved
+comparison experiment with its own identity; without that need it stays
+disabled. The [acceptance record](../../reports/corrected-4dgs/issue-25/issue-25-acceptance-notes.txt)
+and its [revised-report evidence](../../reports/corrected-4dgs/issue-25/issue-25-acceptance-evidence.json)
+close D-PREFILTER's adoption question, not implementation, numerical safety,
+checkpoint/manifest binding, normal training, Phase 0, or any Gate. Initial
+proposal/evidence wording remains historical and is not the revised report's
+identity authority.
+
 ### Approved independent formal entry and effective-configuration contract
 
 The first formal baseline has one authoritative, pure resolver/validator for
@@ -392,6 +473,9 @@ local API and error-code details, and internal control structure remain bounded
 source-implementation choices for CODEX. A four-file layout is a first
 candidate, not an immutable change cap or architecture requirement.
 
+The verified state also carries the
+[adopted temporal-prefilter identity](#approved-temporal-prefilter-contract)
+without becoming its semantic owner or relying on a consumer default.
 The verified state must bind the already approved dataset/evaluation, Fudan
 Native model, camera/effective state, and five-field renderer values; effective
 post-merge completed-update count `N`; and a unique non-overwriting output
@@ -496,6 +580,7 @@ fixed inputs express the already approved semantics or P1's adopted literals:
 | `renderer.scaling_modifier` | Num exactly `1`; JSON `1` and `1.0` are accepted, not `true` or a string; explicit runtime value `1.0` |
 | `renderer.env_map_res` | Int `0` |
 | `renderer.override_color` | explicit `null`, corresponding to the approved runtime `None` |
+| `renderer.temporal_prefilter` | required string `"disabled"`; Issue #25 PF-B, with [renderer-owned meaning and handoff](#approved-temporal-prefilter-contract) |
 
 The transforms reader cannot switch to Colmap or lego/validation branches by
 filesystem discovery. Dataset population retention is still separately
@@ -610,9 +695,11 @@ not require every JIT cache or the competing winner's directory to be absent.
 
 ##### Remaining field and owner boundary
 
-Separate ownership does not itself complete a runnable contract. In particular,
-prefilter, loader/mask, and seed/device require accepted owner contracts rather
-than default substitution. Effective `eval=true` alone does not prove that all
+Separate ownership does not itself complete a runnable contract. D-PREFILTER
+is [adopted](#approved-temporal-prefilter-contract), but its implementation,
+numerical validation, and consumer binding remain outstanding. Loader/mask and
+seed/device still require accepted owner contracts rather than default
+substitution. Effective `eval=true` alone does not prove that all
 approved train/test frames were retained; time filtering or another implicit
 subset change is not allowed. Distributed time mapping is not, by itself,
 proof of a same-value double-division bug. P3 now fixes the maximum temporal-SH
@@ -621,12 +708,14 @@ None of these clarifications reselects the approved Fudan Native branch.
 
 | Required point | Still undecided | Existing owner boundary |
 |---|---|---|
-| Before the corresponding implementation | Remaining nested required/allowed sets and D-* meanings/constraints beyond adopted P1–P6, including population and active-SH schedule boundaries | Formal-entry field policy with the relevant existing owners; advisor review and user approval precede affected implementation. Local helper/API/file/error design remains CODEX discretion. |
-| Before executable-path integration | D-DATA, D-TIME, D-INIT, D-PREFILTER, D-OPT, D-DELAY, D-POP, D-SH, D-SEED-DEVICE, and D-REPORT with validated handoffs | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime, and reporting retain their responsibilities. No omitted owner result may be replaced by a default; applicable Gate A/B requirements remain. |
+| Before the corresponding implementation | Remaining nested required/allowed sets and D-* meanings/constraints beyond adopted P1–P6 and D-PREFILTER, including population and active-SH schedule boundaries | Formal-entry field policy with the relevant existing owners; advisor review and user approval precede affected implementation. Local helper/API/file/error design remains CODEX discretion. |
+| Before executable-path integration | D-DATA, D-TIME, D-INIT, D-OPT, D-DELAY, D-POP, D-SH, D-SEED-DEVICE, and D-REPORT with validated handoffs; D-PREFILTER adoption is no longer undecided | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime, and reporting retain their responsibilities. Adopted D-PREFILTER still needs implementation and validated handoff. No omitted owner result may be replaced by a default; applicable Gate A/B requirements remain. |
 | Before each run | Numeric `N`, batch, LR/loss, pilot/formal schedules and point cap, test/save cadence, actual output path/run identity | Each existing owner and the user fix explicit run values. Legacy YAML values are not automatically adopted. |
 
 The D-* definitions and investigation-to-field mapping remain in the
 [Issue #23 proposal](../../reports/corrected-4dgs/issue-23/issue-23-formal-json-field-contract-proposal.md).
+Its historical D-PREFILTER adoption-pending entry is superseded only for that
+decision by [Issue #25's adopted contract](#approved-temporal-prefilter-contract).
 In particular, the current caller omits `lr_delay_steps`, whose default is zero,
 so `position_lr_delay_mult` does not act on that inspected path. D-DELAY remains
 an optimizer-owner decision: neither field deletion nor a new delay mechanism
@@ -1193,12 +1282,12 @@ the remaining items must not be presented as the formal contract.
 | decided: camera/effective state | Support exactly two modes: complete centered intrinsics with finite positive `fl_x/fl_y` and finite `cx/cy`, and complete geometrically valid FoV-only input with finite `0 < FoVx,FoVy < π`; canonicalize raw metadata once after resolution scaling; keep negative FoV sentinel as raw provenance only; make projection and rasterizer forward/backward consume one effective state; fail closed on off-center, mixed, partial, ambiguous, inconsistent, nonfinite, invalid-dimension, and invalid-clipping input; preserve projection near/far `0.01`/`100.0`, CUDA near-cull `p_view.z > 0.2`, and no CUDA far-cull as distinct semantics. |
 | decided: dataset/evaluation | Preserve train as all 5,146 `v01-v31` frames and test as all 166 `v00` frames; require effective `eval=True` after CLI/config merge; reject effective `eval=False`, which yields 5,312 train and zero test cameras; keep the populations disjoint; add no validation population; keep `v31` in training; never use test for training, selection, tuning, or early stopping; use the pre-fixed final completed iteration as canonical; any validation-based experiment gets a separate identity/output owner. |
 | decided: checkpoint/resume staging | Normalize completed-state checkpoints, exact completed-update labels, versioned semantics, diagnostics, and provenance independently of resume; prohibit pilot resume and every legacy warm-start; treat exact resume as a later independent root Fix with an equivalence gate; until accepted, resume fails closed and only uninterrupted completed formal runs can be canonical. |
-| decided: renderer invocation | Require one effective contract everywhere: `compute_cov3D_python=False`, `convert_SHs_python=False`, `scaling_modifier=1.0` exactly, `env_map_res=0`, and `override_color=None`; reject every other or nonfinite value before renderer import/CUDA JIT or formal render; training, evaluation/test render, CUDA Reference, and checkpoint consumers share the same validated identity and may not substitute defaults. This decision does not accept the current CUDA-direct renderer, which remains blocked on P0-1/P0-2/P0-3 source fixes and focused validation. |
+| decided: renderer invocation | Require one effective contract everywhere: `compute_cov3D_python=False`, `convert_SHs_python=False`, `scaling_modifier=1.0` exactly, `env_map_res=0`, and `override_color=None`; reject every other or nonfinite value before renderer import/CUDA JIT or formal render; training, evaluation/test render, CUDA Reference, and checkpoint consumers share the same validated identity and may not substitute defaults. The [adopted temporal-prefilter supplement](#approved-temporal-prefilter-contract) adds PF-A/B/C and safety conditions within this owner without redefining these five values. This decision does not accept the current CUDA-direct renderer, which remains blocked on P0-1/P0-2/P0-3 source fixes and focused validation. |
 | decided: alpha-cap derivative | Keep `alpha=min(0.99f, raw_alpha)` in forward; after aggregating all `dL/dalpha`, use the independent piecewise gate `raw_alpha < 0.99f` for the alpha-mediated opacity/G/screen-xy/conic/covariance chain and zero that chain for `raw_alpha >= 0.99f`, including a zero selected subgradient at bitwise-equal float32 `0.99f`; preserve direct color/flow/depth and depth-to-screen-z gradients. Do not use an STE/surrogate, cap removal, smooth cap, or cap-triggered formal rejection. Source Fix and focused validation remain required. |
 | decided: completed-update transaction | Start from completed count zero and execute `k=1..N` exactly once with no `N+1` fetch; apply schedules before forward; forward/loss/backward; collect and apply current densification statistics before Parameter replacement; same-Parameter optimizer step including `k=N`; zero-grad; scheduled densify/clone/split/prune; scheduled opacity reset; then declare completed state `k`, save checkpoint `k`, and evaluate that same state. Densify/prune precedes reset when simultaneous; prune reads post-step/pre-reset opacity; children derive from post-step parents; reset reaches survivors and children. Final checkpoint `N` is mandatory from effective post-merge `N`. Optimization input loss `k` remains distinct from completed-state test metric `k`; initial state zero is not an update or selection state. Candidate B is adopted and A/C/D are rejected for the bounded reasons above. Source Fix and focused validation remain required. |
 | decided: independent formal entry/effective configuration | Use a lightweight formal-only bootstrap, one stdlib-only pure resolver/validator, and a separately loaded heavy runtime. The resolver is the sole authority for one explicit formal configuration and completes read-only validation in the same process before heavy import/JIT. Issue #18's strict nested semantic JSON v1 + immutable verified state and single from-scratch mode, refined by Issue #23's adopted P1–P6 under Issue #24, are fixed under [the JSON contract](#approved-json-and-single-run-mode-contract); the initial formal CLI accepts only its locator, excludes `quiet`, and permits no semantic override or legacy/general bypass. The typed state is limited to semantic authority, approved fixed values, derived final/test/save schedules, unsupported-branch absence, and output identity; runtime, digest, checkpoint, manifest, camera-math, seed, reporting, and publication owners remain separate. Existing output rejects before heavy import; heavy load/JIT and side-effect-free preparation precede an exclusive claim immediately before the first writer. Issue #10 Candidate C/D remain rejected. Helper/file names, local API/error details, control structure, and whether the first-candidate four-file layout is suitable remain CODEX implementation discretion. |
-| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; the remaining nested field/owner contract beyond adopted P1–P6 classified [above](#approved-json-and-single-run-mode-contract), followed by separately authorized realization and focused validation of the bootstrap/resolver/runtime boundary; checkpoint schema; concrete training loop/helper API; temporal densification policy; strict point-cap/prune/opacity-reset semantics and validation constraints. The completed-update event order, formal-entry authority, JSON/mode choice, adopted P1–P6, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
-| required before executable-path integration | The remaining D-* owner contracts and validated handoffs classified [above](#remaining-field-and-owner-boundary). Owner separation is not permission for implicit defaults or evidence of a runnable v1. |
+| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; the remaining nested field/owner contract beyond adopted P1–P6 and D-PREFILTER classified [above](#approved-json-and-single-run-mode-contract), followed by separately authorized realization and focused validation of the bootstrap/resolver/runtime boundary; checkpoint schema; concrete training loop/helper API; temporal densification policy; strict point-cap/prune/opacity-reset semantics and validation constraints. The completed-update event order, formal-entry authority, JSON/mode choice, adopted P1–P6 and D-PREFILTER, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
+| required before executable-path integration | The remaining D-* owner decisions plus implemented/validated handoffs, including the already adopted D-PREFILTER contract, as classified [above](#remaining-field-and-owner-boundary). Owner separation is not permission for implicit defaults or evidence of a runnable v1. |
 | required before formal retraining | Numeric final iteration and pilot/formal schedules; pilot/formal point caps; densification/prune/reset numeric schedules; complete effective-config snapshot; deterministic seed ownership details; test-report metric/cadence; nonfinite/OOM/partial-failure policy; immutable output directory and atomic publication; and, only if resume will be enabled, field-level restore state plus numerical/bitwise equivalence acceptance thresholds. |
 | required before formal artifact generation | SPL4-v2 log/linear scale representation; PNG clamp/round/color/codec; full/range CUDA Reference purposes; manifest schema and validator; source-to-binary build provenance; bundle/index/external-digest ownership; direct evidence as formal same-invocation evidence or diagnostic-only. |
 | required before Viewer restart | Corrected population and fixed range; Viewer provenance binding; strict parser acceptance; removal or versioned isolation of historical hard-coded ranges; Viewer capture/comparison bundle identity. |
@@ -1346,6 +1435,45 @@ from raster near-cull `0.2` and absent far-cull. Because off-center is
 unsupported, it requires a pre-CUDA rejection test, not a CUDA correctness
 claim. None of these tests has been created or run by this documentation sync.
 
+### Temporal-prefilter validation requirements
+
+The following are adopted future acceptance conditions, not tests performed
+by this synchronization:
+
+- From a valid fixture after its full contracts are resolved, independently
+  invert each PF-B missing/type/value/alias/decoded-duplicate condition and
+  prove no heavy import/JIT, claim, or writer is reached. Do not fabricate a
+  complete valid v1 using unknown fields or placeholder objects.
+- Pure resolver/adapter mocks must prove one explicit disabled-to-`-1.0`
+  derivation and agreement across model, rasterizer, forward, and backward
+  context. Missing/wrong-type values, zero, negative values other than `-1.0`, or positive
+  values, NaN/Infinity, and path/consumer mismatches must reject rather than
+  normalize to disabled; runtime mismatches reject before GPU execution.
+- For valid finite `Σ_tt > 0` and finite timestamps, an independent oracle
+  computes the original-variance marginal, effective opacity, conditional
+  mean, and conditional covariance. Agreement of current disabled formulas
+  for zero and `-1.0` does not enlarge the allowed adapter domain.
+- A separately authorized fresh corrected-source build with verified
+  source/binary binding must compare values and opacity/time/scale/rotation
+  gradients on the selected CUDA forward/backward path against the oracle
+  and finite differences in smooth regions that do not cross the mask.
+  Known P0 dependencies must first be corrected and validated where reached.
+  Merely observing the argument `-1.0` cannot pass this requirement.
+- Separately inspect float32 inputs near the existing `m > 0.05` mask boundary,
+  forward/backward decisions, and saved state. An analytically chosen time is
+  not proof of bitwise equality without actual floating-point evidence. Do
+  not pass by crossing the mask with a central difference or relaxing tolerance.
+- Training/test/reference/checkpoint consumers must share the policy/config
+  binding and reject missing policy, wrong config, or legacy-checkpoint-only
+  evidence. Manifest args are not proof of executed identity.
+
+Keep `prefiltered=False`, screen-space low-pass `0.3`, camera projection/cull,
+the original temporal cull, five renderer values, SH, alpha-cap, and training
+transaction semantics unchanged. Concrete fixtures, local APIs, and numeric
+tolerances belong to a later bounded implementation/Validation responsibility;
+none is invented or executed here. These conditions refine existing renderer
+and consumer validation obligations, not a new roadmap Step.
+
 ## Manifest provenance requirements
 
 The manifest must distinguish rather than conflate:
@@ -1447,6 +1575,11 @@ for the new checkpoint. Representative records, tile-reference count, and the
 fixed range must be selected again after the new population identity is known.
 
 ## Gate separation
+
+The existing Gate A/B renderer/config obligations include the adopted
+[PF-A/B/C handoff and numerical checks](#temporal-prefilter-validation-requirements);
+Gate C's consumer/publication obligations include their accepted policy/config
+binding. This reference does not change the gate order or pass any gate.
 
 ### Gate A: before pilot training
 
@@ -1619,6 +1752,9 @@ Issue #18's adopted JSON/mode contract and Issue #23's adopted P1–P6 refine th
 same formal-entry owner;
 its [remaining dependencies](#approved-json-and-single-run-mode-contract) do
 not transfer dataset, renderer, optimizer/population, or seed/device ownership.
+Issue #25's [D-PREFILTER supplement](#approved-temporal-prefilter-contract)
+retains that separation: renderer owns meaning, the resolver validates one
+state, and checkpoint/manifest consumers bind rather than redefine it.
 
 | Owner | Root findings/responsibility | Dependent consumer |
 |---|---|---|
@@ -1697,12 +1833,16 @@ the historical `[524288,1048576)` range.
    **Complete in this document.** Integrate Issue #23's adopted P1–P6 partial
    field contracts under Issue #24, without adopting the whole 62-field
    register or resolving the remaining D-* and run values.
-   **Complete in this document.** Their source Fix, fresh corrected-source
+   **Complete in this document.** Integrate Issue #25's adopted PF-A/PF-B/PF-C
+   and supplemental safety conditions under Issue #26, closing only the
+   D-PREFILTER adoption question. **Complete in this document.**
+   Their source Fix, fresh corrected-source
    build, and focused validation have not started. After
    document review and the user-owned Git checkpoint, the
    desktop advisor determines the next formal candidate; this document sync
    and CODEX do not select or start it. Camera implementation details, remaining
-   JSON field/owner contracts beyond P1–P6, densification/population policy and run
+   JSON field/owner contracts beyond P1–P6 and adopted D-PREFILTER,
+   densification/population policy and run
    values, checkpoint schema, and other remaining policy fields stay undecided.
    Confirm one root owner and one
    bounded Fix responsibility at a time only after the applicable policy is
@@ -1719,7 +1859,8 @@ the historical `[524288,1048576)` range.
    initial CLI, keep `quiet` and the legacy/general path outside formal entry,
    reject existing output in read-only preflight, and claim it exclusively only
    after side-effect-free runtime preparation and immediately before the first
-   writer. Apply the adopted JSON/single-mode and P1–P6 partial contracts;
+   writer. Apply the adopted JSON/single-mode and P1–P6 partial contracts and
+   the [D-PREFILTER supplement](#approved-temporal-prefilter-contract);
    affected implementation and executable integration still require the
    remaining relevant field/owner approvals. Bind non-overwriting output identity
    without creating a second semantic authority; choose bounded local
@@ -1847,7 +1988,10 @@ Complete at this milestone:
 - repository synchronization under Issue #24 of Issue #23's user-adopted
   P1–P6 partial field contracts, with remaining D-* and run values explicitly
   unresolved. This is not whole-register, runnable-v1, source-implementation,
-  focused-validation, or Gate acceptance.
+  focused-validation, or Gate acceptance; and
+- repository synchronization under Issue #26 of Issue #25's adopted
+  D-PREFILTER policy and safety conditions. Implementation, numerical/CUDA
+  validation, and checkpoint/manifest binding are not complete.
 
 Not complete and not authorized by this document sync:
 
@@ -1869,6 +2013,11 @@ Not complete and not authorized by this document sync:
   branch-parity confirmation, and validation tolerance; the derivative policy
   itself is decided;
 - any other still-undecided supported-path renderer behavior;
+- D-PREFILTER handoff implementation, independent value/gradient and fresh-
+  binary CUDA validation, and checkpoint/manifest identity binding under the
+  [adopted contract](#approved-temporal-prefilter-contract); adoption and safety
+  conditions are decided, while original `Σ_tt` health and D-TIME remain
+  unresolved. Other D-* and run values are not selected by this decision;
 - formal-entry source Fix and focused validation for the approved lightweight
   bootstrap, stdlib-only resolver, separately loaded heavy runtime, formal-only
   locator CLI, typed-state owner boundary, and pre-writer exclusive claim;
@@ -1879,9 +2028,10 @@ Not complete and not authorized by this document sync:
   control structure are CODEX implementation discretion within that contract;
 - camera implementation details: centered-principal-point numerical tolerance,
   field-level validation/error schema, and exact common-builder API/location;
-- the remaining nested field/type/constraint decisions beyond P1–P6,
+- the remaining nested field/type/constraint decisions beyond P1–P6 and
+  adopted D-PREFILTER,
   pre-integration D-* owner contracts, and per-run values classified
-  [above](#remaining-field-and-owner-boundary); P1–P6, the JSON/mode choice, and
+  [above](#remaining-field-and-owner-boundary); P1–P6, D-PREFILTER, the JSON/mode choice, and
   effective `eval=True` are already decided and are not open items;
 - completed-update transaction source Fix, focused validation, and concrete
   loop/helper API; the exact-N, final-step, same-Parameter-step, zero-grad,
@@ -1932,7 +2082,8 @@ camera/eval, renderer-invocation, alpha-cap derivative, completed-update
 transaction, and independent formal-entry/effective-configuration policies are
 synchronized together with the Issue #17 implementation/environment
 clarification, Issue #22 adopted JSON/single-mode boundary, and Issue #24's
-adopted P1–P6 partial field contracts, but their enforcement, source fixes,
+adopted P1–P6 partial field contracts and Issue #26's adopted D-PREFILTER
+supplement, but their enforcement, source fixes,
 consumer integration, fresh build, and focused validation are not implemented.
 P0-0, P0-1, P0-2, P0-3,
 P0-T1, P0-T2, P0-T3, the separate alpha-cap renderer-math responsibility, and
