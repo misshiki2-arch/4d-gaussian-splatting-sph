@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-only / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-only / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -85,6 +85,11 @@ artifact audit, not implementation or post-fix runtime validation.
   [current initial-PLY policy](#adopted-current-initial-ply-reuse-and-raw-time-connection)
   is synchronized under Issue #33. This input Validation is not post-fix
   focused validation, CUDA acceptance, or completion of D-INIT/D-TIME.
+- Issue #33 is accepted and complete. Issue #34 synchronizes the subsequent
+  user-adopted [initial temporal-variance contract](#adopted-initial-temporal-variance-and-d-time-connection)
+  from the Issue #31 revision-2 proposal. This closes that bounded adoption
+  question, not parser/model implementation, numerical validation, or the
+  remaining D-INIT/time/run decisions.
 - The Investigation1-4 findings, dependencies, ownership boundaries, and
   pre-implementation gates are integrated in this document.
 
@@ -109,8 +114,9 @@ group with the adopted D-PREFILTER contract; it neither reselects the five
 renderer values nor adds a ninth group. Issue #30 integrates only the three
 adopted D-TIME contracts within the existing formal-entry field/owner boundary,
 not a new policy group or Step. Issue #33 applies the accepted current-input
-adoption within that same boundary. Remaining formal policy closure, source
-fixes, post-fix focused validation, CUDA execution, pilot training, formal
+adoption within that same boundary; Issue #34 adds only the adopted initial
+variance and its explicit coefficient under existing D-INIT. Remaining formal
+policy closure, source fixes, post-fix focused validation, CUDA execution, pilot training, formal
 retraining, corrected artifact generation, and Viewer restart remain incomplete; source and runtime
 work have not started. P0 findings block only the gate whose accepted output
 would reach the defect; Viewer-only defects do not unnecessarily block corrected
@@ -603,6 +609,11 @@ must still be bound or checked. These fixed fields and the top level do not
 complete every nested required/allowed set: D-* below must be resolved before
 runnable v1 is frozen. Any necessary additional field requires prior review
 and canonical synchronization, not a generic extension area or tolerated key.
+Issue #34 adds the required/allowed nested field
+`initialization.time_variance_denominator` under existing D-INIT; its positive
+P2 Num domain, explicit first-baseline value, and non-defaulted meaning are
+owned by [the adopted initialization contract](#adopted-initial-temporal-variance-and-d-time-connection).
+This addition does not change the ten top-level keys or complete other nested sets.
 
 ##### Adopted P2: strict parsing, types, and limits
 
@@ -747,10 +758,12 @@ initialization, or runtime owner.
 The following boundaries remain unresolved, not implicitly adopted:
 
 - D-INIT retains time-absent input/generation support, Gaussian-center domain,
-  sampling/extra-point shape, and initial temporal scale/variance (V-A/B/C).
-  The [current-PLY adoption below](#adopted-current-initial-ply-reuse-and-raw-time-connection)
-  resolves only that input's reuse and raw-coordinate evidence, not these
-  remaining choices or the handling of unknown other inputs.
+  and sampling/extra-point shape. The
+  [current-PLY adoption below](#adopted-current-initial-ply-reuse-and-raw-time-connection)
+  resolves that input's reuse/raw-coordinate evidence, and the
+  [adopted initial variance below](#adopted-initial-temporal-variance-and-d-time-connection)
+  resolves the V-B choice and coefficient contract. Their implementation and
+  remaining choices, including unknown other inputs, are not completed.
 - Time/runtime/renderer owners retain binary64-to-float32 representability,
   time collapse and tolerances at that boundary, compiled-binary identity,
   and actual CUDA validation; binary64 preflight is not post-cast proof.
@@ -827,15 +840,117 @@ Earlier unknown-provenance or approval-pending wording records its historical
 stage; it neither reverses this adoption nor adopts the remaining proposals.
 
 The remaining D-INIT/time/runtime/run choices listed above stay open.
-In particular, no V-A/B/C selection, Gaussian-center domain, sampling/extra,
+Issue #33 did not select an initial variance; the subsequent
+[Issue #34 adoption below](#adopted-initial-temporal-variance-and-d-time-connection)
+now owns that bounded choice. Gaussian-center domain, sampling/extra,
 time-absent policy, formal divisor/interval, runtime representation or tolerance,
-helper/API/file name, or calculation implementation order is selected here.
+helper/API/file name, and calculation implementation order remain unselected.
 The frame closed-interval rule does not define the Gaussian-center domain;
 ordinary initial temporal variance is distinct from additional prefilter
 variance. Legacy reader/model behavior is not thereby formal-compliant.
 Source fixes, verified consumer integration, and post-fix focused/CUDA
 validation remain outstanding; D-INIT/D-TIME, runnable v1, Issue #2, Phase 0,
 and all Gates remain incomplete.
+
+##### Adopted initial temporal variance and D-TIME connection
+
+Issue #34 synchronizes the user-adopted revision-2 contract under existing
+D-INIT / `initialization`, within Phase 1 Step 5. It adds no policy group,
+Step, or D-* owner and does not reselect the current-PLY/raw-time adoption.
+
+- **A — raw initialization and explicit coefficient:** for the explicit
+  `dataset.time.raw_interval=[a,b]`, define `L_raw=b-a` and
+  `v_raw=L_raw/c_init`. The formal field
+  `initialization.time_variance_denominator` is required and allowed for the
+  shared pilot/formal entry. It is a positive P2 `Num`: a finite binary64
+  JSON number, including positive fractions, not bool, string, null, zero,
+  negative, NaN/Infinity, overflow, or nonzero-token-to-zero underflow.
+  The first baseline must explicitly supply `5`; omission must not recover
+  the old default. Retain the value in the one verified effective configuration.
+  A future separate run may explicitly change it; no search values or
+  experimental runs are selected here. There is no alias, generic extension
+  area, new recording mechanism, or initialization-method selector.
+  This is a heuristic tied to the fixed dataset raw coordinate, not a
+  universal dimensionless constant, physical seconds, or an optimum.
+  A unit-bearing interpretation is `v_raw=L_raw*tau_init`, where
+  `tau_init` has numeric value `1/c_init` in raw-time units (initially
+  `0.2`). Do not transfer the same numeric coefficient unconditionally to
+  another raw unit or infer `L_raw` from observed extrema/frame-number gaps.
+- **B — adopted V-B, one coordinate mapping:** connect to the existing
+  origin-preserving `t_eff=t_raw/d`, `d>=1`, through
+  `s_raw=sqrt(v_raw)`, `s_eff=s_raw/d`,
+  `v_eff=L_raw/(c_init*d^2)`, and stored `ell_t=log(s_eff)`.
+  With `c_init=5,d=1` this equals the current initialization formula.
+  For `d>1` it differs from the current effective heuristic
+  `L_raw/(5*d)` (V-A). V-B preserves the initial marginal ratio
+  `(delta_t_eff)^2/v_eff=(delta_t_raw)^2/v_raw` as a coordinate mapping
+  in real arithmetic; it does not promise training-wide or image-quality
+  invariance, including LR/loss, sampling, SH, and numerical effects.
+  This adoption does not retrospectively label V-A a bug prohibited by the
+  earlier D-TIME contract.
+  `c_init`, `dataset.time.divisor`, and the generating PLY FPS=5 are
+  separate authorities. Do not repeat the FPS division or add consumer
+  redivision/default reconstruction. The equations specify meaning, not
+  evaluation order, helpers, or APIs; direct computation of `d^2` is not
+  required if a bounded implementation preserves the contract.
+- **C — initial state and fail-closed health:** preserve from-scratch,
+  `qL=qR=(1,0,0,0)`, initial `R=I`, and `scaling_modifier=1`.
+  Under these conditions initial `Sigma_tt=s_eff^2` and space-time cross
+  covariance is zero. Stored log parameter, activated scale, and variance
+  are different quantities. Dividing only the time scale is not a general
+  transformation of a rotated Gaussian. The general relation
+  `A=diag(1,1,1,1/d)`, `Sigma_eff=A*Sigma_raw*A^T` explains that boundary;
+  it does not authorize checkpoint conversion or reuse.
+  At the necessary input, derivation, and handoff stages, require finite
+  positive `c_init`, raw/effective durations, variance, and scale, finite log
+  values, finite positive scale/`Sigma_tt` after runtime conversion and
+  activation, and matching row counts with `N x 1` temporal shape.
+  Reject intermediate overflow/underflow and invalid
+  results rather than hide them with defaults, epsilon, clamps, or rounding
+  repair. Binary64 acceptance does not prove float32 health. Distinguish
+  pre-JIT-observable checks from runtime checks; concrete float32 tolerances,
+  time collapse, compiled-binary identity, and CUDA validation remain with
+  their existing owners. The existing preflight/heavy/claim/writer order stays
+  intact.
+- **D — paper, code, adoption, and learning are distinct:** the reviewed
+  [paper v3, section 4.2](https://arxiv.org/html/2310.10642v3#S4.SS2)
+  and [Appendix E](https://arxiv.org/html/2310.10642v3#A5) describe initial
+  scale `L/2`, hence variance `L^2/4` under the initial conditions above.
+  The reviewed official code and current local source instead use
+  `sqrt(L/5)` and `L/5`. These generally differ; the derivation/optimality
+  of 5 and the reason for the discrepancy remain unproven. Replacing 5
+  with 2 does not produce the paper formula.
+  Duration-relative V-C with `kappa=1/2` remains an unadopted, unmeasured
+  comparison candidate; V-B and the explicit initial `c_init=5` are the
+  adopted contract, not proof of paper reproduction or local performance.
+  Per-Gaussian `_scaling_t` is already learned using `scaling_lr` in the
+  current source. The initialization hyperparameter is neither that learned
+  parameter nor its learning rate; this adoption changes no LR/optimizer
+  policy. Ordinary initial temporal variance is not additional prefilter
+  variance; PF-A/B/C and their safety conditions remain unchanged.
+
+Evidence and adoption trace:
+[Issue #31 revision-2 proposal](../../reports/corrected-4dgs/issue-31/issue-31-initial-time-variance-policy-proposal.md)
+and [proposal evidence](../../reports/corrected-4dgs/issue-31/issue-31-initial-time-variance-proposal-evidence.json)
+record the paper/public-code comparison and inspected local source identity;
+[Issue #31 investigation](../../reports/corrected-4dgs/issue-31/issue-31-investigation-report.md)
+records the bounded source facts and earlier alternatives.
+The proposal's adoption-pending wording is its presentation-time record.
+The subsequent user adoption is recorded in
+[Issue #34's description](../../reports/corrected-4dgs/issue-34/issue-34-description.md)
+and [creation approval](../../reports/corrected-4dgs/issue-34/issue-34-creation-evidence.json),
+after [Issue #33 acceptance/Git completion](../../reports/corrected-4dgs/issue-33/issue-33-completion-evidence.json).
+Those reports are not rewritten or treated as this plan's permanent owner.
+
+Only this field's required/allowed membership, domain, initial value, and the
+A–D contract are adopted here. Other nested sets, Gaussian-center domain,
+sampling/extra, time-absent input, runtime representation/collapse/tolerances,
+time LR/loss, active SH, other D-* contracts, and each run's interval/divisor,
+initial point count, and other values remain open. Observed `[0,33]` selects
+neither a run interval nor a Gaussian-center domain. Parser/source/model
+initialization, consumer integration, numerical and CUDA validation remain
+unimplemented/unaccepted; D-INIT/D-TIME, runnable v1, Issue #2, Phase 0, and
+all Gates remain incomplete.
 
 ##### Remaining field and owner boundary
 
@@ -844,8 +959,8 @@ is [adopted](#approved-temporal-prefilter-contract), but its implementation,
 numerical validation, and consumer binding remain outstanding. The
 [three D-TIME contracts](#adopted-d-time-input-retention-and-handoff-contracts)
 and their [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection)
-are decided; their remaining time/owner/run boundaries are still open.
-Loader/mask and
+are decided, as is the [initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
+Their remaining time/owner/run boundaries are still open. Loader/mask and
 seed/device still require accepted owner contracts rather than default
 substitution. Effective `eval=true` alone does not prove that all
 approved train/test frames were retained; time filtering or another implicit
@@ -855,8 +970,8 @@ None of these clarifications reselects the approved Fudan Native branch.
 
 | Required point | Still undecided | Existing owner boundary |
 |---|---|---|
-| Before the corresponding implementation | Remaining nested required/allowed sets and D-* meanings/constraints beyond adopted P1–P6, D-PREFILTER, and the three D-TIME contracts, including population and active-SH schedule boundaries | Formal-entry field policy with the relevant existing owners; advisor review and user approval precede affected implementation. Local helper/API/file/error design remains CODEX discretion. |
-| Before executable-path integration | Remaining D-DATA, D-TIME, D-INIT, D-OPT, D-DELAY, D-POP, D-SH, D-SEED-DEVICE, and D-REPORT contracts with validated handoffs; D-PREFILTER, the three D-TIME contracts, and the current-PLY adoption above are no longer undecided | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime, and reporting retain their responsibilities. Adopted contracts still need implementation and validated handoff. No omitted owner result may be replaced by a default; applicable Gate A/B requirements remain. |
+| Before the corresponding implementation | Remaining nested required/allowed sets and D-* meanings/constraints beyond adopted P1–P6, D-PREFILTER, the three D-TIME contracts, and the initial-variance contract above, including population and active-SH schedule boundaries | Formal-entry field policy with the relevant existing owners; advisor review and user approval precede affected implementation. Local helper/API/file/error design remains CODEX discretion. |
+| Before executable-path integration | Remaining D-DATA, D-TIME, D-INIT, D-OPT, D-DELAY, D-POP, D-SH, D-SEED-DEVICE, and D-REPORT contracts with validated handoffs; D-PREFILTER, the three D-TIME contracts, the current-PLY adoption, and the initial-variance contract above are no longer undecided | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime, and reporting retain their responsibilities. Adopted contracts still need implementation and validated handoff. No omitted owner result may be replaced by a default; applicable Gate A/B requirements remain. |
 | Before each run | Numeric `N`, batch, LR/loss, time interval/divisor, pilot/formal schedules and point cap, test/save cadence, actual output path/run identity | Each existing owner and the user fix explicit run values. Legacy YAML values are not automatically adopted. |
 
 The D-* definitions and investigation-to-field mapping remain in the
@@ -865,7 +980,9 @@ Its historical D-PREFILTER adoption-pending entry is superseded only for that
 decision by [Issue #25's adopted contract](#approved-temporal-prefilter-contract).
 Its D-TIME adoption-pending mapping is superseded only for the
 [three contracts above](#adopted-d-time-input-retention-and-handoff-contracts);
-all remaining owner decisions stay open.
+the initial-variance subset of D-INIT is superseded by
+[Issue #34's adoption](#adopted-initial-temporal-variance-and-d-time-connection).
+All other remaining owner decisions stay open.
 In particular, the current caller omits `lr_delay_steps`, whose default is zero,
 so `position_lr_delay_mult` does not act on that inspected path. D-DELAY remains
 an optimizer-owner decision: neither field deletion nor a new delay mechanism
@@ -1991,15 +2108,18 @@ the historical `[524288,1048576)` range.
    boundaries stay open.** Integrate the
    [accepted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection)
    under Issue #33. **Complete in this document; input Validation is distinct
-   from post-fix focused validation.**
+   from post-fix focused validation.** Integrate the
+   [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection)
+   under Issue #34. **Complete in this document; implementation and numerical
+   validation remain outstanding.**
    Their source Fix, fresh corrected-source
    build, and focused validation have not started. After
    document review and the user-owned Git checkpoint, the
    desktop advisor determines the next formal candidate; this document sync
    and CODEX do not select or start it. Camera implementation details, remaining
-   JSON field/owner contracts beyond P1–P6, adopted D-PREFILTER, and the three
-   adopted D-TIME contracts, densification/population policy and run
-   values, checkpoint schema, and other remaining policy fields stay undecided.
+   JSON field/owner contracts beyond P1–P6, adopted D-PREFILTER, the three
+   adopted D-TIME contracts and initial-variance contract, densification/population
+   policy and run values, checkpoint schema, and other remaining policy fields stay undecided.
    Confirm one root owner and one
    bounded Fix responsibility at a time only after the applicable policy is
    decided. The formal-entry authority, component separation, initial formal
@@ -2018,7 +2138,8 @@ the historical `[524288,1048576)` range.
    writer. Apply the adopted JSON/single-mode and P1–P6 partial contracts and
    the [D-PREFILTER supplement](#approved-temporal-prefilter-contract) and
    [three D-TIME contracts](#adopted-d-time-input-retention-and-handoff-contracts),
-   including the [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection);
+   including the [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection)
+   and [initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection);
    affected implementation and executable integration still require the
    remaining relevant field/owner approvals. Bind non-overwriting output identity
    without creating a second semantic authority; choose bounded local
@@ -2159,6 +2280,10 @@ Complete at this milestone:
   [adopted current initial-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection).
   This is not post-fix focused/CUDA validation or completion of the remaining
   D-INIT/time/runtime/run contracts.
+- repository synchronization under Issue #34 of the
+  [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
+  Its field/initial-value/V-B adoption is complete, not implementation,
+  numerical validation, or the remaining initialization/time/run decisions.
 
 Not complete and not authorized by this document sync:
 
@@ -2191,7 +2316,9 @@ Not complete and not authorized by this document sync:
   [its three adopted contracts](#adopted-d-time-input-retention-and-handoff-contracts);
   those three contracts and the
   [current initial-PLY adoption](#adopted-current-initial-ply-reuse-and-raw-time-connection)
-  are no longer open adoption questions;
+  and [initial-variance adoption](#adopted-initial-temporal-variance-and-d-time-connection)
+  are no longer open adoption questions; their parser/model enforcement and
+  numerical health validation are outstanding;
 - formal-entry source Fix and focused validation for the approved lightweight
   bootstrap, stdlib-only resolver, separately loaded heavy runtime, formal-only
   locator CLI, typed-state owner boundary, and pre-writer exclusive claim;
@@ -2203,11 +2330,11 @@ Not complete and not authorized by this document sync:
 - camera implementation details: centered-principal-point numerical tolerance,
   field-level validation/error schema, and exact common-builder API/location;
 - the remaining nested field/type/constraint decisions beyond P1–P6 and
-  adopted D-PREFILTER and the three D-TIME contracts,
+  adopted D-PREFILTER, the three D-TIME contracts, and initial-variance contract,
   pre-integration D-* owner contracts, and per-run values classified
   [above](#remaining-field-and-owner-boundary); P1–P6, D-PREFILTER, the three
-  D-TIME contracts, the JSON/mode choice, and effective `eval=True` are already
-  decided and are not open items;
+  D-TIME contracts and initial-variance contract, the JSON/mode choice, and
+  effective `eval=True` are already decided and are not open items;
 - completed-update transaction source Fix, focused validation, and concrete
   loop/helper API; the exact-N, final-step, same-Parameter-step, zero-grad,
   densify/prune-then-reset, completed-checkpoint, and checkpoint-first/test-
@@ -2258,8 +2385,9 @@ transaction, and independent formal-entry/effective-configuration policies are
 synchronized together with the Issue #17 implementation/environment
 clarification, Issue #22 adopted JSON/single-mode boundary, and Issue #24's
 adopted P1–P6 partial field contracts and Issue #26's adopted D-PREFILTER
-supplement, Issue #30's three adopted D-TIME contracts, and Issue #33's
-[adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection).
+supplement, Issue #30's three adopted D-TIME contracts, Issue #33's
+[adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection),
+and Issue #34's [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
 Their enforcement, source fixes, consumer integration, fresh build, and
 post-fix focused validation are not implemented.
 P0-0, P0-1, P0-2, P0-3,
