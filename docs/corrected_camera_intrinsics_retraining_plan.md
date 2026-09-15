@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-only / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-only / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -80,6 +80,11 @@ artifact audit, not implementation or post-fix runtime validation.
   Issue #30 in [the time contract](#adopted-d-time-input-retention-and-handoff-contracts).
   D-TIME as a whole, other D-* owners, runnable v1, Issue #2, Phase 0, and all
   Gates remain incomplete; neither source nor runtime validation is complete.
+- Issues #31 and #32 are accepted and complete as a bounded D-INIT
+  investigation and input Validation. Their user-adopted
+  [current initial-PLY policy](#adopted-current-initial-ply-reuse-and-raw-time-connection)
+  is synchronized under Issue #33. This input Validation is not post-fix
+  focused validation, CUDA acceptance, or completion of D-INIT/D-TIME.
 - The Investigation1-4 findings, dependencies, ownership boundaries, and
   pre-implementation gates are integrated in this document.
 
@@ -103,10 +108,10 @@ groups are integrated below. Issue #26 supplements the existing renderer policy
 group with the adopted D-PREFILTER contract; it neither reselects the five
 renderer values nor adds a ninth group. Issue #30 integrates only the three
 adopted D-TIME contracts within the existing formal-entry field/owner boundary,
-not a new policy group or Step. Remaining formal policy closure, source fixes,
-focused
-validation, CUDA execution, pilot training, formal retraining, corrected
-artifact generation, and Viewer restart remain incomplete; source and runtime
+not a new policy group or Step. Issue #33 applies the accepted current-input
+adoption within that same boundary. Remaining formal policy closure, source
+fixes, post-fix focused validation, CUDA execution, pilot training, formal
+retraining, corrected artifact generation, and Viewer restart remain incomplete; source and runtime
 work have not started. P0 findings block only the gate whose accepted output
 would reach the defect; Viewer-only defects do not unnecessarily block corrected
 training, and training-state defects cannot be deferred to artifact generation.
@@ -741,9 +746,11 @@ initialization, or runtime owner.
 
 The following boundaries remain unresolved, not implicitly adopted:
 
-- D-INIT owns the initial PLY producer, body times and units, time-absent
-  generation support, sampling/extra-point shape, and initial temporal
-  scale/variance.
+- D-INIT retains time-absent input/generation support, Gaussian-center domain,
+  sampling/extra-point shape, and initial temporal scale/variance (V-A/B/C).
+  The [current-PLY adoption below](#adopted-current-initial-ply-reuse-and-raw-time-connection)
+  resolves only that input's reuse and raw-coordinate evidence, not these
+  remaining choices or the handling of unknown other inputs.
 - Time/runtime/renderer owners retain binary64-to-float32 representability,
   time collapse and tolerances at that boundary, compiled-binary identity,
   and actual CUDA validation; binary64 preflight is not post-cast proof.
@@ -769,13 +776,75 @@ and [user acceptance and three-contract approval evidence](../../reports/correct
 Adoption-pending wording in those historical reports describes the pre-approval
 state; it neither reverses this adoption nor adopts their remaining proposals.
 
+##### Adopted current initial PLY reuse and raw-time connection
+
+The user accepted Issue #31's investigation and Issue #32's input Validation
+after independent review and approved the following three points, synchronized
+here under Issue #33. This is a bounded application of the existing D-TIME
+A/C contract within Phase 1 Step 5, not a new policy group, Step, or owner.
+
+- **A — reuse the verified current input:** continue using
+  `/home/demo/work/data/4dgs_sph_scene/points3d.ply` as the Corrected initial
+  input. This adoption is bound to the current input identified by the
+  [Issue #32 machine evidence](../../reports/corrected-4dgs/issue-32/issue-32-validation-evidence.json);
+  it does not authorize an unknown replacement. The observed 6,310,009
+  vertices do not select the initial Gaussian count, all-point use, or sampling.
+- **B — recognize its dataset raw coordinate:** this PLY's time is the
+  float32 representation of the dataset raw coordinate shared with the
+  approved transforms. The generating rule is `(frame-35)/5` for frames
+  35..200. Issue #32 verified all rows from the 166 source PLYs, preserving
+  xyz/RGB bytes and row/concatenation order with the expected float32 time;
+  the Windows and WSL combined PLYs match in all bytes. All train 5,146/test
+  166 metadata mappings match by frame, exact path, split, time, and source
+  camera metadata. JSON binary64 versus PLY float32 is a representation
+  distinction, not adoption of a runtime tolerance or rounding repair.
+- **C — apply the existing one-transform handoff:** the generating FPS
+  division has already occurred; do not repeat it on stored time. Apply the
+  separately selected formal divisor through the existing origin-preserving
+  `t_eff=t_raw/d` derivation exactly once as needed. Camera, Gaussian,
+  renderer, and temporal SH must consume the common verified coordinate,
+  without consumer redivision, default reconstruction, or a new unit
+  override/alias. This adds no new transform. Generating FPS=5 does not
+  select formal `d=5`, and observed `[0,33]` does not select a run interval.
+
+Issue #31's initial limited-scope provenance gap is supplemented, for this
+adoption only, by its
+[history review](../../reports/corrected-4dgs/issue-31/issue-31-chat-history-review.md)
+and the [Issue #32 validation report](../../reports/corrected-4dgs/issue-32/issue-32-validation-report.md).
+Content reproduction is not proof of the exact historical process, date,
+package environment, or complete copy history. Neither that complete history
+nor the original simulation's physical seconds is an additional adoption
+condition. SPH particle identity, physical-quantity preservation, image-content
+identity, and loader equivalence are not proven by these results.
+
+Acceptance trace: [Issue #31 investigation](../../reports/corrected-4dgs/issue-31/issue-31-investigation-report.md),
+[Issue #32 independent review](../../reports/corrected-4dgs/issue-32/issue-32-advisor-review.md)
+and [review evidence](../../reports/corrected-4dgs/issue-32/issue-32-advisor-review-evidence.json),
+plus the user-acceptance/adoption records for
+[Issue #31](../../reports/corrected-4dgs/issue-31/issue-31-completion-evidence.json)
+and [Issue #32](../../reports/corrected-4dgs/issue-32/issue-32-completion-evidence.json).
+Earlier unknown-provenance or approval-pending wording records its historical
+stage; it neither reverses this adoption nor adopts the remaining proposals.
+
+The remaining D-INIT/time/runtime/run choices listed above stay open.
+In particular, no V-A/B/C selection, Gaussian-center domain, sampling/extra,
+time-absent policy, formal divisor/interval, runtime representation or tolerance,
+helper/API/file name, or calculation implementation order is selected here.
+The frame closed-interval rule does not define the Gaussian-center domain;
+ordinary initial temporal variance is distinct from additional prefilter
+variance. Legacy reader/model behavior is not thereby formal-compliant.
+Source fixes, verified consumer integration, and post-fix focused/CUDA
+validation remain outstanding; D-INIT/D-TIME, runnable v1, Issue #2, Phase 0,
+and all Gates remain incomplete.
+
 ##### Remaining field and owner boundary
 
 Separate ownership does not itself complete a runnable contract. D-PREFILTER
 is [adopted](#approved-temporal-prefilter-contract), but its implementation,
-numerical validation, and consumer binding remain outstanding. Only the
+numerical validation, and consumer binding remain outstanding. The
 [three D-TIME contracts](#adopted-d-time-input-retention-and-handoff-contracts)
-are adopted; their remaining time/owner/run boundaries are still open.
+and their [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection)
+are decided; their remaining time/owner/run boundaries are still open.
 Loader/mask and
 seed/device still require accepted owner contracts rather than default
 substitution. Effective `eval=true` alone does not prove that all
@@ -787,7 +856,7 @@ None of these clarifications reselects the approved Fudan Native branch.
 | Required point | Still undecided | Existing owner boundary |
 |---|---|---|
 | Before the corresponding implementation | Remaining nested required/allowed sets and D-* meanings/constraints beyond adopted P1–P6, D-PREFILTER, and the three D-TIME contracts, including population and active-SH schedule boundaries | Formal-entry field policy with the relevant existing owners; advisor review and user approval precede affected implementation. Local helper/API/file/error design remains CODEX discretion. |
-| Before executable-path integration | Remaining D-DATA, D-TIME, D-INIT, D-OPT, D-DELAY, D-POP, D-SH, D-SEED-DEVICE, and D-REPORT contracts with validated handoffs; D-PREFILTER and the three D-TIME adoption decisions are no longer undecided | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime, and reporting retain their responsibilities. Adopted contracts still need implementation and validated handoff. No omitted owner result may be replaced by a default; applicable Gate A/B requirements remain. |
+| Before executable-path integration | Remaining D-DATA, D-TIME, D-INIT, D-OPT, D-DELAY, D-POP, D-SH, D-SEED-DEVICE, and D-REPORT contracts with validated handoffs; D-PREFILTER, the three D-TIME contracts, and the current-PLY adoption above are no longer undecided | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime, and reporting retain their responsibilities. Adopted contracts still need implementation and validated handoff. No omitted owner result may be replaced by a default; applicable Gate A/B requirements remain. |
 | Before each run | Numeric `N`, batch, LR/loss, time interval/divisor, pilot/formal schedules and point cap, test/save cadence, actual output path/run identity | Each existing owner and the user fix explicit run values. Legacy YAML values are not automatically adopted. |
 
 The D-* definitions and investigation-to-field mapping remain in the
@@ -1919,7 +1988,10 @@ the historical `[524288,1048576)` range.
    D-PREFILTER adoption question. **Complete in this document.**
    Integrate only the [three adopted D-TIME contracts](#adopted-d-time-input-retention-and-handoff-contracts)
    under Issue #30. **Complete in this document; remaining time/owner/run
-   boundaries stay open.**
+   boundaries stay open.** Integrate the
+   [accepted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection)
+   under Issue #33. **Complete in this document; input Validation is distinct
+   from post-fix focused validation.**
    Their source Fix, fresh corrected-source
    build, and focused validation have not started. After
    document review and the user-owned Git checkpoint, the
@@ -1945,7 +2017,8 @@ the historical `[524288,1048576)` range.
    after side-effect-free runtime preparation and immediately before the first
    writer. Apply the adopted JSON/single-mode and P1–P6 partial contracts and
    the [D-PREFILTER supplement](#approved-temporal-prefilter-contract) and
-   [three D-TIME contracts](#adopted-d-time-input-retention-and-handoff-contracts);
+   [three D-TIME contracts](#adopted-d-time-input-retention-and-handoff-contracts),
+   including the [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection);
    affected implementation and executable integration still require the
    remaining relevant field/owner approvals. Bind non-overwriting output identity
    without creating a second semantic authority; choose bounded local
@@ -2081,6 +2154,11 @@ Complete at this milestone:
   under Issue #30 of the [three adopted D-TIME contracts](#adopted-d-time-input-retention-and-handoff-contracts).
   This closes only those adoption questions, not D-TIME as a whole, remaining
   D-* owners, runnable v1, Issue #2, Phase 0, or any Gate.
+- Issues #31/#32's accepted investigation/input Validation and synchronization
+  under Issue #33 of the
+  [adopted current initial-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection).
+  This is not post-fix focused/CUDA validation or completion of the remaining
+  D-INIT/time/runtime/run contracts.
 
 Not complete and not authorized by this document sync:
 
@@ -2088,7 +2166,7 @@ Not complete and not authorized by this document sync:
 - source, config, test, or tool fixes, including the formal resolver/bootstrap,
   heavy-runtime separation, consumer integration, environment provenance, and
   P0-T1/T2/T3 transaction fixes;
-- focused validation or CUDA build;
+- post-fix focused validation or CUDA build;
 - pilot training or formal retraining, including any exact-resume Fix or
   equivalence acceptance;
 - a corrected checkpoint, SPL4, CUDA Reference, or population identity;
@@ -2111,7 +2189,9 @@ Not complete and not authorized by this document sync:
 - D-TIME implementation/handoff and the unresolved time, D-INIT,
   runtime/renderer, D-OPT, D-SH/P0, and run-value boundaries listed with
   [its three adopted contracts](#adopted-d-time-input-retention-and-handoff-contracts);
-  those three contracts themselves are no longer open adoption questions;
+  those three contracts and the
+  [current initial-PLY adoption](#adopted-current-initial-ply-reuse-and-raw-time-connection)
+  are no longer open adoption questions;
 - formal-entry source Fix and focused validation for the approved lightweight
   bootstrap, stdlib-only resolver, separately loaded heavy runtime, formal-only
   locator CLI, typed-state owner boundary, and pre-writer exclusive claim;
@@ -2178,9 +2258,10 @@ transaction, and independent formal-entry/effective-configuration policies are
 synchronized together with the Issue #17 implementation/environment
 clarification, Issue #22 adopted JSON/single-mode boundary, and Issue #24's
 adopted P1–P6 partial field contracts and Issue #26's adopted D-PREFILTER
-supplement and Issue #30's three adopted D-TIME contracts, but their enforcement,
-source fixes, consumer integration, fresh build, and focused validation are not
-implemented.
+supplement, Issue #30's three adopted D-TIME contracts, and Issue #33's
+[adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection).
+Their enforcement, source fixes, consumer integration, fresh build, and
+post-fix focused validation are not implemented.
 P0-0, P0-1, P0-2, P0-3,
 P0-T1, P0-T2, P0-T3, the separate alpha-cap renderer-math responsibility, and
 P0-A6 remain open until their source responsibilities and required validation
