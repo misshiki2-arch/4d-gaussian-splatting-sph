@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-only / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / source-fixes-not-started / focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-with-accepted-P2-component / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / remaining-source-fixes-not-started / remaining-focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -117,8 +117,10 @@ not a new policy group or Step. Issue #33 applies the accepted current-input
 adoption within that same boundary; Issue #34 adds only the adopted initial
 variance and its explicit coefficient under existing D-INIT. Remaining formal
 policy closure, source fixes, post-fix focused validation, CUDA execution, pilot training, formal
-retraining, corrected artifact generation, and Viewer restart remain incomplete; source and runtime
-work have not started. P0 findings block only the gate whose accepted output
+retraining, corrected artifact generation, and Viewer restart remain incomplete.
+The only implemented and CPU-accepted exception is the independent P2 component
+recorded in [Phase 1 Step 5](#phase-1-training-critical-foundation); remaining
+source corrections and runtime work have not started. P0 findings block only the gate whose accepted output
 would reach the defect; Viewer-only defects do not unnecessarily block corrected
 training, and training-state defects cannot be deferred to artifact generation.
 Policy approval and document synchronization do not close any P0/P1 finding or
@@ -1563,7 +1565,9 @@ the remaining items must not be presented as the formal contract.
 
 After each separately authorized correction, validation proceeds from pure
 contracts to bounded integration. No validation in this table was executed by
-this documentation sync.
+this documentation sync. The previously accepted P2-only CPU subset is recorded
+in [Step 5](#phase-1-training-critical-foundation); it does not complete the
+full resolver/bootstrap validation or any other layer below.
 
 | # | Validation layer | Primary findings closed |
 |---:|---|---|
@@ -2112,8 +2116,11 @@ the historical `[524288,1048576)` range.
    [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection)
    under Issue #34. **Complete in this document; implementation and numerical
    validation remain outstanding.**
-   Their source Fix, fresh corrected-source
-   build, and focused validation have not started. After
+   The independent P2 reading/common-type component and its CPU tests are
+   implemented and accepted as recorded in Step 5 below. Initial-variance,
+   camera, renderer, and other remaining source corrections and their focused
+   numerical validation have not started; neither has a fresh corrected-source
+   build or toolchain acceptance. After
    document review and the user-owned Git checkpoint, the
    desktop advisor determines the next formal candidate; this document sync
    and CODEX do not select or start it. Camera implementation details, remaining
@@ -2144,6 +2151,23 @@ the historical `[524288,1048576)` range.
    remaining relevant field/owner approvals. Bind non-overwriting output identity
    without creating a second semantic authority; choose bounded local
    helper/API/file/error details during the source Fix.
+
+   **Partial implementation accepted under Issue #35:** the independent P2
+   JSON reader/common-type component
+   ([source](../formal_config_json.py), [CPU tests](../tests/test_formal_config_json.py))
+   is implemented. Python 3.12 and `4dgs310` Python 3.10 each passed 25 focused
+   CPU tests; the advisor independently reproduced both results, and the user
+   accepted this bounded component. See the
+   [implementation report](../../reports/corrected-4dgs/issue-35/issue-35-implementation-report.txt),
+   [independent review](../../reports/corrected-4dgs/issue-35/issue-35-advisor-review.txt),
+   and [acceptance/sync authorization](../../reports/corrected-4dgs/issue-35/issue-35-documentation-authorization-evidence.json).
+   Parse results remain semantically unverified. Missing/unknown-field,
+   fixed-value, field-specific-domain and path-meaning checks, the immutable
+   verified state, and formal bootstrap/runtime integration remain unimplemented.
+   Fresh corrected-source build/toolchain acceptance, CUDA and training have
+   not run. Step 5 as a whole and Gate A remain incomplete; research Git
+   integration and Issue #35 closure are not recorded as complete here.
+
 6. After its field-level schema policy is approved, implement the minimum
    versioned P0-T6 diagnostic checkpoint foundation independently of the
    training-state-machine and exact-resume roots; consume the approved
@@ -2284,14 +2308,17 @@ Complete at this milestone:
   [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
   Its field/initial-value/V-B adoption is complete, not implementation,
   numerical validation, or the remaining initialization/time/run decisions.
+- Issue #35's bounded P2 component implementation and CPU acceptance, as
+  recorded in [Step 5](#phase-1-training-critical-foundation), not full formal
+  configuration acceptance or Step/Gate closure.
 
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
-- source, config, test, or tool fixes, including the formal resolver/bootstrap,
+- remaining source, config, test, or tool fixes, including the semantic resolver/bootstrap,
   heavy-runtime separation, consumer integration, environment provenance, and
   P0-T1/T2/T3 transaction fixes;
-- post-fix focused validation or CUDA build;
+- remaining post-fix focused validation or CUDA build;
 - pilot training or formal retraining, including any exact-resume Fix or
   equivalence acceptance;
 - a corrected checkpoint, SPL4, CUDA Reference, or population identity;
@@ -2388,8 +2415,9 @@ adopted P1–P6 partial field contracts and Issue #26's adopted D-PREFILTER
 supplement, Issue #30's three adopted D-TIME contracts, Issue #33's
 [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection),
 and Issue #34's [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
-Their enforcement, source fixes, consumer integration, fresh build, and
-post-fix focused validation are not implemented.
+Beyond the accepted P2-only component recorded in Step 5, their full
+enforcement, remaining source fixes, consumer integration, fresh build, and
+remaining post-fix focused validation are not implemented.
 P0-0, P0-1, P0-2, P0-3,
 P0-T1, P0-T2, P0-T3, the separate alpha-cap renderer-math responsibility, and
 P0-A6 remain open until their source responsibilities and required validation
