@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **plan-with-accepted-P1-P2-P3-P5-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / remaining-source-fixes-not-started / remaining-focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **plan-with-accepted-P1-P2-P3-P4-P5-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / remaining-source-fixes-not-started / remaining-focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -119,7 +119,8 @@ variance and its explicit coefficient under existing D-INIT. Remaining formal
 policy closure, source fixes, post-fix focused validation, CUDA execution, pilot training, formal
 retraining, corrected artifact generation, and Viewer restart remain incomplete.
 The implemented and CPU-accepted exceptions are the independent P2 reading/common-type,
-P1 structure/fixed-input, P3 maximum-SH, and P5 schedule components recorded in
+P1 structure/fixed-input, P3 maximum-SH, P4 resolution/dimension, and P5 schedule
+components recorded in
 [Phase 1 Step 5](#phase-1-training-critical-foundation); remaining
 source corrections and runtime work have not started. P0 findings block only the gate whose accepted output
 would reach the defect; Viewer-only defects do not unnecessarily block corrected
@@ -1566,7 +1567,7 @@ the remaining items must not be presented as the formal contract.
 
 After each separately authorized correction, validation proceeds from pure
 contracts to bounded integration. No validation in this table was executed by
-this documentation sync. The previously accepted P1/P2/P3/P5 component CPU subsets are recorded
+this documentation sync. The previously accepted P1/P2/P3/P4/P5 component CPU subsets are recorded
 in [Step 5](#phase-1-training-critical-foundation); they do not complete the
 full resolver/bootstrap validation or any other layer below.
 
@@ -1648,7 +1649,7 @@ lists, duplicate/reverse-order rejection, intermediate `N` rejection, and final
 save exactly once without automatically adding a final test. They need not
 allocate a list of length `N`. Path fixtures cover POSIX versus Windows input,
 canonical aliases/containment, existing/legacy output, and dangling symlinks.
-The accepted P1/P2/P3/P5 component subset is recorded in Step 5; the remaining suite
+The accepted P1/P2/P3/P4/P5 component subset is recorded in Step 5; the remaining suite
 is future work, and no tests were run by this sync. A complete
 valid-v1 fixture requires the remaining owner contracts to be resolved first;
 unknown fields or placeholder objects cannot manufacture one.
@@ -1930,7 +1931,7 @@ Pilot training may start only when:
 
 The pilot is a bounded intermediate run, not a formal checkpoint.
 The approved policy and this document synchronization alone do not satisfy
-Gate A. Beyond the accepted P1/P2/P3/P5 components in Step 5, the full pure resolver,
+Gate A. Beyond the accepted P1/P2/P3/P4/P5 components in Step 5, the full pure resolver,
 pre-heavy-import enforcement path, P0 source fixes, consumer integration, and
 remaining validation above are still unimplemented.
 
@@ -2120,8 +2121,8 @@ the historical `[524288,1048576)` range.
    under Issue #34. **Complete in this document; implementation and numerical
    validation remain outstanding.**
    The independent P2 reading/common-type, P1 structure/fixed-input, P3
-   maximum-SH, and P5 schedule components and their CPU tests are implemented
-   and accepted as recorded in Step 5 below. Initial-variance,
+   maximum-SH, P4 resolution/dimension, and P5 schedule components and their CPU
+   tests are implemented and accepted as recorded in Step 5 below. Initial-variance,
    camera, renderer, and other remaining source corrections and their focused
    numerical validation have not started; neither has a fresh corrected-source
    build or toolchain acceptance. After
@@ -2231,7 +2232,11 @@ the historical `[524288,1048576)` range.
    [independent review](../../reports/corrected-4dgs/issue-38/issue-38-advisor-review.txt)
    and [review evidence](../../reports/corrected-4dgs/issue-38/issue-38-advisor-review-evidence.json),
    and [acceptance/sync authorization](../../reports/corrected-4dgs/issue-38/issue-38-documentation-authorization-evidence.json).
-   This sync records existing evidence without rerunning tests.
+   Its document review, user-owned research-branch commit/push, and Issue #38
+   closure are confirmed by the
+   [push verification](../../reports/corrected-4dgs/issue-38/issue-38-push-verification.json)
+   and [completion evidence](../../reports/corrected-4dgs/issue-38/issue-38-completion-evidence.json);
+   this is not a claim of integration into main.
 
    P5's competing-input checks are limited to the six immediate
    `final_iteration`/`save_iterations` paths under optimization/checkpoint/reporting,
@@ -2241,18 +2246,54 @@ the historical `[524288,1048576)` range.
    extensions. Empty-array acceptance does not approve a run cadence; final-test
    needs, run values, and state-zero diagnostics remain with the existing owners.
 
-   P2 parse data is not verified semantic state. P1/P3/P5 leave the input unchanged,
-   without filling, transforming, or rewriting it. P3/P5 return detached frozen
+   **Partial implementation accepted under Issue #39:** the P4 component
+   ([source](../formal_config_p4.py), [CPU tests](../tests/test_formal_config_p4.py))
+   rechecks current input through P1 on every call and reuses P2 Int checks.
+   It requires `dataset.resolution`, closes that object to `mode`/`divisor`,
+   requires the fixed string `integer_divisor`, and checks divisor
+   `1..2147483647`. In `derive_p4_resolution`, raw width/height are explicit
+   positive exact-integer local API inputs, not new JSON fields. Integer
+   `divmod` derives positive effective dimensions only when both are divisible;
+   `d=1` preserves the dimensions. There is no coercion, rounding/truncation,
+   float-scale or upscaling repair, nor a newly adopted raw-dimension upper
+   bound. Input values, number tokens, nested identity, and order are unchanged
+   on success and failure; the immutable P4 partial result shares no input
+   containers. This proves only the supplied values' type and arithmetic,
+   not actual-image agreement, owner verification, or formal handoff.
+
+   Python 3.12.3 and `4dgs310` Python 3.10.14 each passed P4's 26, P1's 25,
+   P2's 25, P3's 20, and P5's 27 CPU tests (ten executions, 246 test executions
+   in total). The advisor independently reproduced all ten with no blocking
+   findings, and the user accepted this bounded component. See the
+   [implementation report](../../reports/corrected-4dgs/issue-39/issue-39-implementation-report.txt)
+   and [validation evidence](../../reports/corrected-4dgs/issue-39/issue-39-validation-evidence.json),
+   [independent review](../../reports/corrected-4dgs/issue-39/issue-39-advisor-review.txt)
+   and [review evidence](../../reports/corrected-4dgs/issue-39/issue-39-advisor-review-evidence.json),
+   and [acceptance/sync authorization](../../reports/corrected-4dgs/issue-39/issue-39-documentation-authorization-evidence.json).
+   This documentation sync records existing evidence without rerunning tests.
+
+   P4 rejects `resolution_scales` at the root through P1, immediately under
+   dataset through P4, and inside the resolution object through its two-key
+   closure, even with inactive values. The implementation report owns the
+   detailed path/fixture mapping; this adds no schema or forbidden-name table.
+   Other objects, deeper nested paths, unknown spellings, and the full nested
+   required/allowed sets remain unchecked, not allowed/adopted extensions.
+   Actual-image/metadata agreement, formal owner handoff, image resize and
+   camera/runtime integration remain unimplemented. Actual run divisor,
+   interpolation/mask/alpha/depth and FoV-only decisions remain with D-DATA/P0-0.
+
+   P2 parse data is not verified semantic state. P1/P3/P4/P5 leave the input
+   unchanged, without filling, transforming, or rewriting it. P3/P4/P5 return detached frozen
    partial results, not the full immutable verified state. Partial success is
    not full formal validation, runnable v1, or execution permission; no runtime
-   adapter or training connection exists. P4/P6, D-TIME/initial-variance semantic
+   adapter or training connection exists. P6, D-TIME/initial-variance semantic
    checks and derivations, remaining nested membership/domain/path checks, the immutable
    verified state, and overall resolver/bootstrap/runtime integration remain
    unimplemented. P5's runtime integration and actual checkpoint-then-test
    observation of the same completed state remain unimplemented; `train.py`
    is unchanged. Camera and renderer corrections remain separate unfinished work.
    Fresh corrected-source build/toolchain acceptance, CUDA and training have
-   not run. Step 5 as a whole and Gate A remain incomplete. Issue #38 still
+   not run. Step 5 as a whole and Gate A remain incomplete. Issue #39 still
    awaits this document's review, user-owned research Git integration/push,
    and the subsequent Issue-completion decision; component acceptance does
    not complete those steps.
@@ -2398,8 +2439,8 @@ Complete at this milestone:
   Its field/initial-value/V-B adoption is complete, not implementation,
   numerical validation, or the remaining initialization/time/run decisions.
 - Issue #35's bounded P2, Issue #36's bounded P1, Issue #37's bounded P3,
-  and Issue #38's bounded P5 component implementation and CPU acceptance, as
-  recorded in [Step 5](#phase-1-training-critical-foundation), not full formal
+  Issue #38's bounded P5, and Issue #39's bounded P4 component implementation
+  and CPU acceptance, as recorded in [Step 5](#phase-1-training-critical-foundation), not full formal
   configuration acceptance or Step/Gate closure.
 
 Not complete and not authorized by this document sync:
@@ -2505,7 +2546,7 @@ adopted P1–P6 partial field contracts and Issue #26's adopted D-PREFILTER
 supplement, Issue #30's three adopted D-TIME contracts, Issue #33's
 [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection),
 and Issue #34's [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
-Beyond the accepted P1/P2/P3/P5 partial components recorded in Step 5, their full
+Beyond the accepted P1/P2/P3/P4/P5 partial components recorded in Step 5, their full
 enforcement, remaining source fixes, consumer integration, fresh build, and
 remaining post-fix focused validation are not implemented.
 P0-0, P0-1, P0-2, P0-3,
