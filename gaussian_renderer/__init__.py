@@ -17,13 +17,20 @@ from .diff_gaussian_rasterization import GaussianRasterizationSettings, Gaussian
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh, eval_shfs_4d
 
-def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None):
+def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None, *, formal_config=None):
     """
     Render the scene. 
     
     Background tensor (bg_color) must be on GPU!
     """
  
+    if formal_config is not None:
+        if (type(pc.prefilter_var) is not float or pc.prefilter_var != -1.0
+                or formal_config.renderer.temporal_prefilter != 'disabled'
+                or pipe.config is not formal_config or pipe.compute_cov3D_python or pipe.convert_SHs_python
+                or scaling_modifier != formal_config.renderer.scaling_modifier
+                or override_color is not formal_config.renderer.override_color or pipe.env_map_res):
+            raise ValueError('formal_renderer_contract')
     # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
     screenspace_points = torch.zeros_like(pc.get_xyz, dtype=pc.get_xyz.dtype, requires_grad=True, device="cuda") + 0
     try:
@@ -35,7 +42,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
     tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
 
-    debug_pixel_env = os.environ.get("STEP90_CUDA_DEBUG_PIXEL", "")
+    debug_pixel_env = '' if formal_config is not None else os.environ.get("STEP90_CUDA_DEBUG_PIXEL", "")
     debug_pixel_x = int(getattr(pipe, "debug_pixel_x", -1))
     debug_pixel_y = int(getattr(pipe, "debug_pixel_y", -1))
     if debug_pixel_env and debug_pixel_x < 0 and debug_pixel_y < 0:
@@ -103,7 +110,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             ts = pc.get_t
             if pc.rot_4d:
                 rotations_r = pc.get_rotation_r
-            if pc.prefilter_var > 0.0:
+            if formal_config is not None or pc.prefilter_var > 0.0:
                 prefilter_var = pc.prefilter_var
 
     # If precomputed colors are provided, use them. Otherwise, if it is desired to precompute colors

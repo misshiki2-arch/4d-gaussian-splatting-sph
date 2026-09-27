@@ -256,7 +256,9 @@ class GaussianModel:
         elif self.max_sh_degree_t and self.active_sh_degree_t < self.max_sh_degree_t:
             self.active_sh_degree_t += 1
 
-    def create_from_pcd(self, pcd : BasicPointCloud, spatial_lr_scale : float):
+    def create_from_pcd(self, pcd : BasicPointCloud, spatial_lr_scale : float, *, formal_time=None):
+        if formal_time is not None and (pcd.time is None or pcd.time.shape != (len(pcd.points), 1)):
+            raise ValueError('formal_initial_time')
         self.spatial_lr_scale = spatial_lr_scale
         fused_point_cloud = torch.tensor(np.asarray(pcd.points)).float().cuda()
         fused_color = RGB2SH(torch.tensor(np.asarray(pcd.colors)).float().cuda())
@@ -277,8 +279,17 @@ class GaussianModel:
         rots[:, 0] = 1
         if self.gaussian_dim == 4:
             # dist_t = torch.clamp_min(distCUDA2(fused_times.repeat(1,3)), 1e-10)[...,None]
-            dist_t = torch.zeros_like(fused_times, device="cuda") + (self.time_duration[1] - self.time_duration[0]) / 5
-            scales_t = torch.log(torch.sqrt(dist_t))
+            if formal_time is None:
+                dist_t = torch.zeros_like(fused_times, device="cuda") + (self.time_duration[1] - self.time_duration[0]) / 5
+                scales_t = torch.log(torch.sqrt(dist_t))
+            else:
+                scales_t = torch.full_like(fused_times, formal_time.log_effective_scale)
+                scale_t = torch.exp(scales_t)
+                variance_t = scale_t.square()
+                if (not torch.isfinite(fused_times).all() or not torch.isfinite(scales_t).all()
+                        or not torch.isfinite(scale_t).all() or not (scale_t > 0).all()
+                        or not torch.isfinite(variance_t).all() or not (variance_t > 0).all()):
+                    raise ValueError('formal_temporal_activation')
             if self.rot_4d:
                 rots_r = torch.zeros((fused_point_cloud.shape[0], 4), device="cuda")
                 rots_r[:, 0] = 1
@@ -369,7 +380,7 @@ class GaussianModel:
         self._scaling_t = nn.Parameter(scales_t.requires_grad_(True))
         self._rotation_r = nn.Parameter(rots_r.requires_grad_(True))
 
-    def training_setup(self, training_args):
+    def training_setup(self, training_args, *, formal_config=None):
         self.percent_dense = training_args.percent_dense
         self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
         self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
@@ -392,10 +403,16 @@ class GaussianModel:
                 l.append({'params': [self._rotation_r], 'lr': training_args.rotation_lr, "name": "rotation_r"})
 
         self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
-        self.xyz_scheduler_args = get_expon_lr_func(lr_init=training_args.position_lr_init*self.spatial_lr_scale,
-                                                    lr_final=training_args.position_lr_final*self.spatial_lr_scale,
-                                                    lr_delay_mult=training_args.position_lr_delay_mult,
-                                                    max_steps=training_args.position_lr_max_steps)
+        if formal_config is None:
+            self.xyz_scheduler_args = get_expon_lr_func(lr_init=training_args.position_lr_init*self.spatial_lr_scale,
+                                                        lr_final=training_args.position_lr_final*self.spatial_lr_scale,
+                                                        lr_delay_mult=training_args.position_lr_delay_mult,
+                                                        max_steps=training_args.position_lr_max_steps)
+        else:
+            self.xyz_scheduler_args = get_expon_lr_func(lr_init=training_args.position_lr_init*self.spatial_lr_scale,
+                                                        lr_final=training_args.position_lr_final*self.spatial_lr_scale,
+                                                        lr_delay_steps=formal_config.fixed.delay_steps,
+                                                        max_steps=training_args.position_lr_max_steps)
 
     def update_learning_rate(self, iteration):
         ''' Learning rate scheduling per step '''

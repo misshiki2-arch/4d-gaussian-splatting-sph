@@ -209,11 +209,16 @@ def readColmapSceneInfo(path, images, eval, llffhold=8, num_pts_ratio=1.0):
                            ply_path=ply_path)
     return scene_info
 
-def readCamerasFromTransforms(path, transformsfile, white_background, extension=".png", time_duration=None, frame_ratio=1, dataloader=False):
+def readCamerasFromTransforms(path, transformsfile, white_background, extension=".png", time_duration=None, frame_ratio=1, dataloader=False, *, formal_metadata=None):
     cam_infos = []
 
-    with open(os.path.join(path, transformsfile)) as json_file:
-        contents = json.load(json_file)
+    if formal_metadata is None:
+        with open(os.path.join(path, transformsfile)) as json_file:
+            contents = json.load(json_file)
+    else:
+        contents = json.loads(formal_metadata[0])  # The identity-checked acquisition, never reopen.
+        if len(contents['frames']) != len(formal_metadata[1]):
+            raise ValueError('formal_frame_count')
     if "camera_angle_x" in contents:
         fovx = contents["camera_angle_x"]
         
@@ -222,12 +227,18 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
     def frame_read_fn(idx_frame):
         idx = idx_frame[0]
         frame = idx_frame[1]
-        timestamp = frame.get('time', 0.0)
-        if frame_ratio > 1:
-            timestamp /= frame_ratio
-        if time_duration is not None and 'time' in frame:
-            if timestamp < time_duration[0] or timestamp > time_duration[1]:
-                return
+        if formal_metadata is not None:
+            verified = formal_metadata[1][idx]
+            if verified.index != idx or verified.file_path != frame['file_path']:
+                raise ValueError('formal_frame_correspondence')
+            timestamp = verified.effective_time
+        else:
+            timestamp = frame.get('time', 0.0)
+            if frame_ratio > 1:
+                timestamp /= frame_ratio
+            if time_duration is not None and 'time' in frame:
+                if timestamp < time_duration[0] or timestamp > time_duration[1]:
+                    return
 
         cam_name = os.path.join(path, frame["file_path"] + extension)
 
@@ -307,12 +318,12 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
     
     return cam_infos
 
-def readNerfSyntheticInfo(path, white_background, eval, extension=".png", num_pts=100_000, time_duration=None, num_extra_pts=0, frame_ratio=1, dataloader=False):
+def readNerfSyntheticInfo(path, white_background, eval, extension=".png", num_pts=100_000, time_duration=None, num_extra_pts=0, frame_ratio=1, dataloader=False, *, formal_inputs=None):
     
     print("Reading Training Transforms")
-    train_cam_infos = readCamerasFromTransforms(path, "transforms_train.json", white_background, extension, time_duration=time_duration, frame_ratio=frame_ratio, dataloader=dataloader)
+    train_cam_infos = readCamerasFromTransforms(path, "transforms_train.json", white_background, extension, time_duration=time_duration, frame_ratio=frame_ratio, dataloader=dataloader, formal_metadata=None if formal_inputs is None else (formal_inputs.train_bytes, formal_inputs.train_frames))
     print("Reading Test Transforms")
-    test_cam_infos = readCamerasFromTransforms(path, "transforms_test.json" if not path.endswith('lego') else "transforms_val.json", white_background, extension, time_duration=time_duration, frame_ratio=frame_ratio, dataloader=dataloader)
+    test_cam_infos = readCamerasFromTransforms(path, "transforms_test.json" if formal_inputs is not None or not path.endswith('lego') else "transforms_val.json", white_background, extension, time_duration=time_duration, frame_ratio=frame_ratio, dataloader=dataloader, formal_metadata=None if formal_inputs is None else (formal_inputs.test_bytes, formal_inputs.test_frames))
     
     if not eval:
         train_cam_infos.extend(test_cam_infos)
@@ -321,7 +332,7 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png", num_pt
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
     ply_path = os.path.join(path, "points3d.ply")
-    if not os.path.exists(ply_path):
+    if formal_inputs is None and not os.path.exists(ply_path):
         # Since this data set has no colmap data, we start with random points
         print(f"Generating random point cloud ({num_pts})...")
         
@@ -331,10 +342,26 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png", num_pt
         pcd = BasicPointCloud(points=xyz, colors=SH2RGB(shs), normals=np.zeros((num_pts, 3)))
 
         storePly(ply_path, xyz, SH2RGB(shs) * 255)
-    try:
-        pcd = fetchPly(ply_path)
-    except:
-        pcd = None
+    if formal_inputs is not None:
+        from io import BytesIO
+        # BytesIO may copy the approved bounded PLY once. No file reopen/mmap.
+        with BytesIO(formal_inputs.ply_bytes) as stream:
+            pcd = fetchPly(stream)
+        if pcd.time is None or pcd.time.dtype != np.dtype('float32') or pcd.time.shape != (len(pcd.points), 1):
+            raise ValueError('formal_ply_time_shape')
+        raw = pcd.time.astype(np.float64)  # Exact widening BEFORE any sampling.
+        time = formal_inputs.config.time_derivation
+        if not len(raw) or not np.isfinite(raw).all() or (raw < time.raw_interval[0]).any() or (raw > time.raw_interval[1]).any():
+            raise ValueError('formal_ply_time_range')
+        effective = (raw / time.divisor).astype(np.float32)
+        if not np.isfinite(effective).all() or ((raw != 0) & (effective == 0)).any():
+            raise ValueError('formal_ply_time_cast')
+        pcd = BasicPointCloud(points=pcd.points, colors=pcd.colors, normals=pcd.normals, time=effective)
+    else:
+        try:
+            pcd = fetchPly(ply_path)
+        except:
+            pcd = None
 
     if pcd.points.shape[0] > num_pts:
         mask = np.random.randint(0, pcd.points.shape[0], num_pts)
@@ -346,7 +373,7 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png", num_pt
         xyz = pcd.points[mask]
         rgb = pcd.colors[mask]
         normals = pcd.normals[mask]
-        if times is not None:
+        if times is not None and formal_inputs is None:
             time_mask = (times[:,0] < time_duration[1]) & (times[:,0] > time_duration[0])
             xyz = xyz[time_mask]
             rgb = rgb[time_mask]

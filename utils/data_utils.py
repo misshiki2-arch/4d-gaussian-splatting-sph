@@ -9,12 +9,30 @@ import numpy as np
 
 class CameraDataset(Dataset):
     
-    def __init__(self, viewpoint_stack, white_background):
+    def __init__(self, viewpoint_stack, white_background, *, formal_resolution=None):
         self.viewpoint_stack = viewpoint_stack
         self.bg = np.array([1,1,1]) if white_background else np.array([0, 0, 0])
+        self.formal_resolution = formal_resolution
+        if formal_resolution is not None:
+            for camera in viewpoint_stack:
+                self._check_formal_images(camera)
+
+    def _check_formal_images(self, camera):
+        # Pre-claim preparation AND lazy-open recheck. No mask resizing policy.
+        r = self.formal_resolution
+        mask = camera.image_path.replace(f'{os.sep}images{os.sep}', f'{os.sep}masks{os.sep}')
+        if mask == camera.image_path:
+            raise ValueError('formal_mask_path')
+        with Image.open(camera.image_path) as image, Image.open(mask) as sidecar:
+            if image.size != (r.raw_width, r.raw_height) or sidecar.size != (r.width, r.height):
+                raise ValueError('formal_mask_resolution')
+            if image.mode != 'RGBA' or sidecar.mode != 'L':
+                raise ValueError('formal_image_mode')
         
     def __getitem__(self, index):
         viewpoint_cam = self.viewpoint_stack[index]
+        if self.formal_resolution is not None:
+            self._check_formal_images(viewpoint_cam)
         if viewpoint_cam.meta_only:
             with Image.open(viewpoint_cam.image_path) as image_load:
                 im_data = np.array(image_load.convert("RGBA"))
@@ -50,6 +68,8 @@ class CameraDataset(Dataset):
 
         else:
             # masksが無い場合は None のまま（opa_maskを使うなら masks を必ず用意）
+            if self.formal_resolution is not None:
+                raise ValueError('formal_mask_missing')
             viewpoint_cam.gt_alpha_mask = getattr(viewpoint_cam, "gt_alpha_mask", None)
         # ====== ADD END ======
 

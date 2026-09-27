@@ -31,28 +31,100 @@ from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 from torch.utils.data import DataLoader
 from PIL import Image
+from typing import NamedTuple
+from functools import partial
+from formal_views import ConsumerView
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
 
+class PreparedFormal(NamedTuple):
+    inputs: object
+    dataset: object
+    opt: object
+    pipe: object
+    gaussians: object
+    scene: object
+    background: object
+    dataloader: object
+
+
+def prepare_formal_runtime(inputs):
+    """Output-free preparation using existing consumers, never a CPU fallback."""
+    c = inputs.config
+    if not torch.cuda.is_available():
+        raise RuntimeError('formal_cuda_unavailable')
+    torch.cuda.set_device(0)
+    setup_seed(c.initialization.seed)  # One owner before sampling/shuffle/initialization.
+    dataset, opt, pipe = (ConsumerView(c, group) for group in ('dataset', 'optimization', 'pipeline'))
+    gaussians = GaussianModel(c.model.spatial_sh_degree, gaussian_dim=c.model.gaussian_dim,
+        time_duration=c.time_derivation.effective_interval, rot_4d=c.model.rot_4d,
+        force_sh_3d=c.model.force_sh_3d, sh_degree_t=c.model.temporal_sh_degree,
+        prefilter_var=dataset.prefilter_var)
+    scene = Scene(dataset, gaussians, num_pts=c.initialization.num_pts,
+        time_duration=c.time_derivation.effective_interval, shuffle=c.fixed.shuffle, formal_inputs=inputs)
+    if not np.isfinite(scene.cameras_extent) or scene.cameras_extent <= 0:
+        raise ValueError('formal_scene_extent')
+    rows = len(gaussians._xyz)
+    for parameter in (gaussians._xyz, gaussians._features_dc, gaussians._features_rest,
+                      gaussians._scaling, gaussians._rotation, gaussians._opacity,
+                      gaussians._t, gaussians._scaling_t, gaussians._rotation_r):
+        if not rows or len(parameter) != rows or not torch.isfinite(parameter).all():
+            raise ValueError('formal_parameter_rows')
+    gaussians.training_setup(opt, formal_config=c)
+    background = torch.tensor([0, 0, 0], dtype=torch.float32, device='cuda')
+    training_dataset = scene.getTrainCameras()
+    scene.getTestCameras()  # Both splits' image/mask checks precede claim.
+    dataloader = DataLoader(training_dataset, batch_size=c.optimization.batch_size,
+        shuffle=c.fixed.shuffle, num_workers=c.fixed.num_workers, collate_fn=lambda x: x,
+        drop_last=c.fixed.drop_last)
+    return PreparedFormal(inputs, dataset, opt, pipe, gaussians, scene, background, dataloader)
+
+
+def begin_formal_output(prepared, claim):
+    if claim.path != prepared.inputs.config.paths.output_directory:
+        raise ValueError('formal_output_claim')
+    return prepare_output_and_logger(prepared.dataset, claim=claim, scene=prepared.scene)
+
+
+def continue_formal_training(prepared, writer):
+    # Shared loop, not a completed-update Fix. Real runs require later acceptance.
+    c = prepared.inputs.config
+    return training(prepared.dataset, prepared.opt, prepared.pipe,
+        c.reporting.test_updates, c.save_updates, None, -1, c.model.gaussian_dim,
+        c.time_derivation.effective_interval, c.initialization.num_pts, 1.0,
+        c.model.rot_4d, c.model.force_sh_3d, c.optimization.batch_size,
+        _formal_prepared=prepared, _formal_writer=writer)
+
+
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint, debug_from,
-             gaussian_dim, time_duration, num_pts, num_pts_ratio, rot_4d, force_sh_3d, batch_size):
+             gaussian_dim, time_duration, num_pts, num_pts_ratio, rot_4d, force_sh_3d, batch_size,
+             *, _formal_prepared=None, _formal_writer=None):
     
-    if dataset.frame_ratio > 1:
+    if _formal_prepared is None and dataset.frame_ratio > 1:
         time_duration = [time_duration[0] / dataset.frame_ratio,  time_duration[1] / dataset.frame_ratio]
     
     first_iter = 0
-    tb_writer = prepare_output_and_logger(dataset)
+    tb_writer = prepare_output_and_logger(dataset) if _formal_prepared is None else _formal_writer
     
     print(f"[DBG] dataset.sh_degree = {dataset.sh_degree}")
     print(f"[DBG] pipe.eval_shfs_4d = {pipe.eval_shfs_4d}")
 
-    gaussians = GaussianModel(dataset.sh_degree, gaussian_dim=gaussian_dim, time_duration=time_duration, rot_4d=rot_4d, force_sh_3d=force_sh_3d, sh_degree_t=2 if pipe.eval_shfs_4d else 0,
-                              prefilter_var=dataset.prefilter_var)
-    scene = Scene(dataset, gaussians, num_pts=num_pts, num_pts_ratio=num_pts_ratio, time_duration=time_duration)
-    gaussians.training_setup(opt)
+    if _formal_prepared is None:
+        gaussians = GaussianModel(dataset.sh_degree, gaussian_dim=gaussian_dim, time_duration=time_duration, rot_4d=rot_4d, force_sh_3d=force_sh_3d, sh_degree_t=2 if pipe.eval_shfs_4d else 0,
+                                  prefilter_var=dataset.prefilter_var)
+        scene = Scene(dataset, gaussians, num_pts=num_pts, num_pts_ratio=num_pts_ratio, time_duration=time_duration)
+        gaussians.training_setup(opt)
+        render_func = render
+    else:
+        if checkpoint is not None or debug_from != -1:
+            raise ValueError('formal_legacy_override')
+        gaussians, scene = _formal_prepared.gaussians, _formal_prepared.scene
+        c = _formal_prepared.inputs.config
+        render_func = partial(render, scaling_modifier=c.renderer.scaling_modifier,
+                              override_color=c.renderer.override_color, formal_config=c)
     
     densify_grad_t_threshold = getattr(opt, "densify_grad_t_threshold", None)
     thresh_opa_prune = getattr(opt, "thresh_opa_prune", 0.005)
@@ -62,7 +134,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gaussians.restore(model_params, opt)
 
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
-    background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
+    background = torch.tensor(bg_color, dtype=torch.float32, device="cuda") if _formal_prepared is None else _formal_prepared.background
     
     ### ここに追加 ###
     training_report(
@@ -73,7 +145,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         elapsed=0.0,
         testing_iterations=[first_iter],
         scene=scene,
-        renderFunc=render,
+        renderFunc=render_func,
         renderArgs=(pipe, background),
         loss_dict=None
     )
@@ -86,7 +158,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     ema_loss_for_log = 0.0
     ema_l1loss_for_log = 0.0
     ema_ssimloss_for_log = 0.0
-    lambda_all = [key for key in opt.__dict__.keys() if key.startswith('lambda') and key!='lambda_dssim']
+    loss_names = opt.__dict__.keys() if _formal_prepared is None else c.optimization.loss._fields
+    lambda_all = [key for key in loss_names if key.startswith('lambda') and key!='lambda_dssim']
     for lambda_name in lambda_all:
         vars()[f"ema_{lambda_name.replace('lambda_','')}_for_log"] = 0.0
     
@@ -101,8 +174,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         
     gaussians.env_map = env_map
         
-    training_dataset = scene.getTrainCameras()
-    training_dataloader = DataLoader(training_dataset, batch_size=batch_size, shuffle=True, num_workers=0 if dataset.dataloader else 0, collate_fn=lambda x: x, drop_last=True)
+    if _formal_prepared is None:
+        training_dataset = scene.getTrainCameras()
+        training_dataloader = DataLoader(training_dataset, batch_size=batch_size, shuffle=True, num_workers=0 if dataset.dataloader else 0, collate_fn=lambda x: x, drop_last=True)
+    else:
+        training_dataloader = _formal_prepared.dataloader
      
     iteration = first_iter
     while iteration < opt.iterations + 1:
@@ -136,7 +212,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gt_image = gt_image.cuda()
                 viewpoint_cam = viewpoint_cam.cuda()
 
-                render_pkg = render(viewpoint_cam, gaussians, pipe, background)
+                render_pkg = render_func(viewpoint_cam, gaussians, pipe, background)
                 image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
                 depth = render_pkg["depth"]
                 alpha = render_pkg["alpha"]
@@ -238,7 +314,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 ema_ssimloss_for_log = 0.4 * Lssim.item() + 0.6 * ema_ssimloss_for_log
                 
                 for lambda_name in lambda_all:
-                    if opt.__dict__[lambda_name] > 0:
+                    if getattr(opt, lambda_name) > 0:
                         ema = vars()[f"ema_{lambda_name.replace('lambda_', '')}_for_log"]
                         vars()[f"ema_{lambda_name.replace('lambda_', '')}_for_log"] = 0.4 * vars()[f"L{lambda_name.replace('lambda_', '')}"].item() + 0.6*ema
                         loss_dict[lambda_name.replace("lambda_", "L")] = vars()[lambda_name.replace("lambda_", "L")]
@@ -250,7 +326,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                                             "Lssim": f"{ema_ssimloss_for_log:.{4}f}",}
                     
                     for lambda_name in lambda_all:
-                        if opt.__dict__[lambda_name] > 0:
+                        if getattr(opt, lambda_name) > 0:
                             ema_loss = vars()[f"ema_{lambda_name.replace('lambda_', '')}_for_log"]
                             postfix[lambda_name.replace("lambda_", "L")] = f"{ema_loss:.{4}f}"
                             
@@ -260,8 +336,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     progress_bar.close()
 
                 # Log and save
-                test_psnr = training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background), loss_dict)
-                if (iteration in testing_iterations):
+                test_psnr = training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render_func, (pipe, background), loss_dict)
+                if _formal_prepared is None and (iteration in testing_iterations):
                     if test_psnr >= best_psnr:
                         best_psnr = test_psnr
                         print("\n[ITER {}] Saving best checkpoint".format(iteration))
@@ -338,7 +414,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                         env_map_optimizer.step()
                         env_map_optimizer.zero_grad(set_to_none = True)
 
-def prepare_output_and_logger(args):    
+def prepare_output_and_logger(args, *, claim=None, scene=None):
+    if isinstance(args, ConsumerView) and claim is None:
+        raise ValueError('formal_logger_claim')
     if not args.model_path:
         if os.getenv('OAR_JOB_ID'):
             unique_str=os.getenv('OAR_JOB_ID')
@@ -348,9 +426,17 @@ def prepare_output_and_logger(args):
         
     # Set up output folder
     print("Output folder: {}".format(args.model_path))
-    os.makedirs(args.model_path, exist_ok = True)
-    with open(os.path.join(args.model_path, "cfg_args"), 'w') as cfg_log_f:
-        cfg_log_f.write(str(Namespace(**vars(args))))
+    if claim is None:
+        os.makedirs(args.model_path, exist_ok = True)
+        with open(os.path.join(args.model_path, "cfg_args"), 'w') as cfg_log_f:
+            cfg_log_f.write(str(Namespace(**vars(args))))
+    else:
+        if claim.path != args.model_path or scene is None:
+            raise ValueError('formal_logger_claim')
+        with claim.open('cfg_args', 'w') as cfg_log_f:
+            cfg_log_f.write(repr(args.config))  # Diagnostic only; never eval/authority.
+        scene.write_initial_files(claim)
+        claim.check()  # SummaryWriter accepts a path, not a held directory fd.
 
     # Create Tensorboard writer
     tb_writer = None

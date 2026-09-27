@@ -16,10 +16,15 @@ from utils.graphics_utils import fov2focal
 
 WARNED = False
 
-def loadCam(args, id, cam_info, resolution_scale):
+def loadCam(args, id, cam_info, resolution_scale, *, formal_resolution=None):
     orig_w, orig_h = cam_info.width, cam_info.height# cam_info.image.size
 
-    if args.resolution in [1, 2, 3, 4, 8]:
+    if formal_resolution is not None:
+        if resolution_scale != 1.0 or (orig_w, orig_h) != (formal_resolution.raw_width, formal_resolution.raw_height):
+            raise ValueError('formal_camera_dimensions')
+        resolution = (formal_resolution.width, formal_resolution.height)
+        scale = formal_resolution.divisor
+    elif args.resolution in [1, 2, 3, 4, 8]:
         resolution = round(orig_w/(resolution_scale * args.resolution)), round(orig_h/(resolution_scale * args.resolution))
         scale = resolution_scale * args.resolution
     else:  # should be a type that converts to float
@@ -68,11 +73,11 @@ def loadCam(args, id, cam_info, resolution_scale):
                   meta_only=args.dataloader
                   )
 
-def cameraList_from_camInfos(cam_infos, resolution_scale, args):
+def cameraList_from_camInfos(cam_infos, resolution_scale, args, *, formal_resolution=None):
     camera_list = []
 
     for id, c in enumerate(cam_infos):
-        camera_list.append(loadCam(args, id, c, resolution_scale))
+        camera_list.append(loadCam(args, id, c, resolution_scale, formal_resolution=formal_resolution))
 
     return camera_list
 
