@@ -58,7 +58,7 @@ print(sys.executable)
 
     def test_stdlib_static_boundary(self):
         allowed = sys.stdlib_module_names
-        for name in ('formal_entry.py', 'formal_inputs.py', 'formal_views.py'):
+        for name in ('formal_entry.py', 'formal_inputs.py', 'formal_views.py', 'formal_camera.py'):
             tree = ast.parse((ROOT / name).read_text())
             for node in tree.body:
                 if isinstance(node, ast.Import):
@@ -91,11 +91,23 @@ class ConnectionTests(unittest.TestCase):
         knn.distCUDA2 = lambda xyz: torch.ones(len(xyz), dtype=torch.float32)
         raster = types.ModuleType('isolated_raster_extension')
         raster.__getattr__ = lambda name: forbidden
-        cls.stack.enter_context(patch.dict(sys.modules, {
+        isolated_modules = {
             'pointops2': types.ModuleType('pointops2'),
             'pointops2.functions': types.ModuleType('pointops2.functions'),
             'pointops2.functions.pointops': pointops,
-            'simple_knn': types.ModuleType('simple_knn'), 'simple_knn._C': knn}))
+            'simple_knn': types.ModuleType('simple_knn'), 'simple_knn._C': knn}
+        # Restore only the GPU modules replaced here. patch.dict(sys.modules)
+        # clears even newly imported real CPU dependencies at teardown; a
+        # second fixture would then re-register torchvision's native operators.
+        absent = object()
+        def restore_module(name, previous):
+            if previous is absent:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = previous
+        for name, module in isolated_modules.items():
+            cls.stack.callback(restore_module, name, sys.modules.get(name, absent))
+            sys.modules[name] = module
         cls.jit = cls.stack.enter_context(patch.object(torch.utils.cpp_extension, 'load', return_value=raster))
         cls.stack.enter_context(patch.object(torch.cuda, '_lazy_init', side_effect=forbidden))
         cls.train = importlib.import_module('train')

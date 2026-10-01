@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **Step-5-minimal-connection-functionally-accepted / documentation-review-and-user-research-Git-pending / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / remaining-source-fixes-not-started / remaining-focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **Step-5-complete-and-user-research-Git-integrated / Step-6-camera-A-design-reviewed / Step-6-camera-A-functionally-accepted / Step-6-document-review-and-user-research-Git-pending / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / remaining-source-fixes-not-started / remaining-focused-validation-not-started / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -43,7 +43,12 @@ Step design and documentation timing by
 [ADV-STEP / ADV-DOC](../../4dgs-development-governance/10_DESKTOP_ADVISOR_COMMAND_DESIGN_RULES_JA.md),
 Git timing by [USR-GIT-09/10](../../4dgs-development-governance/40_USER_GIT_AND_ACCEPTANCE_RUNBOOK_JA.md),
 and overall progress by [RM-PROGRESS](../../4dgs-development-governance/30_REDMINE_WORKFLOW_JA.md).
-The numbered dependency order and technical acceptance conditions below remain unchanged.
+Technical owners, dependencies and Gate conditions remain unchanged. The
+current functional Step after completed Step 5 is
+[Step 6: canonical camera handoff](#step-6-canonical-camera-handoff).
+Former roadmap numbers, including 6=checkpoint and 7=camera, remain historical
+references rather than the current execution sequence. Future functional Step
+numbers, order and scope are not assigned by this synchronization.
 The component work in Issues #35–#39 and #41 belongs within the existing Step 5;
 those issue numbers and component counts are not overall progress measures or new Steps.
 Historical component-level documentation/Git checkpoints below are records, not mandatory
@@ -117,13 +122,18 @@ Issue #2 synchronizes the user-adopted
 with the subsequent [configurability/population adoption](#adopted-configurability-and-population-conditions)
 and [Step 5 minimal connection contract](#adopted-step-5-minimal-connection-contract).
 Issue #50's accepted investigation remains input evidence, not source implementation.
-The current milestone is [Step 5 functional acceptance](#step-5-functional-acceptance):
+The completed milestone is [Step 5 functional acceptance](#step-5-functional-acceptance):
 configuration validation and the minimal same-process connection to existing
 runtime are accepted, including reuse of the time/V-B, frame and metadata
 components. Earlier component reports retain their historical acceptance stages;
 they are not additional current approval or Git prerequisites. Documentation
-review and consolidated user-owned research Git remain pending. This acceptance
-does not establish training readiness or pass any Gate.
+review and consolidated user-owned research Git are complete, as recorded in
+the [Step 5 completion record](../../reports/corrected-4dgs/phase1/step5/step5-completion-report.md).
+The current [Step 6 camera A function](#step-6-canonical-camera-handoff) is
+implemented and CPU-validated, advisor-reviewed and user-accepted.
+Review of this completion-oriented document sync and consolidated user-owned
+research Git remain pending. This bounded acceptance is not training readiness
+or passage of any Gate.
 
 The Fudan Native model configuration, existing train/test-only dataset and
 evaluation policy, checkpoint-foundation/exact-resume staging policy, and
@@ -151,10 +161,12 @@ adoption within that same boundary; Issue #34 adds only the adopted initial
 variance and its explicit coefficient under existing D-INIT. Remaining formal
 policy closure, source fixes, post-fix focused validation, CUDA execution, pilot training, formal
 retraining, corrected artifact generation, and Viewer restart remain incomplete.
-The implemented and CPU-accepted scope is the integrated configuration and
-minimal existing-runtime connection recorded in
+The implemented and CPU-accepted scope includes the integrated configuration
+and minimal existing-runtime connection in
 [Step 5 functional acceptance](#step-5-functional-acceptance), built from P1–P6
-and time/frame components. Later camera, renderer, transaction and checkpoint
+and time/frame components, and the bounded
+[Step 6 camera A handoff](#step-6-canonical-camera-handoff).
+Remaining camera runtime/CUDA validation, renderer, transaction and checkpoint
 corrections and actual GPU/training validation remain outstanding. P0 findings block only the gate whose accepted output
 would reach the defect; Viewer-only defects do not unnecessarily block corrected
 training, and training-state defects cannot be deferred to artifact generation.
@@ -266,8 +278,9 @@ The formal baseline supports exactly two explicit input modes:
 1. **Intrinsics mode** requires complete `fl_x/fl_y/cx/cy`, finite positive
    `fl_x/fl_y`, finite `cx/cy`, and positive effective width and height. The
    first formal baseline supports only a centered principal point, defined
-   mathematically by `cx=width/2` and `cy=height/2`; the implementation
-   tolerance remains open. A negative raw FoV sentinel may be retained only as
+   mathematically by `cx=width/2` and `cy=height/2`; the numerical implementation
+   choice is recorded in the reviewed [Step 6 design](#step-6-canonical-camera-handoff).
+   A negative raw FoV sentinel may be retained only as
    provenance and must never become effective FoV or effective tanFov.
 2. **FoV-only mode** requires complete geometrically valid input, positive
    effective width and height, finite `FoVx/FoVy`, and
@@ -325,7 +338,7 @@ independent camera P1 policy and comparison responsibility.
 
 ### P0-0 implementation boundary
 
-P0-0 remains open. Its candidate root responsibility is to validate raw
+P0-0 remains open. Its root responsibility is to validate raw
 `CameraInfo` or equivalent metadata once, create the canonical effective-camera
 state once, and make projection plus rasterizer forward/backward consume it.
 This includes explicit mode selection, input validation, raw/effective
@@ -333,8 +346,14 @@ separation, post-resolution canonicalization, identity-consistent handoff,
 pre-GPU rejection, and focused validation. It excludes manifest schema and
 publication, P0-A6 implementation, Viewer/artifact provenance, scientific
 retuning of projection/cull values, off-center expansion, and unrelated SH,
-training, or checkpoint findings. No part of that source Fix or validation has
-been performed by this policy synchronization.
+training, or checkpoint findings. The historical policy synchronization itself
+did not perform source Fix or validation.
+
+The [Step 6 A connection](#step-6-canonical-camera-handoff) through the real
+Python forward/context/backward handoff is now implemented and CPU-validated
+with GPU/JIT isolated, advisor-reviewed and user-accepted. This acceptance is
+bounded to that function; full P0-0 runtime/CUDA validation and Gate
+obligations remain open.
 
 ## Confirmed renderer and CUDA P0 blockers
 
@@ -1472,8 +1491,9 @@ absence from actual I/O failure. Its accepted evidence and existing-consumer
 coverage are consolidated in [Step 5 functional acceptance](#step-5-functional-acceptance),
 not tests run by this synchronization. GPU boundaries were isolated; CUDA
 correctness and training readiness are not proven. Remaining run values and
-owner details stay open. After documentation review and consolidated user
-research Git, the advisor selects the next existing owner responsibility.
+owner details stay open. Step 5 documentation review and user research Git
+are complete; the next selected function is the
+[Step 6 camera handoff](#step-6-canonical-camera-handoff), not another Step 5 Fix.
 
 ##### Remaining field and owner boundary
 
@@ -1929,8 +1949,11 @@ cause is not patched twice:
 The camera P1 policy for the first formal baseline is decided: only centered
 cameras are supported; off-center input fails closed; projection near/far stay
 `0.01`/`100.0`; CUDA raster visibility keeps the separate
-`p_view.z > 0.2` near-cull and has no far-cull. The numerical centered-camera
-tolerance and common-builder implementation details remain open. The fixed
+`p_view.z > 0.2` near-cull and has no far-cull. Numerical centered-camera and
+common-builder implementation choices are in the reviewed
+[Step 6 design](#step-6-canonical-camera-handoff), not additional policy decisions.
+Their Python implementation and CPU validation are accepted within that
+bounded A function; actual device/CUDA validation remains outstanding. The fixed
 values preserve current visibility semantics and are not a claim of scientific
 optimality.
 
@@ -1959,9 +1982,10 @@ focused validation, and float32 runtime branch-parity confirmation have not
 started. Python covariance/SH precompute, non-unit scaling, environment maps,
 and color override are decided as unsupported for the first formal baseline;
 their historical findings remain recorded, but their adoption is not an open
-policy question. The camera policy above is decided but its P0-0 source Fix and
-focused validation have not started. P0-1, P0-2, and P0-3 source fixes and
-validation have likewise not started.
+policy question. The camera policy above is decided and its
+[Step 6 A implementation/CPU connection](#step-6-canonical-camera-handoff) is
+accepted; full P0-0 runtime/CUDA validation remains open. P0-1, P0-2, and P0-3
+source fixes and validation have not started.
 
 ## Bounded P2 findings
 
@@ -1986,7 +2010,7 @@ them.
 
 | Owner group | P1 disposition | P2 or bounded follow-up |
 |---|---|---|
-| camera/projection policy | Support only complete centered intrinsics and complete geometrically valid FoV-only input; reject mixed/partial/ambiguous/nonfinite/off-center input; keep raw sentinel separate from canonical effective state; preserve projection `0.01`/`100.0` and CUDA near-cull `0.2` with no far-cull. One common builder owns execution; P0-A6 separately owns later publication. | Define centered tolerance, field-level validation/error schema, and bounded supported-mode fixtures; any future off-center or visibility-semantics change needs separate policy and validation. |
+| camera/projection policy | Support only complete centered intrinsics and complete geometrically valid FoV-only input; reject mixed/partial/ambiguous/nonfinite/off-center input; keep raw sentinel separate from canonical effective state; preserve projection `0.01`/`100.0` and CUDA near-cull `0.2` with no far-cull. One common builder owns execution; P0-A6 separately owns later publication. | Preserve the accepted [Step 6 A implementation/CPU scope](#step-6-canonical-camera-handoff), with actual device/CUDA validation still open; any future off-center or visibility-semantics change needs separate policy and validation. |
 | renderer branch policy | Implement conditional-mean SH, spatial degree 3, temporal degree 2 with the fixed 48-slot layout, `rot_4d=true`, and `force_sh_3d=false`; enforce `compute_cov3D_python=False`, `convert_SHs_python=False`, exact `scaling_modifier=1.0`, `env_map_res=0`, and `override_color=None` before any formal renderer; apply the separately owned alpha-cap piecewise derivative to the alpha-mediated chain while preserving direct value/depth-z paths; resolve other supported-path findings separately. | Determinant epsilon, radius inflation, empty population, overflow, radius-threshold diagnostics, and separately identified future support for rejected invocation branches. |
 | optimizer/learning-rate policy | Enforce the [adopted xyz/constant-t LR, group sharing, disabled delay, and batch contract](#adopted-minimal-initialization-optimizer-and-sh-contracts); apply the [adopted initial four-loss branch](#adopted-step-5-minimal-connection-contract) separately from common numeric types. Non-fixed run weights and future positive rigid/motion use remain unselected. | Log effective per-group LR without adding a second schedule owner. |
 | densification/population policy | Enforce the [adopted stopping-threshold/unlimited, eight-field input/handoff, spatial-selection/4D-split, inactive-field exclusion, and event/prune/reset contracts](#adopted-configurability-and-population-conditions), preserving post-step topology and prune-before-reset. Setting handoff is accepted in Step 5; population execution and screen-statistics lifetime/point correspondence remain unfinished, not a new strict-cap algorithm. | Threshold overshoot, nonfinite accumulator frequency, and memory pressure remain bounded pilot observations, not VRAM guarantees. |
@@ -2104,7 +2128,7 @@ the remaining items must not be presented as the formal contract.
 | decided: alpha-cap derivative | Keep `alpha=min(0.99f, raw_alpha)` in forward; after aggregating all `dL/dalpha`, use the independent piecewise gate `raw_alpha < 0.99f` for the alpha-mediated opacity/G/screen-xy/conic/covariance chain and zero that chain for `raw_alpha >= 0.99f`, including a zero selected subgradient at bitwise-equal float32 `0.99f`; preserve direct color/flow/depth and depth-to-screen-z gradients. Do not use an STE/surrogate, cap removal, smooth cap, or cap-triggered formal rejection. Source Fix and focused validation remain required. |
 | decided: completed-update transaction | Start from completed count zero and execute `k=1..N` exactly once with no `N+1` fetch; apply schedules before forward; forward/loss/backward; collect and apply current densification statistics before Parameter replacement; same-Parameter optimizer step including `k=N`; zero-grad; scheduled densify/clone/split/prune; scheduled opacity reset; then declare completed state `k`, save checkpoint `k`, and evaluate that same state. Densify/prune precedes reset when simultaneous; prune reads post-step/pre-reset opacity; children derive from post-step parents; reset reaches survivors and children. Final checkpoint `N` is mandatory from effective post-merge `N`. Optimization input loss `k` remains distinct from completed-state test metric `k`; initial state zero is not an update or selection state. Candidate B is adopted and A/C/D are rejected for the bounded reasons above. Source Fix and focused validation remain required. |
 | decided: independent formal entry/effective configuration | Use a lightweight formal-only bootstrap, one stdlib-only pure resolver/validator, and a separately loaded heavy runtime. The resolver is the sole authority for one explicit formal configuration and completes read-only validation in the same process before heavy import/JIT. Issue #18's strict nested semantic JSON v1 + immutable verified state and single from-scratch mode, refined by Issue #23's adopted P1–P6 under Issue #24, are fixed under [the JSON contract](#approved-json-and-single-run-mode-contract); the initial formal CLI accepts only its locator, excludes `quiet`, and permits no semantic override or legacy/general bypass. The typed state is limited to semantic authority, approved fixed values, derived final/test/save schedules, unsupported-branch absence, and output identity; the [Step 5 connection contract](#adopted-step-5-minimal-connection-contract) binds seed input, initial loss branch and time/V-B handoff under closed key sets without moving runtime, digest, checkpoint, manifest, camera-math, RNG, reporting or publication owners into the resolver. Existing output rejects before heavy import; heavy load/JIT and side-effect-free preparation precede an exclusive claim immediately before the first writer. Issue #10 Candidate C/D remain rejected. Helper/file names, local API/error details, control structure, and whether the first-candidate four-file layout is suitable remain CODEX implementation discretion. |
-| required before implementation | Camera centered-tolerance, field-level validation/error schema, and common-builder API/location; remaining owner details beyond the adopted closed-key/input/handoff subsets [above](#remaining-field-and-owner-boundary), beyond the accepted Step 5 bootstrap/resolver/runtime connection; checkpoint schema; concrete training loop/helper API; population statistics-lifetime/point-correspondence correction details. The completed-update event order, formal-entry authority, JSON/mode choice, adopted P1–P6, PF/time/V-B, D-DATA, minimal initialization/LR/batch/SH, configurability/population conditions and eight-field input/handoff contract, Step 5 seed/initial-loss/time-cast/key-set adoption, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
+| required before implementation | Camera implementation choices are implemented and CPU-accepted within [Step 6 A](#step-6-canonical-camera-handoff), not pending policy approval. Remaining owner details beyond the adopted closed-key/input/handoff subsets [above](#remaining-field-and-owner-boundary), beyond the accepted Step 5 bootstrap/resolver/runtime connection; checkpoint schema; concrete training loop/helper API; population statistics-lifetime/point-correspondence correction details. The completed-update event order, formal-entry authority, JSON/mode choice, adopted P1–P6, PF/time/V-B, D-DATA, minimal initialization/LR/batch/SH, configurability/population conditions and eight-field input/handoff contract, Step 5 seed/initial-loss/time-cast/key-set adoption, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
 | required before downstream execution acceptance | Remaining D-* owner decisions and implementation/validation beyond the accepted Step 5 CPU connection, as classified [above](#remaining-field-and-owner-boundary), including PF numerical/CUDA and later-consumer binding. Owner separation permits neither implicit defaults nor a claim of training readiness. |
 | required before formal retraining | Numeric final iteration and pilot/formal schedules; explicit pilot/formal population stopping-threshold/unlimited settings within the adopted input contract; densification/prune/reset numeric schedules; complete effective-config snapshot; explicit run seed and runtime determinism/device evidence; test-report metric/cadence; nonfinite/OOM/partial-failure policy; immutable output directory and atomic publication; and, only if resume will be enabled, field-level restore state plus numerical/bitwise equivalence acceptance thresholds. |
 | required before formal artifact generation | SPL4-v2 log/linear scale representation; PNG clamp/round/color/codec; full/range CUDA Reference purposes; manifest schema and validator; source-to-binary build provenance; bundle/index/external-digest ownership; direct evidence as formal same-invocation evidence or diagnostic-only. |
@@ -2119,6 +2143,14 @@ existing-consumer CPU evidence is consolidated in
 [Step 5 functional acceptance](#step-5-functional-acceptance). It establishes
 the bounded configuration/bootstrap/claim connection, not every obligation
 in the layers below or any actual GPU/training Gate.
+
+The accepted [Step 6 A scope](#step-6-canonical-camera-handoff) combines the
+camera input, projection and actual Python binding checks below as one
+implemented, CPU-validated function, using only the existing `4dgs310`
+interpreter and independent numeric expectations. Existing results, not tests
+rerun by this sync, support that acceptance. Boundary-observer outputs are not
+CUDA value/gradient evidence and do not replace later actual-device/CUDA
+requirements.
 
 | # | Validation layer | Primary findings closed |
 |---:|---|---|
@@ -2201,8 +2233,9 @@ save exactly once without automatically adding a final test. They need not
 allocate a list of length `N`. Path fixtures cover POSIX versus Windows input,
 canonical aliases/containment, existing/legacy output, and dangling symlinks.
 The accepted component and integrated strict-v1 CPU fixtures are recorded in
-Step 5. Remaining camera/math/GPU and downstream-consumer obligations are
-future work; no tests were run by this sync. Those fixtures do not decide run
+Step 5; the camera Python/CPU evidence is accepted in Step 6 A. Remaining
+actual-camera-device/CUDA, renderer-math and downstream-consumer obligations
+are future work; no tests were run by this sync. Those fixtures do not decide run
 values or downstream owner contracts, and contain no placeholder authority.
 
 The JSON input's unsupported-field absence must not be confused with a runtime
@@ -2248,7 +2281,7 @@ validation instruction must state dtype, independent-oracle arithmetic,
 finite-difference step, and acceptance tolerance. The source Fix, fixture,
 CUDA build, and CUDA execution have not been implemented or run.
 
-For camera/evaluation specifically, the future focused validation must derive
+For camera/evaluation specifically, validation must derive
 the positive SPH canonical focal/tan values on CPU; prove that a raw negative
 sentinel never enters effective state; cover both supported camera modes;
 reject mixed, partial, inconsistent, nonfinite, invalid-dimension, invalid-FoV,
@@ -2258,7 +2291,9 @@ and backward focal/tan; verify `eval=True` as 5,146/166 and reject
 `eval=False` as the 5,312/0 branch; and distinguish projection `0.01`/`100.0`
 from raster near-cull `0.2` and absent far-cull. Because off-center is
 unsupported, it requires a pre-CUDA rejection test, not a CUDA correctness
-claim. None of these tests has been created or run by this documentation sync.
+claim. The accepted [Step 6 A scope](#step-6-canonical-camera-handoff) supplies
+the bounded Python/CPU camera evidence; actual device/CUDA evidence remains
+open. None of these tests is created or rerun by this documentation sync.
 
 ### Temporal-prefilter validation requirements
 
@@ -2484,10 +2519,12 @@ Pilot training may start only when:
 The pilot is a bounded intermediate run, not a formal checkpoint.
 The approved policy and this document synchronization alone do not satisfy
 Gate A. The accepted Step 5 resolver, pre-heavy-import boundary and minimal
-existing-runtime connection satisfy only their bounded CPU/function scope.
-Camera/renderer math, completed-update/population transactions, checkpoint
-foundation, fresh build and GPU/training validation above remain outstanding;
-these are later owner duties, not additional Step 5 Fix requirements.
+existing-runtime connection, together with the accepted Step 6 A camera
+handoff, satisfy only their bounded CPU/function scopes. Actual camera
+device/CUDA validation, remaining renderer math, completed-update/population
+transactions, checkpoint foundation, fresh build and GPU/training validation
+above remain outstanding; these are later owner duties, not additional
+Step 5 or Step 6 A CPU acceptance requirements.
 
 ### Gate B: before formal retraining
 
@@ -2637,6 +2674,14 @@ the historical `[524288,1048576)` range.
 
 ## Dependency order
 
+This register retains the original responsibility numbers for historical
+cross-references. Step 5 is complete; the current functional Step 6 is the
+[camera handoff](#step-6-canonical-camera-handoff), not former item 6's
+checkpoint task or a jump to Step 7. Other unstarted work remains identified
+by its finding/owner and Gate dependency. The old numbered lists do not fix
+future execution-Step numbering, order or scope; technical prerequisites and
+Phase goals remain binding.
+
 ### Phase 0: audit integration
 
 1. Investigation1-4 static audits complete. **Complete.**
@@ -2688,14 +2733,18 @@ the historical `[524288,1048576)` range.
    existing-runtime connection, including the time/V-B and frame components,
    as recorded below. The preceding policy milestones describe what their
    synchronization alone established, not today's implementation status.
-   Camera/renderer, transaction/checkpoint and other later owner corrections,
-   fresh corrected-source build and toolchain/CUDA acceptance remain open.
-   Camera implementation details, remaining owner contracts beyond the adopted
-   subsets, run values and checkpoint schema stay undecided; closed JSON
-   membership and its Step 5 enforcement are no longer pending. The next
-   boundary is documentation review and consolidated user research Git,
-   followed by advisor selection of an existing later owner under separate
-   authorization; this sync does not select or start that work.
+   Camera runtime/CUDA validation, remaining renderer, transaction/checkpoint
+   and other later owner corrections, fresh corrected-source build and
+   toolchain/CUDA acceptance remain open.
+   Remaining owner contracts beyond the adopted subsets, run values and
+   checkpoint schema stay undecided; closed JSON membership and its Step 5
+   enforcement are no longer pending. Step 5 documentation review and user
+   research Git are complete. The reviewed
+   [Step 6 camera A function](#step-6-canonical-camera-handoff) now has
+   advisor-reviewed, user-accepted implementation and CPU validation.
+   This sync records that bounded result; its document review and consolidated
+   user research Git remain pending, not a new policy selection or source-work
+   start.
    Confirm one root owner and one
    bounded Fix responsibility at a time only after the applicable policy is
    decided. The formal-entry authority, component separation, initial formal
@@ -2736,7 +2785,7 @@ the historical `[524288,1048576)` range.
    existing CPU consumers, not only success-stub handoffs.
 
    **Current status:** [the minimal connection is functionally accepted](#step-5-functional-acceptance).
-   Documentation review and consolidated user-owned research Git remain pending;
+   Documentation review and consolidated user-owned research Git are complete;
    no GPU/training or Gate acceptance is implied.
 
    **Historical component records:** the following results describe each
@@ -2926,8 +2975,79 @@ the historical `[524288,1048576)` range.
    themselves the full semantic authority. Atomic publication and actual
    checkpoint-then-test completed-state observation remain separately open.
 
-   **Step 5 functional acceptance** is recorded below the existing Phase 1
-   sequence; the remaining numbered responsibilities are unchanged.
+   **Step 5 functional acceptance and completion** are recorded below.
+   The next current function is Step 6 as defined here; the subsequent legacy
+   register preserves responsibility references, not an unchanged Step sequence.
+
+### Step 6: canonical camera handoff
+
+**Current status:** A's camera connection implementation and CPU validation
+are advisor-reviewed and user-functionally-accepted. Review of this document
+sync and consolidated user-owned research Git remain pending; Step 6 is not
+yet complete. The accepted function repairs the negative-FoV-sentinel split
+between intrinsics projection and rasterizer camera values, from raw input
+through the existing consumers.
+This continues the minimal Fudan Native corrections toward a normal
+from-scratch Karman-vortex comparison baseline, not a new training system.
+
+The accepted implementation and CPU evidence cover the following together:
+
+- validate both approved camera modes before root/frame fallback can hide
+  mixed, partial or inconsistent metadata; preserve raw/effective separation;
+- reject preflight-observable camera errors before heavy import/GPU/writers,
+  and runtime handoff mismatches before the relevant GPU call;
+- apply resolution correction once and derive one effective camera state
+  for existing Camera/projection, shared render, Python forward arguments,
+  saved context and backward arguments, without sentinel abs/clamp repair,
+  competing defaults or a second camera authority;
+- exercise the actual consumers on CPU with GPU/JIT boundaries isolated,
+  comparing both modes, original/downscaled resolution, the old sentinel
+  defect and rejection cases against independent numeric expectations; and
+- preserve Step 5's same configuration, time/V-B, frame correspondence,
+  train/test separation, mask/loss and claim ordering with focused regression.
+
+Helper-only success, tan-sign correction alone, success stubs or documentation
+alone do not meet this function's acceptance. A proves Python-side connection
+through the values handed to the C++/CUDA boundary; it does not prove actual
+device transfer, CUDA arithmetic/gradients or training. The observer's
+substitute images and gradients are only Python-path scaffolding, not CUDA
+correctness evidence. B's added CUDA execution is not adopted for this Step
+scope. Full P0-0 runtime validation, Phase 1 and Gates A–D remain unpassed.
+Projection/cull, PF (strict float `-1.0`), time/V-B, mask/loss, claim, other
+renderer math, checkpoint, manifest and Viewer freeze remain unchanged.
+
+Existing `4dgs310` results are **275 passing formal-suite tests and 2 passing
+Step 5 connection tests**, recorded in the
+[implementation report](../../reports/corrected-4dgs/phase1/step6/step6-implement1/step6-implement1-report.md)
+and [implementation advisor review](../../reports/corrected-4dgs/phase1/step6/step6-implement1/step6-implement1-advisor-review.txt).
+The review's user-acceptance-pending wording records its original stage;
+the [current sync instruction](../../reports/corrected-4dgs/phase1/step6/step6-docsync2/step6-docsync2-instruction.txt)
+records subsequent user acceptance. This document sync reruns no tests.
+
+Design and acceptance detail: [redesign v2](../../reports/corrected-4dgs/phase1/step6/step6-design1/step6-design1-advisor-redesign-v2.md),
+[CODEX detailed design](../../reports/corrected-4dgs/phase1/step6/step6-design1/step6-design1-design-report.md),
+and [advisor review](../../reports/corrected-4dgs/phase1/step6/step6-design1/step6-design1-advisor-review.md).
+The proposal/review-pending labels in earlier records describe their original
+stage; the pre-implementation [v2 sync instruction](../../reports/corrected-4dgs/phase1/step6/step6-docsync1/step6-docsync1-instruction-v2.txt)
+adopts this reviewed boundary. Local types/APIs, helper layout, file count and
+the full fixture/tolerance specifications remain in that design rather than
+being duplicated here as new permanent policies.
+
+This is the post-functional-acceptance documentation alignment within Step 6.
+Next are advisor review of this sync, user-owned research Git consolidating
+the accepted source/test and existing/current plan changes, then push
+confirmation and Step completion processing. This sync performs none of those
+Git/completion operations and does not create a separate document-only
+commit/push checkpoint. Only after completion does the advisor consider the
+next function from the results and remaining duties; no future Step number,
+scope or start is assigned here.
+
+### Historical Phase 1 responsibility register (former items 6–13)
+
+The following are preserved legacy references. Former item 7 maps to the
+current Step 6 camera function; former item 6's P0-T6 checkpoint foundation
+remains a required separate responsibility, without transfer to another owner.
+Withdrawn checkpoint-oriented Step 6 instructions are not execution authority.
 
 6. After its field-level schema policy is approved, implement the minimum
    versioned P0-T6 diagnostic checkpoint foundation independently of the
@@ -2959,10 +3079,12 @@ the historical `[524288,1048576)` range.
 **Accepted scope:** configuration validation through the minimal same-process
 connection to existing runtime. This milestone integrates the previously
 accepted P1–P6 and time/frame parts, reviewed implementation, fix1 and the
-supplemental validation1 evidence. The current user-authorized docsync follows
-that functional acceptance; old reports' acceptance-pending statements remain
-historical. Documentation review and consolidated user-owned research Git are
-still pending, distinct from function acceptance and from Gates A–D.
+supplemental validation1 evidence. Its documentation review and consolidated
+user-owned research Git are also complete, as recorded in the
+[Step 5 completion record](../../reports/corrected-4dgs/phase1/step5/step5-completion-report.md).
+Earlier acceptance/review/Git-pending statements are historical, not reasons
+to reopen Step 5 or request another push. This completion remains distinct
+from actual GPU/training acceptance and Gates A–D.
 
 - The integrated resolver closes the adopted key sets, reuses P1–P6/time/frame
   checks and produces one immutable verified configuration. The lightweight
@@ -2993,8 +3115,9 @@ and [fix1 review](../../reports/corrected-4dgs/phase1/step5/step5-fix1/step5-fix
 [validation1 report](../../reports/corrected-4dgs/phase1/step5/step5-validation1/step5-validation1-report.md),
 [CPU evidence](../../reports/corrected-4dgs/phase1/step5/step5-validation1/step5-validation1-evidence.json)
 and [combined acceptance review](../../reports/corrected-4dgs/phase1/step5/step5-validation1/step5-validation1-advisor-review.txt).
-The [current docsync authorization](../../reports/corrected-4dgs/phase1/step5/step5-docsync1/step5-docsync1-instruction.txt)
-advances the review's then-pending user-acceptance boundary.
+The [Step 5 docsync authorization](../../reports/corrected-4dgs/phase1/step5/step5-docsync1/step5-docsync1-instruction.txt)
+advanced the review's then-pending user-acceptance boundary; its later
+completion is recorded above.
 Validation1's two tests supplement, rather than replace, the earlier setting
 and existing-consumer CPU evidence. NumPy/Pillow/Torch CPU and existing
 consumers were exercised with GPU/JIT boundaries isolated, using only
@@ -3012,9 +3135,11 @@ Step 5 acceptance conditions for the formal from-scratch connection.
 Actual GPU cast/activation health, canonical camera and renderer mathematics,
 CUDA forward/backward, completed-update/optimizer/population transactions,
 checkpoint semantics, actual training and Gate A/B remain with their existing
-owners. No run values, new schema, Step, policy or downstream execution
-authorization are introduced. Next are documentation review and consolidated
-user research Git, then advisor selection of an existing later owner.
+owners. No run values, new schema, policy or downstream execution authorization
+are introduced by Step 5 completion. The next selected function is
+[Step 6 camera handoff](#step-6-canonical-camera-handoff), now implemented,
+CPU-validated and user-accepted, with document review and user research Git
+still pending.
 Viewer freeze and all Gate requirements remain unchanged.
 
 ### Phase 2: focused validation
@@ -3073,7 +3198,7 @@ Viewer freeze and all Gate requirements remain unchanged.
 38. Continue only then to performance, interactive behavior, scalability, and
     LOD.
 
-This ordering deliberately keeps Viewer-only P0-A3/A4 out of the pilot path,
+These technical dependencies keep Viewer-only P0-A3/A4 out of the pilot path,
 while keeping training-state and checkpoint-identity defects before any
 checkpoint or artifact that would inherit them.
 
@@ -3142,8 +3267,12 @@ Complete at this milestone:
   [Step 5 functional acceptance](#step-5-functional-acceptance), not Gate closure;
 - Step 5's integrated immutable configuration, lightweight entry and minimal
   same-process existing-runtime connection, including the reviewed Fix and
-  supplemental CPU validation. Documentation review and user research Git
-  remain pending.
+  supplemental CPU validation, followed by completed documentation review and
+  consolidated user-owned research Git;
+- the [Step 6 camera A implementation and CPU validation](#step-6-canonical-camera-handoff),
+  advisor-reviewed and user-functionally-accepted. This bounded milestone is
+  not full P0-0 runtime, CUDA/training, Gate or Step 6 completion; document
+  review and consolidated user research Git remain pending.
 
 The adopted D-DATA, initialization/LR/batch/SH, population inputs and bounded
 handoff, seed/initial-loss/time/V-B and closed-key contracts are enforced within
@@ -3155,9 +3284,12 @@ remains withdrawn; no approved policy is reselected.
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
+- Step 6 document review, consolidated user research Git, push confirmation
+  and completion processing;
 - remaining source, config, test or tool fixes beyond the accepted Step 5
-  connection, including camera/renderer mathematics, later checkpoint/reference
-  consumers, environment provenance and P0-T1/T2/T3 transactions;
+  connection and Step 6 A camera scope, including remaining camera runtime/CUDA
+  and renderer mathematics, later checkpoint/reference consumers, environment
+  provenance and P0-T1/T2/T3 transactions;
 - remaining post-fix focused validation or CUDA build;
 - pilot training or formal retraining, including any exact-resume Fix or
   equivalence acceptance;
@@ -3186,12 +3318,14 @@ Not complete and not authorized by this document sync:
   and [initial-variance adoption](#adopted-initial-temporal-variance-and-d-time-connection)
   are no longer open adoption questions; actual GPU cast/activation and
   numerical health validation remain outstanding;
-- documentation review and consolidated user-owned research Git for the
-  [accepted Step 5 function](#step-5-functional-acceptance), not another
-  resolver/bootstrap/claim Fix. The remaining downstream owner dependencies
-  stay separate; local helper/API/file/error design is not a new policy decision;
-- camera implementation details: centered-principal-point numerical tolerance,
-  field-level validation/error schema, and exact common-builder API/location;
+- advisor review of this post-acceptance sync, then consolidated user research
+  Git, push confirmation and completion processing for
+  [Step 6 A](#step-6-canonical-camera-handoff). Step 5 is complete, not awaiting
+  another resolver/bootstrap/claim Fix or Git checkpoint. The camera A
+  implementation/CPU acceptance is not awaiting individual local-design
+  approvals; full camera runtime/CUDA acceptance and separate downstream owner
+  dependencies remain open. The advisor considers the next functional Step
+  only after completion, without a new number or scope assigned here;
 - the remaining pre-integration owner details and per-run values classified
   [above](#remaining-field-and-owner-boundary), not reopening P1–P6, PF/time/V-B,
   D-DATA, minimal initialization/LR/batch/SH, population inputs/conditions,
@@ -3221,8 +3355,9 @@ Not complete and not authorized by this document sync:
   checking/correction, including the unresolved treatment of clone/split
   children; static loss of `max_radii2D` is not a measured or fixed result;
 - final corrected output directory name and run identity;
-- independent forward-oracle and gradient-validation fixtures, including the
-  approved camera supported-mode and pre-GPU rejection matrix;
+- remaining independent forward-oracle and gradient-validation fixtures beyond
+  the accepted Step 6 A CPU supported-mode/pre-GPU rejection coverage,
+  including actual camera device/CUDA forward/gradient validation;
 - manifest schema/version impact;
 - selection-free test-report metric, cadence, and acceptance criteria;
 - checkpoint field-level semantic/state schema;
@@ -3264,10 +3399,16 @@ adopted P1–P6 partial field contracts and Issue #26's adopted D-PREFILTER
 supplement, Issue #30's three adopted D-TIME contracts, Issue #33's
 [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection),
 and Issue #34's [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
-The [Step 5 minimal connection is functionally accepted](#step-5-functional-acceptance);
-documentation review and user research Git remain pending. Later-owner source
-fixes, downstream consumer integration, fresh build and actual GPU/training
-validation remain outstanding, not new Step 5 acceptance conditions.
+The [Step 5 minimal connection](#step-5-functional-acceptance) is complete,
+including documentation review and user research Git. The current
+[Step 6 camera A implementation and CPU validation](#step-6-canonical-camera-handoff)
+are advisor-reviewed and user-accepted. Next are advisor document review,
+consolidated user research Git, push confirmation and completion processing;
+this document task does not perform them or complete Step 6. The advisor
+considers the next function only after completion. Later-owner source fixes,
+downstream consumer integration, fresh build, actual device transfer and
+GPU/training validation remain outstanding, not new Step 5 or Step 6 A CPU
+acceptance conditions. No separate document-only Git trigger is created.
 P0-0, P0-1, P0-2, P0-3,
 P0-T1, P0-T2, P0-T3, the separate alpha-cap renderer-math responsibility, and
 P0-A6 remain open until their source responsibilities and required validation

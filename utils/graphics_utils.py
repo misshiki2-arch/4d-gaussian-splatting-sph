@@ -71,14 +71,14 @@ def getProjectionMatrix(znear, zfar, fovX, fovY):
     P[2, 3] = -(zfar * znear) / (zfar - znear)
     return P
 
-def getProjectionMatrixCenterShift(znear, zfar, cx, cy, fl_x, fl_y, w, h):
+def getProjectionMatrixCenterShift(znear, zfar, cx, cy, fl_x, fl_y, w, h, *, dtype=None):
     top = cy / fl_y * znear
     bottom = -(h-cy) / fl_y * znear
     
     left = -(w-cx) / fl_x * znear
     right = cx / fl_x * znear
 
-    P = torch.zeros(4, 4)
+    P = torch.zeros(4, 4, dtype=dtype)
 
     z_sign = 1.0
 

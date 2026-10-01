@@ -15,6 +15,7 @@ import zlib
 import formal_config as config
 import formal_config_json as p2
 import formal_frame_metadata as metadata
+import formal_camera as camera
 
 
 class Frame(NamedTuple):
@@ -33,6 +34,8 @@ class Inputs(NamedTuple):
     train_frames: tuple
     test_frames: tuple
     ply_bytes: bytes
+    train_cameras: tuple
+    test_cameras: tuple
 
 
 def _reference():
@@ -87,12 +90,14 @@ def verify_inputs(data):
              for f in ref['frames'][s]] for s in ('train', 'test')})
     train, test, times = metadata.read_frame_snapshot(p2.parse_json_bytes(data), reference)
     resolution = state.dataset.resolution
+    cameras = {}
     for split, contents in (('train', train), ('test', test)):
         root = json.loads(contents)
-        for frame, approved in zip(root['frames'], ref['frames'][split]):
-            width, height = frame.get('w', root.get('w')), frame.get('h', root.get('h'))
-            if (width, height) != (resolution.raw_width, resolution.raw_height):
-                raise p2.JSONInputError('metadata_dimensions')
+        cameras[split] = []
+        for index, (frame, approved) in enumerate(zip(root['frames'], ref['frames'][split])):
+            verified_camera = camera.from_metadata(root, frame, resolution, (split, index, approved[0]))
+            cameras[split].append(verified_camera)
+            width, height = verified_camera.raw.width, verified_camera.raw.height
             path, _, mask = approved
             if (Path(path).is_absolute() or '..' in Path(path).parts or
                     not path.startswith('images/') or mask != path.replace('images/', 'masks/', 1)):
@@ -113,4 +118,5 @@ def verify_inputs(data):
             or b'property float time\n' not in header[0]):
         raise p2.JSONInputError('ply_header')
     freeze = lambda frames: tuple(Frame(f.split, f.index, f.file_path, f.raw_time, f.effective_time) for f in frames)
-    return Inputs(state, data, train, test, freeze(times.train), freeze(times.test), ply)
+    return Inputs(state, data, train, test, freeze(times.train), freeze(times.test), ply,
+                  tuple(cameras['train']), tuple(cameras['test']))

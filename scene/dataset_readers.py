@@ -45,6 +45,8 @@ class CameraInfo(NamedTuple):
     fl_y: float = -1.0
     cx: float = -1.0
     cy: float = -1.0
+    formal_camera: object = None
+    formal_frame: object = None
 
 class SceneInfo(NamedTuple):
     point_cloud: BasicPointCloud
@@ -209,15 +211,18 @@ def readColmapSceneInfo(path, images, eval, llffhold=8, num_pts_ratio=1.0):
                            ply_path=ply_path)
     return scene_info
 
-def readCamerasFromTransforms(path, transformsfile, white_background, extension=".png", time_duration=None, frame_ratio=1, dataloader=False, *, formal_metadata=None):
+def readCamerasFromTransforms(path, transformsfile, white_background, extension=".png", time_duration=None, frame_ratio=1, dataloader=False, *, formal_metadata=None, formal_cameras=None):
     cam_infos = []
 
     if formal_metadata is None:
+        if formal_cameras is not None:
+            raise ValueError('formal_camera_without_metadata')
         with open(os.path.join(path, transformsfile)) as json_file:
             contents = json.load(json_file)
     else:
         contents = json.loads(formal_metadata[0])  # The identity-checked acquisition, never reopen.
-        if len(contents['frames']) != len(formal_metadata[1]):
+        if (formal_cameras is None or len(contents['frames']) != len(formal_metadata[1])
+                or len(formal_cameras) != len(formal_metadata[1])):
             raise ValueError('formal_frame_count')
     if "camera_angle_x" in contents:
         fovx = contents["camera_angle_x"]
@@ -231,6 +236,9 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
             verified = formal_metadata[1][idx]
             if verified.index != idx or verified.file_path != frame['file_path']:
                 raise ValueError('formal_frame_correspondence')
+            camera = formal_cameras[idx]
+            if camera.frame_key != (verified.split, idx, verified.file_path):
+                raise ValueError('formal_camera_frame')
             timestamp = verified.effective_time
         else:
             timestamp = frame.get('time', 0.0)
@@ -283,6 +291,17 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
         else:
             depth = None
         tbar.update(1)
+        if formal_metadata is not None:
+            if (width, height) != (camera.raw.width, camera.raw.height):
+                raise ValueError('formal_camera_dimensions')
+            raw = camera.raw
+            raw_fovs = (-1.0, -1.0) if raw.reader_sentinel else raw.fovs
+            return CameraInfo(uid=idx, R=R, T=T, FovY=raw_fovs[1], FovX=raw_fovs[0],
+                              image=image, depth=depth, image_path=image_path, image_name=image_name,
+                              width=width, height=height, timestamp=timestamp,
+                              fl_x=raw.intrinsics[0], fl_y=raw.intrinsics[1],
+                              cx=raw.intrinsics[2], cy=raw.intrinsics[3],
+                              formal_camera=camera, formal_frame=verified)
         if 'fl_x' in frame and 'fl_y' in frame and 'cx' in frame and 'cy' in frame:
             FovX = FovY = -1.0
             fl_x = frame['fl_x']
@@ -321,9 +340,9 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
 def readNerfSyntheticInfo(path, white_background, eval, extension=".png", num_pts=100_000, time_duration=None, num_extra_pts=0, frame_ratio=1, dataloader=False, *, formal_inputs=None):
     
     print("Reading Training Transforms")
-    train_cam_infos = readCamerasFromTransforms(path, "transforms_train.json", white_background, extension, time_duration=time_duration, frame_ratio=frame_ratio, dataloader=dataloader, formal_metadata=None if formal_inputs is None else (formal_inputs.train_bytes, formal_inputs.train_frames))
+    train_cam_infos = readCamerasFromTransforms(path, "transforms_train.json", white_background, extension, time_duration=time_duration, frame_ratio=frame_ratio, dataloader=dataloader, formal_metadata=None if formal_inputs is None else (formal_inputs.train_bytes, formal_inputs.train_frames), formal_cameras=None if formal_inputs is None else formal_inputs.train_cameras)
     print("Reading Test Transforms")
-    test_cam_infos = readCamerasFromTransforms(path, "transforms_test.json" if formal_inputs is not None or not path.endswith('lego') else "transforms_val.json", white_background, extension, time_duration=time_duration, frame_ratio=frame_ratio, dataloader=dataloader, formal_metadata=None if formal_inputs is None else (formal_inputs.test_bytes, formal_inputs.test_frames))
+    test_cam_infos = readCamerasFromTransforms(path, "transforms_test.json" if formal_inputs is not None or not path.endswith('lego') else "transforms_val.json", white_background, extension, time_duration=time_duration, frame_ratio=frame_ratio, dataloader=dataloader, formal_metadata=None if formal_inputs is None else (formal_inputs.test_bytes, formal_inputs.test_frames), formal_cameras=None if formal_inputs is None else formal_inputs.test_cameras)
     
     if not eval:
         train_cam_infos.extend(test_cam_infos)

@@ -16,6 +16,7 @@ import os
 from .diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh, eval_shfs_4d
+from utils.formal_camera_runtime import camera_binding
 
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None, *, formal_config=None):
     """
@@ -24,6 +25,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     Background tensor (bg_color) must be on GPU!
     """
  
+    binding = None
     if formal_config is not None:
         if (type(pc.prefilter_var) is not float or pc.prefilter_var != -1.0
                 or formal_config.renderer.temporal_prefilter != 'disabled'
@@ -31,6 +33,10 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
                 or scaling_modifier != formal_config.renderer.scaling_modifier
                 or override_color is not formal_config.renderer.override_color or pipe.env_map_res):
             raise ValueError('formal_renderer_contract')
+        binding = camera_binding(viewpoint_camera, formal_config.dataset.resolution)
+    elif (getattr(viewpoint_camera, 'formal_camera', None) is not None
+          or getattr(viewpoint_camera, 'formal_binding', None) is not None):
+        raise ValueError('formal_camera_missing_config')
     # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
     screenspace_points = torch.zeros_like(pc.get_xyz, dtype=pc.get_xyz.dtype, requires_grad=True, device="cuda") + 0
     try:
@@ -39,8 +45,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         pass
 
     # Set up rasterization configuration
-    tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
-    tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
+    tanfovx = binding.state.tanx if binding is not None else math.tan(viewpoint_camera.FoVx * 0.5)
+    tanfovy = binding.state.tany if binding is not None else math.tan(viewpoint_camera.FoVy * 0.5)
 
     debug_pixel_env = '' if formal_config is not None else os.environ.get("STEP90_CUDA_DEBUG_PIXEL", "")
     debug_pixel_x = int(getattr(pipe, "debug_pixel_x", -1))
@@ -75,7 +81,9 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         debug_pixel_x=debug_pixel_x,
         debug_pixel_y=debug_pixel_y,
         debug_pixel_max_entries=debug_pixel_max_entries,
-        debug_preprocess_target_index=debug_preprocess_target_index
+        debug_preprocess_target_index=debug_preprocess_target_index,
+        formal_camera=formal_config is not None,
+        camera_binding=binding
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)

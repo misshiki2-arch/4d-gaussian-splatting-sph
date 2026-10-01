@@ -13,6 +13,7 @@ from scene.cameras import Camera
 import numpy as np
 from utils.general_utils import PILtoTorch
 from utils.graphics_utils import fov2focal
+from formal_camera import EffectiveCamera
 
 WARNED = False
 
@@ -22,8 +23,15 @@ def loadCam(args, id, cam_info, resolution_scale, *, formal_resolution=None):
     if formal_resolution is not None:
         if resolution_scale != 1.0 or (orig_w, orig_h) != (formal_resolution.raw_width, formal_resolution.raw_height):
             raise ValueError('formal_camera_dimensions')
-        resolution = (formal_resolution.width, formal_resolution.height)
-        scale = formal_resolution.divisor
+        state, frame = cam_info.formal_camera, cam_info.formal_frame
+        if (not isinstance(state, EffectiveCamera) or state.resolution != formal_resolution
+                or frame is None or state.frame_key != (frame.split, frame.index, frame.file_path)
+                or cam_info.uid != frame.index or cam_info.timestamp != frame.effective_time
+                or not cam_info.image_path.endswith('/' + frame.file_path)):
+            raise ValueError('formal_camera_handoff')
+        resolution = (state.width, state.height)
+        cx, cy, fl_x, fl_y = state.cx, state.cy, state.fx, state.fy
+        fovx, fovy = state.fovx, state.fovy
     elif args.resolution in [1, 2, 3, 4, 8]:
         resolution = round(orig_w/(resolution_scale * args.resolution)), round(orig_h/(resolution_scale * args.resolution))
         scale = resolution_scale * args.resolution
@@ -44,10 +52,14 @@ def loadCam(args, id, cam_info, resolution_scale, *, formal_resolution=None):
         scale = float(global_down) * float(resolution_scale)
         resolution = (int(orig_w / scale), int(orig_h / scale))
     
-    cx = cam_info.cx / scale
-    cy = cam_info.cy / scale
-    fl_y = cam_info.fl_y / scale
-    fl_x = cam_info.fl_x / scale
+    if formal_resolution is None:
+        if cam_info.formal_camera is not None or cam_info.formal_frame is not None:
+            raise ValueError('formal_camera_missing_resolution')
+        cx = cam_info.cx / scale
+        cy = cam_info.cy / scale
+        fl_y = cam_info.fl_y / scale
+        fl_x = cam_info.fl_x / scale
+        fovx, fovy = cam_info.FovX, cam_info.FovY
     
     loaded_mask = None
     if not args.dataloader:
@@ -65,12 +77,13 @@ def loadCam(args, id, cam_info, resolution_scale, *, formal_resolution=None):
         depth = None
 
     return Camera(colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, 
-                  FoVx=cam_info.FovX, FoVy=cam_info.FovY, 
+                  FoVx=fovx, FoVy=fovy,
                   image=gt_image, gt_alpha_mask=loaded_mask,
                   image_name=cam_info.image_name, uid=id, data_device=args.data_device, 
                   timestamp=cam_info.timestamp,
                   cx=cx, cy=cy, fl_x=fl_x, fl_y=fl_y, depth=depth, resolution=resolution, image_path=cam_info.image_path,
-                  meta_only=args.dataloader
+                  meta_only=args.dataloader,
+                  formal_camera=cam_info.formal_camera, formal_frame=cam_info.formal_frame
                   )
 
 def cameraList_from_camInfos(cam_infos, resolution_scale, args, *, formal_resolution=None):

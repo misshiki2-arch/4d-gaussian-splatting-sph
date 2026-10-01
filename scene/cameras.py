@@ -15,12 +15,14 @@ import numpy as np
 from utils.graphics_utils import getWorld2View2, getProjectionMatrix, getProjectionMatrixCenterShift
 from kornia import create_meshgrid
 from copy import deepcopy
+from utils.formal_camera_runtime import bind_camera, camera_binding
 
 class Camera:
     def __init__(self, colmap_id, R, T, FoVx, FoVy, image, gt_alpha_mask,
                  image_name, uid,
                  trans=np.array([0.0, 0.0, 0.0]), scale=1.0, data_device = "cuda", timestamp = 0.0,
                  cx=-1, cy=-1, fl_x=-1, fl_y=-1, depth=None, resolution=None, image_path=None, meta_only=False,
+                 *, formal_camera=None, formal_frame=None,
                  ):
 
         self.uid = uid
@@ -39,6 +41,9 @@ class Camera:
         self.image = image
         self.gt_alpha_mask = gt_alpha_mask
         self.meta_only = meta_only
+        self.formal_camera = formal_camera
+        self.formal_frame = formal_frame
+        self.formal_binding = None
         
         try:
             self.data_device = torch.device(data_device)
@@ -63,7 +68,12 @@ class Camera:
         self.scale = scale
 
         self.world_view_transform = torch.tensor(getWorld2View2(R, T, trans, scale)).transpose(0, 1)
-        if cx > 0:
+        if formal_camera is not None:
+            self.projection_matrix = getProjectionMatrixCenterShift(
+                formal_camera.znear, formal_camera.zfar, formal_camera.cx, formal_camera.cy,
+                formal_camera.fx, formal_camera.fy, formal_camera.width, formal_camera.height,
+                dtype=torch.float32).transpose(0, 1)
+        elif cx > 0:
             self.projection_matrix = getProjectionMatrixCenterShift(self.znear, self.zfar, cx, cy, fl_x, fl_y, self.image_width, self.image_height).transpose(0,1)
         else:
             self.projection_matrix = getProjectionMatrix(znear=self.znear, zfar=self.zfar, fovX=self.FoVx, fovY=self.FoVy).transpose(0,1)
@@ -71,6 +81,10 @@ class Camera:
         self.camera_center = self.world_view_transform.inverse()[3, :3]
         
         self.timestamp = timestamp
+        if formal_camera is not None:
+            self.formal_binding = bind_camera(self)
+        elif formal_frame is not None:
+            raise ValueError('formal_camera_binding_missing')
         
     def get_rays(self):
         grid = create_meshgrid(self.image_height, self.image_width, normalized_coordinates=False)[0] + 0.5
@@ -82,10 +96,17 @@ class Camera:
         return self.camera_center[None,None], directions / torch.norm(directions, dim=-1, keepdim=True)
     
     def cuda(self):
+        formal = self.formal_camera is not None or self.formal_binding is not None or self.formal_frame is not None
+        if formal:
+            camera_binding(self, getattr(self.formal_camera, 'resolution', None))
         cuda_copy = deepcopy(self)
         for k, v in cuda_copy.__dict__.items():
             if isinstance(v, torch.Tensor):
                 cuda_copy.__dict__[k] = v.to(cuda_copy.data_device)
+        if formal:
+            # The original CPU values were validated before any transfer. Bind
+            # the copied/transferred tensors without reading GPU contents.
+            cuda_copy.formal_binding = bind_camera(cuda_copy, transferred=True)
         return cuda_copy
     
 class MiniCam:
@@ -100,4 +121,3 @@ class MiniCam:
         self.full_proj_transform = full_proj_transform
         view_inv = torch.inverse(self.world_view_transform)
         self.camera_center = view_inv[3][:3]
-

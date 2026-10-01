@@ -12,6 +12,7 @@
 from typing import NamedTuple
 import torch.nn as nn
 import torch
+from utils.formal_camera_runtime import validate_settings
 # from . import _C
 import os
 from torch.utils.cpp_extension import load
@@ -84,6 +85,7 @@ class _RasterizeGaussians(torch.autograd.Function):
         raster_settings,
     ):
 
+        validate_settings(raster_settings)
         # Restructure arguments the way that the C++ lib expects them
         args = (
             raster_settings.bg, 
@@ -136,6 +138,7 @@ class _RasterizeGaussians(torch.autograd.Function):
 
         # Keep relevant tensors for backward
         ctx.raster_settings = raster_settings
+        ctx.forward_settings = raster_settings
         ctx.num_rendered = num_rendered
         ctx.prefilter_var = prefilter_var
         ctx.save_for_backward(colors_precomp, means3D, out_means3D, scales, rotations, cov3Ds_precomp, radii, sh, 
@@ -149,6 +152,9 @@ class _RasterizeGaussians(torch.autograd.Function):
         # Restore necessary values from context
         num_rendered = ctx.num_rendered
         raster_settings = ctx.raster_settings
+        if ctx.forward_settings.formal_camera and raster_settings is not ctx.forward_settings:
+            raise ValueError('formal_camera_context_changed')
+        validate_settings(raster_settings, grad_out_color)
         prefilter_var = ctx.prefilter_var
         (colors_precomp, means3D, out_means3D, scales, rotations, cov3Ds_precomp, radii, sh, 
          flow_2d, opacities, ts, scales_t, rotations_r,
@@ -251,6 +257,8 @@ class GaussianRasterizationSettings(NamedTuple):
     debug_pixel_y: int = -1
     debug_pixel_max_entries: int = 0
     debug_preprocess_target_index: int = -1
+    formal_camera: bool = False
+    camera_binding: object = None
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):
