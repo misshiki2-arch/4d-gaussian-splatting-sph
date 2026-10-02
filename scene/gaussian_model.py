@@ -382,8 +382,8 @@ class GaussianModel:
 
     def training_setup(self, training_args, *, formal_config=None):
         self.percent_dense = training_args.percent_dense
-        self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
-        self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
+        self.xyz_gradient_accum = self._xyz.new_zeros((self.get_xyz.shape[0], 1))
+        self.denom = self._xyz.new_zeros((self.get_xyz.shape[0], 1))
 
         l = [
             {'params': [self._xyz], 'lr': training_args.position_lr_init * self.spatial_lr_scale, "name": "xyz"},
@@ -396,7 +396,7 @@ class GaussianModel:
         if self.gaussian_dim == 4: # TODO: tune time_lr_scale
             if training_args.position_t_lr_init < 0:
                 training_args.position_t_lr_init = training_args.position_lr_init
-            self.t_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
+            self.t_gradient_accum = self._t.new_zeros((self.get_xyz.shape[0], 1))
             l.append({'params': [self._t], 'lr': training_args.position_t_lr_init * self.spatial_lr_scale, "name": "t"})
             l.append({'params': [self._scaling_t], 'lr': training_args.scaling_lr, "name": "scaling_t"})
             if self.rot_4d:
@@ -509,7 +509,7 @@ class GaussianModel:
 
         return optimizable_tensors
 
-    def densification_postfix(self, new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_t, new_scaling_t, new_rotation_r):
+    def densification_postfix(self, new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_t, new_scaling_t, new_rotation_r, new_radii):
         d = {"xyz": new_xyz,
         "f_dc": new_features_dc,
         "f_rest": new_features_rest,
@@ -535,17 +535,19 @@ class GaussianModel:
             self._scaling_t = optimizable_tensors['scaling_t']
             if self.rot_4d:
                 self._rotation_r = optimizable_tensors['rotation_r']
-            self.t_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
+            self.t_gradient_accum = torch.cat((self.t_gradient_accum, new_t.new_zeros((len(new_t), 1))))
 
-        self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
-        self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
-        self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
+        # Preserve the old window until the final prune. Child gradients are
+        # unobserved; clone radius is inherited, split radius is unobserved 0.
+        self.xyz_gradient_accum = torch.cat((self.xyz_gradient_accum, new_xyz.new_zeros((len(new_xyz), 1))))
+        self.denom = torch.cat((self.denom, new_xyz.new_zeros((len(new_xyz), 1))))
+        self.max_radii2D = torch.cat((self.max_radii2D, new_radii))
 
     def densify_and_split(self, grads, grad_threshold, scene_extent, grads_t, grad_t_threshold, N=2):
         n_init_points = self.get_xyz.shape[0]
         # Extract points that satisfy the gradient condition
-        padded_grad = torch.zeros((n_init_points), device="cuda")
-        padded_grad[:grads.shape[0]] = grads.squeeze()
+        padded_grad = grads.new_zeros(n_init_points)
+        padded_grad[:grads.shape[0]] = grads.reshape(-1)
         selected_pts_mask = torch.where(padded_grad >= grad_threshold, True, False)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
                                               torch.max(self.get_scaling, dim=1).values > self.percent_dense*scene_extent)
@@ -559,7 +561,7 @@ class GaussianModel:
         
         if not self.rot_4d:
             stds = self.get_scaling[selected_pts_mask].repeat(N,1)
-            means = torch.zeros((stds.size(0), 3),device="cuda")
+            means = torch.zeros_like(stds)
             samples = torch.normal(mean=means, std=stds)
             rots = build_rotation(self._rotation[selected_pts_mask]).repeat(N,1,1)
             new_xyz = torch.bmm(rots, samples.unsqueeze(-1)).squeeze(-1) + self.get_xyz[selected_pts_mask].repeat(N, 1)
@@ -568,13 +570,13 @@ class GaussianModel:
             new_rotation_r = None
             if self.gaussian_dim == 4:
                 stds_t = self.get_scaling_t[selected_pts_mask].repeat(N,1)
-                means_t = torch.zeros((stds_t.size(0), 1),device="cuda")
+                means_t = torch.zeros_like(stds_t)
                 samples_t = torch.normal(mean=means_t, std=stds_t)
                 new_t = samples_t + self.get_t[selected_pts_mask].repeat(N, 1)
                 new_scaling_t = self.scaling_inverse_activation(self.get_scaling_t[selected_pts_mask].repeat(N,1) / (0.8*N))
         else:
             stds = self.get_scaling_xyzt[selected_pts_mask].repeat(N,1)
-            means = torch.zeros((stds.size(0), 4),device="cuda")
+            means = torch.zeros_like(stds)
             samples = torch.normal(mean=means, std=stds)
             rots = build_rotation_4d(self._rotation[selected_pts_mask], self._rotation_r[selected_pts_mask]).repeat(N,1,1)
             new_xyzt = torch.bmm(rots, samples.unsqueeze(-1)).squeeze(-1) + self.get_xyzt[selected_pts_mask].repeat(N, 1)
@@ -583,9 +585,9 @@ class GaussianModel:
             new_scaling_t = self.scaling_inverse_activation(self.get_scaling_t[selected_pts_mask].repeat(N,1) / (0.8*N))
             new_rotation_r = self._rotation_r[selected_pts_mask].repeat(N,1)
 
-        self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation, new_t, new_scaling_t, new_rotation_r)
+        self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation, new_t, new_scaling_t, new_rotation_r, self.max_radii2D.new_zeros(len(new_xyz)))
 
-        prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
+        prune_filter = torch.cat((selected_pts_mask, selected_pts_mask.new_zeros(len(new_xyz))))
         self.prune_points(prune_filter)
 
     def densify_and_clone(self, grads, grad_threshold, scene_extent, grads_t, grad_t_threshold):
@@ -610,7 +612,7 @@ class GaussianModel:
             if self.rot_4d:
                 new_rotation_r = self._rotation_r[selected_pts_mask]
 
-        self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_t, new_scaling_t, new_rotation_r)
+        self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_t, new_scaling_t, new_rotation_r, self.max_radii2D[selected_pts_mask])
 
     def densify_and_prune(self, max_grad, min_opacity, extent, max_screen_size, max_grad_t=None, prune_only=False):
         if not prune_only:
@@ -625,12 +627,21 @@ class GaussianModel:
             self.densify_and_clone(grads, max_grad, extent, grads_t, max_grad_t)
             self.densify_and_split(grads, max_grad, extent, grads_t, max_grad_t)
 
-        prune_mask = (self.get_opacity < min_opacity).squeeze()
+        prune_mask = (self.get_opacity < min_opacity).squeeze(-1)
         if max_screen_size:
             big_points_vs = self.max_radii2D > max_screen_size
             big_points_ws = self.get_scaling.max(dim=1).values > 0.1 * extent
             prune_mask = torch.logical_or(torch.logical_or(prune_mask, big_points_vs), big_points_ws)
         self.prune_points(prune_mask)
+
+        if not prune_only:
+            # End the growth window only after every row has faced the final
+            # opacity/world/screen prune. Prune-only keeps its sliced history.
+            self.xyz_gradient_accum.zero_()
+            self.denom.zero_()
+            self.max_radii2D.zero_()
+            if self.gaussian_dim == 4:
+                self.t_gradient_accum.zero_()
 
         torch.cuda.empty_cache()
 

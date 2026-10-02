@@ -90,7 +90,7 @@ def begin_formal_output(prepared, claim):
 
 
 def continue_formal_training(prepared, writer):
-    # Shared loop, not a completed-update Fix. Real runs require later acceptance.
+    # One verified authority; actual CUDA/training acceptance remains separate.
     c = prepared.inputs.config
     return training(prepared.dataset, prepared.opt, prepared.pipe,
         c.reporting.test_updates, c.save_updates, None, -1, c.model.gaussian_dim,
@@ -136,20 +136,20 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda") if _formal_prepared is None else _formal_prepared.background
     
-    ### ここに追加 ###
-    training_report(
-        tb_writer, first_iter,
-        Ll1=torch.tensor(0.0, device="cuda"),
-        loss=torch.tensor(0.0, device="cuda"),
-        l1_loss=l1_loss,
-        elapsed=0.0,
-        testing_iterations=[first_iter],
-        scene=scene,
-        renderFunc=render_func,
-        renderArgs=(pipe, background),
-        loss_dict=None
-    )
-    ### ここまで ###
+    # Initial diagnostic, not a completed update or part of verified schedules.
+    with torch.no_grad():
+        training_report(
+            tb_writer, first_iter,
+            Ll1=torch.tensor(0.0, device="cuda"),
+            loss=torch.tensor(0.0, device="cuda"),
+            l1_loss=l1_loss,
+            elapsed=0.0,
+            testing_iterations=[first_iter],
+            scene=scene,
+            renderFunc=render_func,
+            renderArgs=(pipe, background),
+            loss_dict=None
+        )
 
     iter_start = torch.cuda.Event(enable_timing = True)
     iter_end = torch.cuda.Event(enable_timing = True)
@@ -164,7 +164,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         vars()[f"ema_{lambda_name.replace('lambda_','')}_for_log"] = 0.0
     
     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
-    first_iter += 1
         
     if pipe.env_map_res:
         env_map = nn.Parameter(torch.zeros((3,pipe.env_map_res, pipe.env_map_res),dtype=torch.float, device="cuda").requires_grad_(True))
@@ -180,15 +179,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     else:
         training_dataloader = _formal_prepared.dataloader
      
-    iteration = first_iter
-    while iteration < opt.iterations + 1:
+    completed = first_iter
+    while completed < opt.iterations:
+        epoch_had_batch = False
         for batch_data in training_dataloader:
-            iteration += 1
+            epoch_had_batch = True
+            iteration = completed + 1
             DBG_ITERS = {3500, 3990, 4000, 4010, 4500}
             if iteration in DBG_ITERS:
                 print(f"[DBG] iter={iteration} num_gauss={gaussians.get_xyz.shape[0]}")
-            if iteration > opt.iterations:
-                break
 
             iter_start.record()
             gaussians.update_learning_rate(iteration)
@@ -307,6 +306,44 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                         "Lssim": Lssim}
 
             with torch.no_grad():
+                # Statistics still refer to the parameters used by backward.
+                if iteration < opt.densify_until_iter:
+                    gaussians.max_radii2D[visibility_filter] = torch.max(
+                        gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
+                    can_densify = (opt.densify_until_num_points < 0
+                                   or gaussians.get_xyz.shape[0] < opt.densify_until_num_points)
+                    if can_densify:
+                        if batch_size == 1:
+                            gaussians.add_densification_stats(
+                                viewspace_point_tensor, visibility_filter,
+                                batch_t_grad if gaussians.gaussian_dim == 4 else None)
+                        else:
+                            gaussians.add_densification_stats_grad(
+                                batch_viewspace_point_grad, visibility_filter,
+                                batch_t_grad if gaussians.gaussian_dim == 4 else None)
+
+                # Step the backward-owned Parameters, including the final N.
+                gaussians.optimizer.step()
+                gaussians.optimizer.zero_grad(set_to_none=True)
+                if pipe.env_map_res and iteration < pipe.env_optimize_until:
+                    env_map_optimizer.step()
+                    env_map_optimizer.zero_grad(set_to_none=True)
+
+                if iteration < opt.densify_until_iter:
+                    if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
+                        size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                        gaussians.densify_and_prune(
+                            opt.densify_grad_threshold, thresh_opa_prune,
+                            scene.cameras_extent, size_threshold,
+                            densify_grad_t_threshold, prune_only=not can_densify)
+                    if iteration % opt.opacity_reset_interval == 0 or (
+                        dataset.white_background and iteration == opt.densify_from_iter
+                    ):
+                        gaussians.reset_opacity()
+
+                # Failure above propagates before completion/observation. A
+                # subsequent save/report failure does not roll this update back.
+                completed = iteration
                 psnr_for_log = psnr(image, gt_image).mean().double()
                 # Progress bar
                 ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
@@ -335,7 +372,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 if iteration == opt.iterations:
                     progress_bar.close()
 
-                # Log and save
+                # Save, then test the same completed state. Loss remains the
+                # optimization input from this update's pre-step forward.
+                if (iteration in saving_iterations):
+                    print("\n[ITER {}] Saving Gaussians".format(iteration))
+                    scene.save(iteration)
                 test_psnr = training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render_func, (pipe, background), loss_dict)
                 if _formal_prepared is None and (iteration in testing_iterations):
                     if test_psnr >= best_psnr:
@@ -343,76 +384,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                         print("\n[ITER {}] Saving best checkpoint".format(iteration))
                         torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt_best.pth")
                         
-                if (iteration in saving_iterations):
-                    print("\n[ITER {}] Saving Gaussians".format(iteration))
-                    scene.save(iteration)
-
-                # Densification
-                if iteration < opt.densify_until_iter:
-                    # Keep track of max radii in image-space for pruning
-                    gaussians.max_radii2D[visibility_filter] = torch.max(
-                        gaussians.max_radii2D[visibility_filter],
-                        radii[visibility_filter]
-                    )
-
-                    # 点数上限未満のときだけ densify 用統計を蓄積
-                    can_densify = (
-                        opt.densify_until_num_points < 0
-                        or gaussians.get_xyz.shape[0] < opt.densify_until_num_points
-                    )
-
-                    if can_densify:
-                        if batch_size == 1:
-                            gaussians.add_densification_stats(
-                                viewspace_point_tensor,
-                                visibility_filter,
-                                batch_t_grad if gaussians.gaussian_dim == 4 else None
-                            )
-                        else:
-                            gaussians.add_densification_stats_grad(
-                                batch_viewspace_point_grad,
-                                visibility_filter,
-                                batch_t_grad if gaussians.gaussian_dim == 4 else None
-                            )
-
-                    if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                        size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-
-                        if can_densify:
-                            # 上限未満: 増やしてから減らす
-                            gaussians.densify_and_prune(
-                                opt.densify_grad_threshold,
-                                thresh_opa_prune,
-                                scene.cameras_extent,
-                                size_threshold,
-                                densify_grad_t_threshold,
-                                prune_only=False
-                            )
-                            print(f"[DBG] iter={iteration} densify_and_prune(prune_only=False)  num_gauss={gaussians.get_xyz.shape[0]}")
-                        else:
-                            # 上限以上: 増やさず減らすだけ
-                            gaussians.densify_and_prune(
-                                opt.densify_grad_threshold,
-                                thresh_opa_prune,
-                                scene.cameras_extent,
-                                size_threshold,
-                                densify_grad_t_threshold,
-                                prune_only=True
-                            )
-                            print(f"[DBG] iter={iteration} densify_and_prune(prune_only=True)   num_gauss={gaussians.get_xyz.shape[0]}")
-
-                    if iteration % opt.opacity_reset_interval == 0 or (
-                        dataset.white_background and iteration == opt.densify_from_iter
-                    ):
-                        gaussians.reset_opacity()
-                        
-                # Optimizer step
-                if iteration < opt.iterations:
-                    gaussians.optimizer.step()
-                    gaussians.optimizer.zero_grad(set_to_none = True)
-                    if pipe.env_map_res and iteration < pipe.env_optimize_until:
-                        env_map_optimizer.step()
-                        env_map_optimizer.zero_grad(set_to_none = True)
+            if completed == opt.iterations:
+                break  # Do not fetch a batch for N+1, even within this epoch.
+        if not epoch_had_batch:
+            raise RuntimeError('training_empty_epoch')
+    return completed
 
 def prepare_output_and_logger(args, *, claim=None, scene=None):
     if isinstance(args, ConsumerView) and claim is None:
