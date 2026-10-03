@@ -187,7 +187,7 @@ __device__ void computeColorFromSH_4D(int idx, int deg, int deg_t, int max_coeff
 		float dl1m0_dz = SH_C1;
 		float dl1p1_dx = -1 * SH_C1;
 
-		dL_dsh[1] = l0m0 * dL_dRGB;
+		dL_dsh[1] = l1m1 * dL_dRGB;
 		dL_dsh[2] = l1m0 * dL_dRGB;
 		dL_dsh[3] = l1p1 * dL_dRGB;
 
@@ -300,7 +300,7 @@ __device__ void computeColorFromSH_4D(int idx, int deg, int deg_t, int max_coeff
 
 				if (deg_t > 0){
 					float t1 = cos(2 * MY_PI * dir_t / time_duration);
-					float dt1_dt = sin(2 * MY_PI * dir_t / time_duration) * 2 * MY_PI / time_duration;
+					float dt1_dt = -sin(2 * MY_PI * dir_t / time_duration) * 2 * MY_PI / time_duration;
 
 					dL_dsh[16] = t1 * l0m0 * dL_dRGB;
 					dL_dsh[17] = t1 * l1m1 * dL_dRGB;
@@ -319,7 +319,7 @@ __device__ void computeColorFromSH_4D(int idx, int deg, int deg_t, int max_coeff
 					dL_dsh[30] = t1 * l3p2 * dL_dRGB;
 					dL_dsh[31] = t1 * l3p3 * dL_dRGB;
 
-					dRGBdt = dt1_dt * (
+					dRGBdt += dt1_dt * (
 						l0m0 * sh[16] +
 						l1m1 * sh[17] +
 						l1m0 * sh[18] +
@@ -381,7 +381,7 @@ __device__ void computeColorFromSH_4D(int idx, int deg, int deg_t, int max_coeff
 
 					if (deg_t > 1){
 						float t2 = cos(2 * MY_PI * dir_t * 2 / time_duration);
-						float dt2_dt = sin(2 * MY_PI * dir_t * 2 / time_duration) * 2 * MY_PI * 2 / time_duration;
+						float dt2_dt = -sin(2 * MY_PI * dir_t * 2 / time_duration) * 2 * MY_PI * 2 / time_duration;
 
 						dL_dsh[32] = t2 * l0m0 * dL_dRGB;
 						dL_dsh[33] = t2 * l1m1 * dL_dRGB;
@@ -400,7 +400,7 @@ __device__ void computeColorFromSH_4D(int idx, int deg, int deg_t, int max_coeff
 						dL_dsh[46] = t2 * l3p2 * dL_dRGB;
 						dL_dsh[47] = t2 * l3p3 * dL_dRGB;
 
-						dRGBdt = dt2_dt * (
+						dRGBdt += dt2_dt * (
 							l0m0 * sh[32] +
 							l1m1 * sh[33] +
 							l1m0 * sh[34] +

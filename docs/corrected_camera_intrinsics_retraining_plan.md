@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **Step-5-and-Step-6-complete-and-user-research-Git-integrated / Step-7-update-consistency-A-functionally-accepted / Step-7-document-review-and-user-research-Git-pending / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / CUDA-not-run / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **Steps-5-6-7-complete-and-user-research-Git-integrated / Step-8-SH-CPU-and-CUDA-functionally-accepted / Step-8-document-review-user-research-Git-and-completion-pending / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / focused-SH-CUDA-passed / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -44,8 +44,10 @@ Step design and documentation timing by
 Git timing by [USR-GIT-09/10](../../4dgs-development-governance/40_USER_GIT_AND_ACCEPTANCE_RUNBOOK_JA.md),
 and overall progress by [RM-PROGRESS](../../4dgs-development-governance/30_REDMINE_WORKFLOW_JA.md).
 Technical owners, dependencies and Gate conditions remain unchanged. The
-current functional Step after completed Steps 5 and 6 is
-[Step 7: learning-update consistency and CPU validation](#step-7-learning-update-consistency-and-cpu-validation).
+current functional Step after completed Steps 5, 6 and 7 is
+[Step 8: SH correction and CPU/CUDA validation](#step-8-sh-correction-and-cpucuda-validation),
+functionally accepted and awaiting document review, user research Git and
+completion processing.
 Former roadmap numbers, including 6=checkpoint, 7=camera and 9/10=training
 state/optimizer-population responsibilities, remain historical
 references rather than the current execution sequence. Future functional Step
@@ -133,11 +135,14 @@ the [Step 5 completion record](../../reports/corrected-4dgs/phase1/step5/step5-c
 The [Step 6 camera A function](#step-6-canonical-camera-handoff) is also complete,
 including documentation review and user research Git, as recorded in the
 [Step 6 completion record](../../reports/corrected-4dgs/phase1/step6/step6-completion-report.txt).
-The current [Step 7 A function](#step-7-learning-update-consistency-and-cpu-validation)
-is implemented and CPU-validated, advisor-reviewed and user-functionally-accepted.
-Review of this document sync, consolidated user-owned research Git, push
-confirmation and Step 7 completion processing remain pending. This bounded
-acceptance is not training readiness or passage of any Gate.
+The [Step 7 A function](#step-7-learning-update-consistency-and-cpu-validation)
+is also complete, including document review, user research Git and push
+confirmation, under the [Step 7 completion record](../../reports/corrected-4dgs/phase1/step7/step7-completion-report.txt).
+The current [Step 8 SH function](#step-8-sh-correction-and-cpucuda-validation)
+is implemented, independently CPU- and CUDA-validated, advisor-reviewed and
+user-functionally-accepted. Its document review, consolidated user-owned
+research Git, push confirmation and completion processing remain pending.
+These bounded acceptances are not training readiness or passage of any Gate.
 
 The Fudan Native model configuration, existing train/test-only dataset and
 evaluation policy, checkpoint-foundation/exact-resume staging policy, and
@@ -163,7 +168,7 @@ adopted D-TIME contracts within the existing formal-entry field/owner boundary,
 not a new policy group or Step. Issue #33 applies the accepted current-input
 adoption within that same boundary; Issue #34 adds only the adopted initial
 variance and its explicit coefficient under existing D-INIT. Remaining formal
-policy closure, source fixes, post-fix focused validation, CUDA execution, pilot training, formal
+policy closure, other-owner source fixes and post-fix focused/CUDA validation, pilot training, formal
 retraining, corrected artifact generation, and Viewer restart remain incomplete.
 The implemented and CPU-accepted scope includes the integrated configuration
 and minimal existing-runtime connection in
@@ -171,6 +176,8 @@ and minimal existing-runtime connection in
 and time/frame components, and the bounded
 [Step 6 camera A handoff](#step-6-canonical-camera-handoff) and
 [Step 7 update/population/save-test connection](#step-7-learning-update-consistency-and-cpu-validation).
+In addition, [Step 8](#step-8-sh-correction-and-cpucuda-validation) accepts the
+SH corrections, fresh build and focused real-CUDA forward/gradient evidence.
 Remaining camera and transaction runtime/CUDA validation, renderer and checkpoint
 corrections and actual GPU/training validation remain outstanding. P0 findings block only the gate whose accepted output
 would reach the defect; Viewer-only defects do not unnecessarily block corrected
@@ -362,40 +369,47 @@ obligations remain open.
 
 ## Confirmed renderer and CUDA P0 blockers
 
-Investigation2 confirmed three additional P0 blockers. The exact correction
-policy and implementation remain separate future responsibilities.
+Investigation2 confirmed the following historical P0 defects. Their selected-
+branch corrections and focused CPU/CUDA validation are now functionally
+accepted in [Step 8](#step-8-sh-correction-and-cpucuda-validation); this does
+not accept the whole renderer or its separately owned remaining findings.
 
 ### P0-1: 4D spatial SH coefficient-one backward basis
 
 For 4D SH coefficient `sh[1]`, forward uses the basis `-C1 * y`, while the
-coefficient gradient in backward uses `C0`. Consequently the update reaching
-`_features_rest[:, 0]` is not the derivative of the forward graph.
+pre-fix coefficient gradient in backward used `C0`. Consequently the update
+reaching `_features_rest[:, 0]` was not the derivative of the forward graph.
+Step 8 corrects backward to the matching coefficient-one basis and accepts
+its focused value/gradient validation.
 
 ### P0-2: SH evaluation position mismatch
 
-The geometry path uses the conditional current-time mean. CUDA SH forward uses
-the original mean, while SH backward uses the conditional mean. SH-derived
-gradients returned to xyz, temporal center, scale, and quaternion parameters
-therefore do not differentiate the executed forward graph. The formal policy
+The geometry path uses the conditional current-time mean. Pre-fix CUDA SH
+forward used the original mean, while SH backward used the conditional mean.
+SH-derived gradients returned to xyz, temporal center, scale, and quaternion
+parameters therefore did not differentiate the executed forward graph. The formal policy
 selects the **conditional mean** for SH evaluation. Forward and backward must
 use the same conditional-mean dependency and gradient path. The original-mean
-branch is unreachable for the formal baseline, but the finding remains open
-until the source is corrected and focused forward/gradient validation is
-accepted.
+branch is unreachable for the formal baseline. Step 8 connects forward SH to
+the existing conditional-mean buffer and accepts the common forward/backward
+dependency and gradient path within its focused validation scope.
 
 ### P0-3: temporal SH degree, layout, and time-gradient contract
 
 Temporal SH evaluation is nested under spatial degree greater than two. At
-lower spatial degrees, model allocation and evaluator use do not agree. In
-addition, the derivative of `cos(k * omega * delta_t)` has the wrong sign, and
-temporal degree two overwrites rather than adds the degree-one time-gradient
-contribution.
+unsupported lower-spatial/active-temporal combinations, the historical model
+allocation and evaluator did not agree. In addition, the pre-fix derivative
+of `cos(k * omega * delta_t)` had the wrong sign, and temporal degree two
+overwrote rather than added the degree-one time-gradient contribution.
 
 The formal Fudan Native branch fixes spatial SH degree at 3, enables temporal
 SH at degree 2, and uses the 48-slot fixed layout: slots 0-15 are the spatial
 base, 16-31 temporal mode 1, and 32-47 temporal mode 2. It also fixes
 `rot_4d=true` and `force_sh_3d=false`. The temporal derivative and accumulation
-defects therefore require source correction and focused gradient validation.
+defects are corrected and their focused gradient validation accepted in Step 8:
+both time derivatives use the negative sine sign and degree contributions add.
+The existing warmup `0/0 -> 1/0 -> 2/0 -> 3/0 -> 3/1 -> 3/2` and fixed capacity
+are preserved and validated; no other active-degree combination is adopted.
 Original-mean SH, spatial degree 2, disabled temporal SH, or any other reduced
 configuration is unreachable for the formal baseline and must fail closed.
 This policy repairs the implementation while preserving the paper-intended
@@ -435,12 +449,12 @@ is the P0-T7 boundary. A non-`None` override bypasses CUDA SH. One supported
 path therefore isolates the effect of the P0-1, P0-2, and P0-3 corrections.
 Upstream defaults alone are not a correctness argument.
 
-This invocation decision does not accept the current renderer. The selected
-CUDA-direct path remains unusable for formal work until P0-1, P0-2, and P0-3
-are corrected in source and their focused validation is accepted. The Step 5
+This invocation decision alone does not accept the current renderer. Step 8
+now accepts the selected-branch P0-1/P0-2/P0-3 corrections and focused validation;
+other renderer duties and Gate conditions still prevent training readiness. The Step 5
 formal entry now enforces configuration before heavy import and explicitly
 connects existing training/render consumers; later CUDA Reference and checkpoint
-consumer enforcement and CUDA validation remain outstanding. Future support for any
+consumer enforcement and remaining CUDA validation remain outstanding. Future support for any
 rejected branch requires separate policy, any necessary Fix and validation,
 and a distinct run or artifact identity when semantics differ.
 
@@ -741,8 +755,9 @@ that same state. Maximum degrees are distinct from training-time active degrees.
 The subsequent [D-SH adoption](#adopted-minimal-initialization-optimizer-and-sh-contracts)
 selects the existing staged warm-up, not always-active 3/2. This is separate
 from P3's maximum-degree representation and does not change its accepted
-component's function. Intermediate renderer correctness remains unvalidated;
-an event-count inequality alone cannot prove it.
+component's function. The adopted active stages now have the bounded
+[Step 8 SH validation](#step-8-sh-correction-and-cpucuda-validation);
+an event-count inequality alone cannot prove renderer correctness.
 
 ##### Adopted P4: explicit integer-divisor resolution
 
@@ -861,7 +876,9 @@ The following boundaries remain unresolved, not implicitly adopted:
   normalization-change effects. The initial rigid/motion-zero branch is now
   adopted in the Step 5 connection contract. Constant temporal
   LR and staged active SH are now adopted below and their settings connected;
-  intermediate-degree forward/backward correctness remains outstanding.
+  their supported SH stages now have the focused
+  [Step 8 forward/backward acceptance](#step-8-sh-correction-and-cpucuda-validation),
+  not general time/runtime health or training acceptance.
 - Every run's interval/divisor and other numeric values remain unselected.
   Observed `[0,33]` and legacy YAML are evidence, not approved execution values.
 
@@ -1527,13 +1544,14 @@ are accepted in Step 5; population/statistics CPU connection is accepted in
 [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation). Actual
 GPU/runtime health, remaining reporting/failure details and run values stay open. P3 fixes the
 maximum-SH input; the separate D-SH adoption selects staged active degrees,
-whose renderer correctness still requires validation.
+whose focused SH correctness is now accepted in
+[Step 8](#step-8-sh-correction-and-cpucuda-validation), not whole-renderer acceptance.
 None of these clarifications reselects the approved Fudan Native branch.
 
 | Required point | Still undecided | Existing owner boundary |
 |---|---|---|
 | Before the corresponding implementation | Only remaining owner details beyond the adopted contracts, including necessary runtime health/tolerance and reporting/failure boundaries; closed key membership, seed binding, initial loss branches and time/cast handoff are not open choices or a requirement to redesign all reporting | Formal-entry field policy with the relevant existing owners; advisor review and user approval precede any new policy. Local helper/API/file/error design remains CODEX discretion. |
-| Before downstream execution acceptance | Remaining D-DATA, D-TIME, D-INIT, D-OPT, D-POP, D-SH, D-SEED-DEVICE and D-REPORT responsibilities beyond the accepted Step 5/6/7 CPU scopes; GPU numerical health and actual-runtime transaction validation are not established by CPU connection | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime and reporting retain their responsibilities. Do not turn their outstanding work into additional Step 5 Fix conditions or replace owner results with defaults; applicable Gate A/B requirements remain. |
+| Before downstream execution acceptance | Remaining D-DATA, D-TIME, D-INIT, D-OPT, D-POP, D-SH, D-SEED-DEVICE and D-REPORT responsibilities beyond the accepted Step 5/6/7 CPU scopes and bounded [Step 8 SH CPU/CUDA scope](#step-8-sh-correction-and-cpucuda-validation); general GPU numerical health and actual-runtime transaction validation are not established by those results | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime and reporting retain their responsibilities. Do not turn their outstanding work into additional Step 5 Fix conditions or replace owner results with defaults; applicable Gate A/B requirements remain. |
 | Before each run | Numeric seed, `N`, batch, LR and non-fixed loss weights, time interval/divisor, pilot/formal schedules and population stopping-threshold/unlimited choice within the adopted input contract, test/save cadence, actual output path/run identity | Each existing owner and the user fix explicit run values; actual GPU evidence and CUDA validation remain runtime duties. Legacy YAML values are not automatically adopted. |
 
 The D-* definitions and investigation-to-field mapping remain in the
@@ -1605,12 +1623,53 @@ under `4dgs310`, but no same-invocation command or manifest binds the checkpoint
 to its executable, package state, source revision, or loaded extension binary.
 That relationship remains a strong inference, not formal provenance.
 
-Final toolchain acceptance requires a fresh build from the corrected tracked-
-clean source and focused CUDA validation. It must record the actual Python,
-package, PyTorch CUDA, compiler, driver, GPU, source revision, and loaded
-extension-binary provenance. In particular, the observed PyTorch CUDA 12.1 and
-system nvcc 12.0 separation is evidence to validate, not a reason to silently
-modify the environment or reuse an existing extension cache as authority.
+Toolchain acceptance requires a fresh build from the reviewed corrected source
+and focused CUDA validation. It must record the actual Python, package, PyTorch
+CUDA, compiler, driver, GPU, and source-to-loaded-binary provenance. In particular,
+the observed PyTorch CUDA 12.1 and system nvcc 12.0 separation is evidence to
+validate, not a reason to silently modify the environment or reuse an existing
+extension cache as authority.
+
+##### Step-internal build and Git boundary
+
+A functional Step includes implementation, necessary Fixes, CPU/CUDA validation,
+and result review through functional acceptance. A fresh build means compiling
+the reviewed inputs into a new, empty build directory and loading that generated
+binary. It does not require a commit or a clean working tree. Reviewed uncommitted
+changes and explicitly identified new/untracked source or test files are valid
+inputs to Step-internal validation, including its functional-acceptance evidence.
+Do not insert add/commit/push or worktree cleanup before this validation.
+
+Record the repository/base HEAD as context and the actual reviewed input paths
+and file contents or digests, including relevant source, headers, bindings,
+tests and the independent oracle. Bind these inputs, the build recipe and actual
+loaded binary to the same run, and check that they remain unchanged during it.
+Base HEAD alone does not identify uncommitted inputs. Use bounded existing
+evidence records; this clarification does not request a general snapshot system.
+Unexpected input changes or a mismatched binary prevent reliance on the evidence;
+known reviewed WIP or unrelated non-input files do not become a blanket clean-tree
+gate. No automatic cleanup, environment change or substitution is authorized.
+
+After functional acceptance and documentation review, the user confirms the Git
+scope and commit message and performs the consolidated commit/push under
+USR-GIT-09/10. Associate the validated inputs with their committed contents then.
+A changed commit ID or documentation-only edit does not by itself require another
+build or numeric test; changed execution inputs require the relevant revalidation.
+Clean-source requirements for final formal retraining/publication identify the
+accepted release state and do not impose intermediate commits on Step-internal
+development validation. This clarification does not pass any Gate or change its
+mathematical, dataset, checkpoint or artifact acceptance conditions.
+
+The current Step 8 build/handoff design is
+[the corrected detailed design v2](../../reports/corrected-4dgs/phase1/step8/step8-design1/step8-design1-design-report-v2.md).
+Earlier Step 8 instructions/reports retain their historical build-precondition
+wording; that wording is superseded by this boundary. Fix1 has replaced the
+blanket dirty-state/HEAD-only guard with reviewed actual-input set/content
+checks. Validation1 successfully used that entry for fresh build and focused
+SH CUDA validation, as recorded in [Step 8](#step-8-sh-correction-and-cpucuda-validation).
+The existing `4dgs310` toolchain succeeded for this run; this is not a permanent
+version pin, other-environment guarantee, whole-renderer toolchain acceptance,
+or completion of P0-A7 or a Gate. Intermediate commit/cleaning is not required.
 
 ### Approved alpha-cap derivative contract
 
@@ -2003,7 +2062,8 @@ their historical findings remain recorded, but their adoption is not an open
 policy question. The camera policy above is decided and its
 [Step 6 A implementation/CPU connection](#step-6-canonical-camera-handoff) is
 accepted; full P0-0 runtime/CUDA validation remains open. P0-1, P0-2, and P0-3
-source fixes and validation have not started.
+corrections and focused CPU/CUDA validation are accepted in
+[Step 8](#step-8-sh-correction-and-cpucuda-validation), without closing other renderer findings.
 
 ## Bounded P2 findings
 
@@ -2097,11 +2157,14 @@ training-to-Viewer pipeline is accepted.
 
 ## Evidence still insufficient
 
-The static audit does not establish:
+The static audit alone does not establish the items below. Later
+[Step 8 evidence](#step-8-sh-correction-and-cpucuda-validation) establishes the
+reviewed SH input/build/loaded-binary relation and focused post-fix CUDA
+values/gradients in the observed `4dgs310` environment. The following limits
+remain outside that bounded run:
 
-- identity between the inspected source and any currently compiled CUDA
-  extension;
-- CUDA float32, atomic-add, and scheduling behavior;
+- source/binary identity beyond the recorded Step 8 run;
+- general CUDA float32, atomic-add, and scheduling behavior beyond the focused SH cases;
 - deterministic ordering for equal-depth sort keys;
 - the historical full training/render invocation and effective values;
 - a same-invocation binding between the historical checkpoint and `4dgs310`,
@@ -2110,14 +2173,14 @@ The static audit does not establish:
 - the historical checkpoint's internal tensor state, shapes, finite values,
   optimizer state, and internal iteration, because the large checkpoint was
   not loaded during the audit;
-- the exact source/build relationship of the currently loaded CUDA binary;
+- source/build binding for later training and artifact-producing binaries;
 - the corrected checkpoint, population count, representative selection, and
   fixed range, none of which exist yet;
-- post-fix camera and renderer runtime state;
+- full post-fix camera and renderer runtime state beyond the synthetic SH fixtures;
 - full-scene `num_rendered` and tile-reference population;
-- post-fix forward and gradient correctness;
-- acceptance of the current `4dgs310` candidate for corrected work through a
-  fresh corrected-source build and focused CUDA validation;
+- remaining post-fix forward and gradient correctness outside accepted Step 8 SH;
+- `4dgs310` runtime acceptance for remaining renderer, training and artifact
+  responsibilities beyond the successful SH fresh-build/CUDA run;
 - the runtime frequency and formal-dataset impact of nonfinite values, OOM,
   and other numerical edge cases;
 - the external SuperSplat PLY coefficient/property convention;
@@ -2142,7 +2205,7 @@ the remaining items must not be presented as the formal contract.
 | decided: camera/effective state | Support exactly two modes: complete centered intrinsics with finite positive `fl_x/fl_y` and finite `cx/cy`, and complete geometrically valid FoV-only input with finite `0 < FoVx,FoVy < π`; canonicalize raw metadata once after resolution scaling; keep negative FoV sentinel as raw provenance only; make projection and rasterizer forward/backward consume one effective state; fail closed on off-center, mixed, partial, ambiguous, inconsistent, nonfinite, invalid-dimension, and invalid-clipping input; preserve projection near/far `0.01`/`100.0`, CUDA near-cull `p_view.z > 0.2`, and no CUDA far-cull as distinct semantics. |
 | decided: dataset/evaluation | Preserve train as all 5,146 `v01-v31` frames and test as all 166 `v00` frames; require effective `eval=True` after CLI/config merge; reject effective `eval=False`, which yields 5,312 train and zero test cameras; keep the populations disjoint; add no validation population; keep `v31` in training; never use test for training, selection, tuning, or early stopping; use the pre-fixed final completed iteration as canonical; any validation-based experiment gets a separate identity/output owner. |
 | decided: checkpoint/resume staging | Normalize completed-state checkpoints, exact completed-update labels, versioned semantics, diagnostics, and provenance independently of resume; prohibit pilot resume and every legacy warm-start; treat exact resume as a later independent root Fix with an equivalence gate; until accepted, resume fails closed and only uninterrupted completed formal runs can be canonical. |
-| decided: renderer invocation | Require one effective contract everywhere: `compute_cov3D_python=False`, `convert_SHs_python=False`, `scaling_modifier=1.0` exactly, `env_map_res=0`, and `override_color=None`; reject every other or nonfinite value before renderer import/CUDA JIT or formal render; training, evaluation/test render, CUDA Reference, and checkpoint consumers share the same validated identity and may not substitute defaults. The [adopted temporal-prefilter supplement](#approved-temporal-prefilter-contract) adds PF-A/B/C and safety conditions within this owner without redefining these five values. This decision does not accept the current CUDA-direct renderer, which remains blocked on P0-1/P0-2/P0-3 source fixes and focused validation. |
+| decided: renderer invocation | Require one effective contract everywhere: `compute_cov3D_python=False`, `convert_SHs_python=False`, `scaling_modifier=1.0` exactly, `env_map_res=0`, and `override_color=None`; reject every other or nonfinite value before renderer import/CUDA JIT or formal render; training, evaluation/test render, CUDA Reference, and checkpoint consumers share the same validated identity and may not substitute defaults. The [adopted temporal-prefilter supplement](#approved-temporal-prefilter-contract) adds PF-A/B/C and safety conditions within this owner without redefining these five values. This decision alone does not accept the whole CUDA-direct renderer. [Step 8](#step-8-sh-correction-and-cpucuda-validation) now accepts the P0-1/P0-2/P0-3 corrections and focused validation; other renderer/Gate obligations remain. |
 | decided: alpha-cap derivative | Keep `alpha=min(0.99f, raw_alpha)` in forward; after aggregating all `dL/dalpha`, use the independent piecewise gate `raw_alpha < 0.99f` for the alpha-mediated opacity/G/screen-xy/conic/covariance chain and zero that chain for `raw_alpha >= 0.99f`, including a zero selected subgradient at bitwise-equal float32 `0.99f`; preserve direct color/flow/depth and depth-to-screen-z gradients. Do not use an STE/surrogate, cap removal, smooth cap, or cap-triggered formal rejection. Source Fix and focused validation remain required. |
 | decided: completed-update transaction | Start from completed count zero and execute `k=1..N` exactly once with no `N+1` fetch; apply schedules before forward; forward/loss/backward; collect and apply current densification statistics before Parameter replacement; same-Parameter optimizer step including `k=N`; zero-grad; scheduled densify/clone/split/prune; scheduled opacity reset; then declare completed state `k`, save checkpoint `k`, and evaluate that same state. Densify/prune precedes reset when simultaneous; prune reads post-step/pre-reset opacity; children derive from post-step parents; reset reaches survivors and children. Final checkpoint `N` is mandatory from effective post-merge `N`. Optimization input loss `k` remains distinct from completed-state test metric `k`; initial state zero is not an update or selection state. Candidate B is adopted and A/C/D are rejected for the bounded reasons above. [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) accepts implementation and CPU validation; actual GPU/training and separate checkpoint-owner validation remain required. |
 | decided: independent formal entry/effective configuration | Use a lightweight formal-only bootstrap, one stdlib-only pure resolver/validator, and a separately loaded heavy runtime. The resolver is the sole authority for one explicit formal configuration and completes read-only validation in the same process before heavy import/JIT. Issue #18's strict nested semantic JSON v1 + immutable verified state and single from-scratch mode, refined by Issue #23's adopted P1–P6 under Issue #24, are fixed under [the JSON contract](#approved-json-and-single-run-mode-contract); the initial formal CLI accepts only its locator, excludes `quiet`, and permits no semantic override or legacy/general bypass. The typed state is limited to semantic authority, approved fixed values, derived final/test/save schedules, unsupported-branch absence, and output identity; the [Step 5 connection contract](#adopted-step-5-minimal-connection-contract) binds seed input, initial loss branch and time/V-B handoff under closed key sets without moving runtime, digest, checkpoint, manifest, camera-math, RNG, reporting or publication owners into the resolver. Existing output rejects before heavy import; heavy load/JIT and side-effect-free preparation precede an exclusive claim immediately before the first writer. Issue #10 Candidate C/D remain rejected. Helper/file names, local API/error details, control structure, and whether the first-candidate four-file layout is suitable remain CODEX implementation discretion. |
@@ -2177,11 +2240,17 @@ execution/gradients, real-data training and the separately owned checkpoint
 schema/read-back/publication/resume obligations remain open. These are saved
 implementation results, not tests rerun by this documentation sync.
 
+The accepted [Step 8 SH scope](#step-8-sh-correction-and-cpucuda-validation)
+adds independent CPU and actual CUDA value/gradient evidence, including its
+fresh-build provenance, for the SH portions of layers 2a and 10–12. It does not
+complete all camera boundaries, alpha-cap, later consumers or P0-A7. These are
+saved results; this document sync reruns no test, build or CUDA execution.
+
 | # | Validation layer | Primary findings closed |
 |---:|---|---|
 | 1 | Pure CPU canonical-camera tests for SPH intrinsics, both supported modes, raw-sentinel isolation, dimensions/resolution scaling, clipping/cull separation, and the mixed/partial/nonfinite/invalid/off-center rejection matrix | P0-0 and camera/projection P1; P0-A6 consumes the accepted result later |
 | 2 | Pure resolver and lightweight-bootstrap tests for the [adopted strict JSON/single-mode and P1–P6 contract](#approved-json-and-single-run-mode-contract), with no `torch`, renderer, `Scene`, or CUDA dependency: accept one explicit authority and the approved dataset/model/camera/renderer state; allow only the locator CLI and reject `quiet`, semantic options, legacy/general bypass, recursive missing/unknown/duplicate fields, type/nonfinite/bool-as-int errors, expressions/coercion/aliases, implicit defaults, authority overwrite, `eval=False`, resume/warm-start/best/environment checkpoint state, unsupported JSON keys even with inactive values, and legacy/pre-existing output at preflight. Prove immutable typed-state scope, explicit fixed values including `scaling_modifier=1.0`/`override_color=None`, verified `N` with mandatory final `N` exactly once, selection-free derived test/save conditions, one output identity, and the separate failure-stage expectations below. | independent formal-entry policy, P0-T4, P0-A2, P0-T6/T7, renderer/config/run-mode P1 |
-| 2a | Execution-environment identity test using the `4dgs310` first candidate: invoke its explicit Python path, verify `sys.executable`, record package/PyTorch-CUDA/compiler/driver/GPU identities without changing them, build the extension freshly from tracked-clean corrected source, and bind the loaded binary to that source/build before focused CUDA acceptance. Existing cache and upstream `environment.yml` are rejected as execution authority. | formal environment boundary and P0-A7 build provenance |
+| 2a | Execution-environment identity test using the `4dgs310` first candidate: invoke its explicit Python path, verify `sys.executable`, record package/PyTorch-CUDA/compiler/driver/GPU identities without changing them, build the extension freshly from the reviewed corrected inputs under the [Step-internal build and Git boundary](#step-internal-build-and-git-boundary), including reviewed uncommitted/new files, and bind the loaded binary to those actual inputs before focused CUDA acceptance. Existing cache and upstream `environment.yml` are rejected as execution authority. | formal environment boundary and P0-A7 build provenance |
 | 3 | Versioned checkpoint field serialization, semantic validation, diagnostic provenance, and rejection matrix; consume rather than redefine the completed-state label from P0-T1/T2 | P0-T6, P0-A1/A2 |
 | 4 | Training state-machine mock proving completed count starts at zero, `k=1..N` performs exactly `N` batch fetches and optimizer steps including final `N`, no `N+1` fetch occurs, and checkpoint-first/test-second both observe the post-topology/post-reset completed state | P0-T1/T2 |
 | 5 | Optimizer transaction test proving current visibility/radii/screen/time statistics are captured before replacement, the backward-owned Parameter is stepped, zero-grad precedes mutation, and ordinary/final/reset/topology transactions follow the approved event order | P0-T3, optimizer P1 |
@@ -2546,10 +2615,12 @@ The approved policy and this document synchronization alone do not satisfy
 Gate A. The accepted Step 5 resolver, pre-heavy-import boundary and minimal
 existing-runtime connection, Step 6 A camera handoff and
 [Step 7 A transaction connection](#step-7-learning-update-consistency-and-cpu-validation)
-satisfy only their bounded CPU/function scopes. Actual camera/transaction
-device/CUDA validation, remaining renderer math, checkpoint foundation, fresh
-build and real-data training validation above remain outstanding; these are
-later owner duties, not additional Step 5/6/7 CPU acceptance requirements.
+satisfy only their bounded CPU/function scopes. Step 8 accepts the selected
+SH corrections and focused CPU/CUDA validation with fresh-build provenance.
+Actual camera/transaction device/CUDA validation, remaining renderer math,
+checkpoint foundation, broader execution/build provenance and real-data
+training validation remain outstanding; these are later owner duties, not
+additional Step 5/6/7 CPU acceptance requirements. Gate A remains unpassed.
 
 ### Gate B: before formal retraining
 
@@ -2665,7 +2736,7 @@ state, and checkpoint/manifest consumers bind rather than redefine it.
 | SPL4 parser | P0-A3 | production evaluation inputs |
 | CUDA Reference loader | P0-A1/A2, selected tensor mapping, fresh render | manifest and bundle output |
 | manifest builder/validator | P0-A5/A6/A8 publication claims, including exact accepted P0-0 camera mode/effective state and projection/raster cull distinction without sentinel substitution | Viewer/comparison acceptance |
-| execution environment and build provenance | `4dgs310` is the first candidate for pilot, formal retraining, corrected CUDA Reference, and CUDA focused validation; verify its explicit interpreter and record actual package/CUDA/compiler/driver/GPU state without implicit updates. P0-A7 owns the tracked-clean corrected-source-to-fresh-binary relation; neither upstream `environment.yml` nor an existing cache is execution authority. | Gate A/B runtime acceptance and formal CUDA Reference identity |
+| execution environment and build provenance | `4dgs310` is the first candidate for pilot, formal retraining, corrected CUDA Reference, and CUDA focused validation; verify its explicit interpreter and record actual package/CUDA/compiler/driver/GPU state without implicit updates. P0-A7 owns the actual corrected-input-to-fresh-binary relation under the [Step-internal build and Git boundary](#step-internal-build-and-git-boundary); neither upstream `environment.yml` nor an existing cache is execution authority. | Gate A/B runtime acceptance and formal CUDA Reference identity |
 | Viewer handoff/bundle contract | P0-A4, corrected range and wrong-pair rejection | capture/comparison artifacts |
 | output publication | unique owner, atomic write, completion/index/digest | every formal output stage |
 
@@ -2705,9 +2776,11 @@ the historical `[524288,1048576)` range.
 ## Dependency order
 
 This register retains the original responsibility numbers for historical
-cross-references. Steps 5 and 6 are complete; the current functional Step 7 is
-[learning-update consistency and CPU validation](#step-7-learning-update-consistency-and-cpu-validation),
-covering former responsibilities 9/10, not former item 6's checkpoint task.
+cross-references. Steps 5, 6 and 7 are complete. The current functional
+[Step 8](#step-8-sh-correction-and-cpucuda-validation) is functionally accepted
+for SH correction and CPU/CUDA validation, with document review/Git/completion
+pending. Step 7 covered former responsibilities 9/10, and Step 8 covers the SH
+subset of former item 8, not former item 6's checkpoint task.
 Other unstarted work remains identified
 by its finding/owner and Gate dependency. The old numbered lists do not fix
 future execution-Step numbering, order or scope; technical prerequisites and
@@ -2765,16 +2838,17 @@ Phase goals remain binding.
    as recorded below. The preceding policy milestones describe what their
    synchronization alone established, not today's implementation status.
    Camera/transaction runtime/CUDA validation, remaining renderer/checkpoint
-   and other later owner corrections, fresh corrected-source build and
-   toolchain/CUDA acceptance remain open.
+   and other later owner corrections and broader toolchain/runtime acceptance
+   remain open beyond the accepted Step 8 SH fresh-build/CUDA result.
    Remaining owner contracts beyond the adopted subsets, run values and
    checkpoint schema stay undecided; closed JSON membership and its Step 5
    enforcement are no longer pending. Step 5 documentation review and user
    research Git are complete, as are the Step 6 camera A completion operations.
-   [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) now has
-   advisor-reviewed, user-accepted implementation and CPU validation.
-   This sync records that bounded result; Step 7 document review and consolidated
-   user research Git remain pending, not a new policy selection or source-work start.
+   [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) is also
+   complete under its completion record. This sync records the accepted
+   [Step 8 SH function](#step-8-sh-correction-and-cpucuda-validation); its document
+   review, user research Git and completion processing remain pending, not a
+   new policy selection or source-work start.
    Confirm one root owner and one
    bounded Fix responsibility at a time only after the applicable policy is
    decided. The formal-entry authority, component separation, initial formal
@@ -3008,7 +3082,7 @@ Phase goals remain binding.
    the latter's CPU connection; formal publication and read-back remain open.
 
    **Step 5 functional acceptance and completion** are recorded below.
-   Step 6 is also complete; the current function is Step 7 below. The legacy
+   Steps 6 and 7 are also complete; the current function is Step 8 below. The legacy
    register preserves responsibility references, not an unchanged Step sequence.
 
 ### Step 6: canonical camera handoff
@@ -3069,16 +3143,18 @@ being duplicated here as new permanent policies.
 The document-review/Git-pending notes in the Step 6 records describe their
 original stage; the later completion record supersedes those as current work.
 This sync carries that completion forward without repeating Git or acceptance
-operations. The current function is Step 7 below; full camera runtime/CUDA and
-Gate obligations remain unchanged.
+operations. Step 7 is also complete and Step 8's SH function is accepted below;
+full camera runtime/CUDA and Gate obligations remain unchanged.
 
 ### Step 7: learning-update consistency and CPU validation
 
-**Current status:** reviewed A (learning-update consistency plus existing-consumer
-CPU validation) is implemented, advisor-reviewed and user-functionally-accepted.
-Document review, consolidated user research Git, push confirmation and Step 7
-completion processing remain pending. This function covers former Phase 1
-responsibilities 9/10 without renumbering their owners or planning future Steps.
+**Current status:** Step 7 is complete within reviewed A (learning-update
+consistency plus existing-consumer CPU validation). Functional acceptance,
+document review, consolidated user research Git, push confirmation and completion
+are recorded in the [Step 7 completion record](../../reports/corrected-4dgs/phase1/step7/step7-completion-report.txt).
+Earlier review/Git-pending notes are historical, not additional prerequisites.
+This function covers former Phase 1 responsibilities 9/10 without renumbering
+their owners or planning future Steps.
 
 The bounded implementation/CPU acceptance establishes:
 
@@ -3111,7 +3187,7 @@ not added again. Evidence: [implementation report](../../reports/corrected-4dgs/
 [validation evidence](../../reports/corrected-4dgs/phase1/step7/step7-implement1/step7-implement1-validation-evidence.json),
 and [advisor implementation review](../../reports/corrected-4dgs/phase1/step7/step7-implement1/step7-implement1-advisor-review.txt).
 The review's pending-user-acceptance wording is historical; the
-[current synchronization instruction](../../reports/corrected-4dgs/phase1/step7/step7-docsync1/step7-docsync1-instruction.txt)
+[Step 7 synchronization instruction](../../reports/corrected-4dgs/phase1/step7/step7-docsync1/step7-docsync1-instruction.txt)
 records subsequent user acceptance. Detailed methods remain in the
 [reviewed design](../../reports/corrected-4dgs/phase1/step7/step7-design1/step7-design1-design-report.md)
 and its [review](../../reports/corrected-4dgs/phase1/step7/step7-design1/step7-design1-advisor-review.txt),
@@ -3122,9 +3198,9 @@ Scene.save/capture observers and real report/metric/PNG consumers on CPU.
 Differentiable render inputs and isolated GPU/C-boundary images/gradients are
 scaffolding, not CUDA numerical evidence. Scene.save/capture observation is
 not formal checkpoint serialization, read-back, atomic publication or resume.
-Actual device/CUDA/gradient validation, fresh corrected-source build, real-data
-training, other renderer/SH/alpha-cap and checkpoint/manifest owners remain
-open. P0-T1/T2/T3 are not unconditionally closed; Phase/Gates and Viewer freeze
+Actual transaction/population device/CUDA/gradient validation and real-data
+training remain open. The separate Step 8 SH fresh-build/CUDA result below
+does not close those duties or other renderer/alpha-cap and checkpoint/manifest owners. P0-T1/T2/T3 are not unconditionally closed; Phase/Gates and Viewer freeze
 are unchanged. Run values, population comparisons and event conditions are not reselected.
 
 **Unresolved constant-depth visualization:** existing `easy_cmap` divides by
@@ -3135,18 +3211,81 @@ unverified. This does not block Step 7 A acceptance; review the handling and
 any necessary bounded correction before accepting real-GPU/pilot diagnostic
 output. No Fix, new Step or ticket is authorized by this documentation sync.
 
-Next: advisor document review → user research Git consolidating the accepted
-source/test and this plan → push confirmation and Step completion processing.
-This sync performs none of those Git/completion operations, creates no separate
-document-only Git checkpoint and does not start the next function. The advisor
-considers that function from the completion result and remaining duties.
+Step 7's document review/Git/completion sequence is complete under the record
+above; this sync neither repeats it nor expands its CPU acceptance. The current
+Step 8 status and remaining review/Git sequence follow below.
+
+### Step 8: SH correction and CPU/CUDA validation
+
+**Current status:** the SH function is advisor-reviewed and user-functionally-
+accepted as of 2026-10-04 JST. Document review, consolidated user research Git,
+push confirmation and Step 8 completion processing remain pending. This is
+the existing-buffer/kernel correction of the P0-1/P0-2/P0-3 SH subset, not a
+replacement renderer or a new training system.
+
+The accepted function corrects coefficient one's backward basis, connects SH
+forward to the existing conditional-mean buffer shared with geometry/backward,
+and uses negative sine time derivatives with addition across temporal degrees.
+Independent CPU expectations and actual CUDA validate the resulting color and
+gradient path through the existing binding and real model/getter/formal render.
+Maximum spatial/temporal degrees 3/2, 48 slots and warmup
+`0/0 -> 1/0 -> 2/0 -> 3/0 -> 3/1 -> 3/2` are preserved. Unsupported active
+combinations or reduced formal models are not newly accepted.
+
+Saved evidence, all from the existing `4dgs310` Python:
+
+- [Implementation](../../reports/corrected-4dgs/phase1/step8/step8-implement1/step8-implement1-report.md):
+  SH CPU suite 9 passing tests and existing formal CPU regression 291 passing tests.
+- [Fix1](../../reports/corrected-4dgs/phase1/step8/step8-fix1/step8-fix1-report.md):
+  12 passing input-identity tests and the repeated 9-test SH suite. Repeated
+  executions are not added as independent test counts.
+- [Validation1](../../reports/corrected-4dgs/phase1/step8/step8-validation1/step8-validation1-report.md):
+  fresh build, actual loaded binary and 15 actual-CUDA cases / 309 recorded
+  numerical comparisons passed, with no skip, fallback or tolerance relaxation.
+  Coverage includes every adopted active stage, moving conditional mean,
+  coefficient one, time modes separately and together, color/parameter
+  gradients, finite differences, inactive-slot zero gradients/output invariance,
+  diagnostic invariance and a bounded 3D control. The 3D control does not enable
+  a different formal branch.
+
+The [same-run result](../../reports/corrected-4dgs/phase1/step8/step8-validation1/step8-validation1-run/result.json)
+and [execution/preservation evidence](../../reports/corrected-4dgs/phase1/step8/step8-validation1/step8-validation1-evidence.json)
+bind the reviewed 477 actual inputs, fresh five-translation-unit build recipe
+and loaded binary, with input/binary/recipe and Git index preservation.
+The [advisor review](../../reports/corrected-4dgs/phase1/step8/step8-validation1/step8-validation1-advisor-review.txt)
+accepts this evidence; the [documentation-sync instruction](../../reports/corrected-4dgs/phase1/step8/step8-docsync1/step8-docsync1-instruction.txt)
+records subsequent user functional acceptance. Earlier pending labels in reports
+describe their original stages. These are existing results, not tests or CUDA
+rerun by this document sync. Detailed mathematics, fixtures and tolerances remain
+in the [reviewed design v2](../../reports/corrected-4dgs/phase1/step8/step8-design1/step8-design1-design-report-v2.md).
+
+Fix1's actual-input checks and validation1 implement the
+[Step-internal build/Git boundary](#step-internal-build-and-git-boundary):
+reviewed WIP is valid input without an intermediate commit/clean-tree gate.
+Success establishes this environment's focused SH build/execution, not general
+toolchain compatibility, a permanent version pin or complete P0-A7 acceptance.
+
+**Remaining limits:** real-data training; full camera device/CUDA validation;
+alpha-cap and other renderer duties; remaining time/V-B GPU health;
+training/population GPU execution; checkpoint/schema/read-back/resume/publication;
+nonfinite/failure handling; the known constant-depth diagnostic risk; CUDA
+Reference and Viewer acceptance; and Gate A/B remain outstanding. Steps 5/6/7
+retain their accepted scopes, and the Viewer freeze is unchanged.
+
+Next: advisor document review → consolidated user-owned research Git for Step 8
+→ push confirmation and completion processing. The advisor considers the next
+functional scope only afterward. This sync performs none of those operations,
+adds no future Step number and does not require another build for document-only
+or commit-identity changes.
 
 ### Historical Phase 1 responsibility register (former items 6–13)
 
 The following are preserved legacy references. Former item 7 maps to the
-completed Step 6 camera function; former items 9/10 map to the current
-[Step 7 A scope](#step-7-learning-update-consistency-and-cpu-validation).
-Their accepted implementation/CPU results are not unstarted work, while their
+completed Step 6 camera function; former items 9/10 map to the completed
+[Step 7 A scope](#step-7-learning-update-consistency-and-cpu-validation), and
+former item 8's SH subset maps to accepted
+[Step 8](#step-8-sh-correction-and-cpucuda-validation).
+Their accepted results are not unstarted work, while remaining non-SH
 actual runtime validation remains open. Former item 6's P0-T6 checkpoint foundation
 remains a required separate responsibility, without transfer to another owner.
 Withdrawn checkpoint-oriented Step 6 instructions are not execution authority.
@@ -3240,12 +3379,17 @@ checkpoint semantics, actual training and Gate A/B remain with their existing
 owners. No run values, new schema, policy or downstream execution authorization
 are introduced by Step 5 completion. The subsequent
 [Step 6 camera handoff](#step-6-canonical-camera-handoff) is also complete.
-Current [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation)
-accepts update/population/save-test implementation and CPU connection, with
-its document review and user research Git still pending.
+[Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) is complete
+within its update/population/save-test implementation and CPU scope. Current
+[Step 8](#step-8-sh-correction-and-cpucuda-validation) accepts focused SH CPU/CUDA
+validation, with its document review, user research Git and completion pending.
 Viewer freeze and all Gate requirements remain unchanged.
 
 ### Phase 2: focused validation
+
+The following register keeps the broader validation dependencies. Accepted
+Step 5/6/7 CPU and Step 8 focused SH CPU/CUDA evidence is reusable within its
+stated scope; this list does not require repeating it or declare Phase 2 complete.
 
 14. Run the config/run/checkpoint negative matrix, including post-merge
     effective-`eval` acceptance and rejection.
@@ -3376,8 +3520,11 @@ Complete at this milestone:
   followed by completed documentation review, user research Git, push confirmation
   and Step 6 completion, not full P0-0 runtime, CUDA/training or Gate closure;
 - the [Step 7 A implementation and CPU validation](#step-7-learning-update-consistency-and-cpu-validation),
-  advisor-reviewed and user-functionally-accepted. Its document review,
-  consolidated user research Git, push confirmation and Step completion remain pending.
+  followed by completed document review, user research Git, push confirmation
+  and Step completion;
+- the [Step 8 SH correction and CPU/CUDA validation](#step-8-sh-correction-and-cpucuda-validation),
+  advisor-reviewed and user-functionally-accepted, including fresh build and
+  actual loaded-binary/input binding, not whole-renderer/training or Gate acceptance.
 
 The adopted D-DATA, initialization/LR/batch/SH, population inputs and bounded
 handoff, seed/initial-loss/time/V-B and closed-key contracts are enforced within
@@ -3390,15 +3537,16 @@ remains withdrawn; no approved policy is reselected.
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
-- Step 7 document review, consolidated user research Git, push confirmation
+- Step 8 document review, consolidated user research Git, push confirmation
   and completion processing;
 - remaining source, config, test or tool fixes beyond the accepted Step 5
-  connection, Step 6 A camera scope and Step 7 A update/population/save-test scope,
-  including remaining camera runtime/CUDA and renderer mathematics, later
+  connection, Step 6 A camera scope, Step 7 A update/population/save-test scope
+  and Step 8 SH scope, including remaining camera runtime/CUDA and non-SH renderer mathematics, later
   checkpoint/reference consumers and environment provenance;
 - actual-runtime/device/CUDA and real-data training validation of P0-T1/T2/T3
   beyond their accepted Step 7 implementation/CPU connection;
-- remaining post-fix focused validation or CUDA build;
+- remaining post-fix focused validation and any required CUDA builds beyond
+  the accepted Step 8 run, not a repeat triggered only by this document sync;
 - pilot training or formal retraining, including any exact-resume Fix or
   equivalence acceptance;
 - a corrected checkpoint, SPL4, CUDA Reference, or population identity;
@@ -3419,7 +3567,7 @@ Not complete and not authorized by this document sync:
   D-TIME remain unresolved. Other D-* and run values are not selected by this
   decision;
 - D-TIME work beyond the accepted CPU connection and the unresolved time, D-INIT,
-  runtime/renderer, D-OPT, D-SH/P0, and run-value boundaries listed with
+  runtime/renderer, D-OPT, remaining D-SH/P0 obligations beyond Step 8, and run-value boundaries listed with
   [its three adopted contracts](#adopted-d-time-input-retention-and-handoff-contracts);
   those three contracts and the
   [current initial-PLY adoption](#adopted-current-initial-ply-reuse-and-raw-time-connection)
@@ -3428,7 +3576,7 @@ Not complete and not authorized by this document sync:
   numerical health validation remain outstanding;
 - advisor review of this post-acceptance sync, then consolidated user research
   Git, push confirmation and completion processing for
-  [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation). Steps 5 and 6
+  [Step 8](#step-8-sh-correction-and-cpucuda-validation). Steps 5, 6 and 7
   are complete, not awaiting another Fix, local-design approval or Git checkpoint.
   Their actual runtime/CUDA and separate downstream owner dependencies remain
   open. The advisor considers the next functional Step
@@ -3479,10 +3627,10 @@ Not complete and not authorized by this document sync:
 - actual run seed, runtime GPU evidence, deterministic claims/CUDA validation,
   and nonfinite/OOM/partial-failure policy; the one-seed input/initialization
   connection is adopted, not a guarantee of bitwise reproduction or resume;
-- fresh corrected-source build and focused CUDA acceptance of the `4dgs310`
-  first candidate, including the observed PyTorch-CUDA/system-nvcc separation
-  and the required execution/build provenance record; no package update is
-  implied;
+- execution/build acceptance for remaining owners beyond the successful
+  Step 8 SH fresh build and focused CUDA run in `4dgs310`, which recorded the
+  PyTorch-CUDA/system-nvcc separation and input/binary provenance. No blanket
+  toolchain acceptance, permanent pin or package update is implied;
 - remaining fields of the complete effective-config, dataset, source,
   environment, and build provenance schema; the single-authority/pre-JIT
   policy and `4dgs310` first-candidate role are decided;
@@ -3512,21 +3660,23 @@ adopted P1–P6 partial field contracts and Issue #26's adopted D-PREFILTER
 supplement, Issue #30's three adopted D-TIME contracts, Issue #33's
 [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection),
 and Issue #34's [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
-The [Step 5 minimal connection](#step-5-functional-acceptance) and
-[Step 6 camera A](#step-6-canonical-camera-handoff) are complete, including
-documentation review and user research Git. Current
-[Step 7 A implementation and CPU validation](#step-7-learning-update-consistency-and-cpu-validation)
-are advisor-reviewed and user-functionally-accepted. Next are advisor document review,
+The [Step 5 minimal connection](#step-5-functional-acceptance),
+[Step 6 camera A](#step-6-canonical-camera-handoff) and
+[Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) are complete,
+including documentation review and user research Git. Current
+[Step 8 SH correction and CPU/CUDA validation](#step-8-sh-correction-and-cpucuda-validation)
+is advisor-reviewed and user-functionally-accepted. Next are advisor document review,
 consolidated user research Git, push confirmation and completion processing;
-this document task does not perform them or complete Step 7. The advisor
+this document task does not perform them or complete Step 8. The advisor
 considers the next function only after completion. Later-owner source fixes,
-downstream consumer integration, fresh build, actual device transfer and
-GPU/training validation remain outstanding, not new Step 5/6/7 CPU
-acceptance conditions. No separate document-only Git trigger is created.
-P0-0, P0-1, P0-2, P0-3,
-P0-T1, P0-T2, P0-T3, the separate alpha-cap renderer-math responsibility, and
-P0-A6 retain their remaining runtime/owner validation requirements. The Step 6
-and Step 7 CPU results do not unconditionally close those roots or any Gate;
+downstream consumer integration and remaining device/GPU/training validation
+retain their own execution/build acceptance duties, not new Step 5/6/7 CPU
+acceptance conditions or repetition of accepted SH work. No separate
+document-only Git trigger is created.
+P0-1/P0-2/P0-3 are corrected and focused-validated within Step 8's selected
+SH branch. P0-0, P0-T1/T2/T3, alpha-cap and other renderer duties, P0-A6/A7 and
+remaining artifact owners retain their requirements. Step 8 does not expand
+Step 6/7's bounded CPU acceptance or pass any Gate;
 P0-T7 remains unfixed but unreachable for the
 first baseline. Checkpoint field schema/semantic validation remains the P0-T6
 diagnostic-foundation root, while exact resume remains a later independent

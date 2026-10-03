@@ -592,7 +592,8 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 		if (gaussian_dim == 3 || force_sh_3d){
 			result = computeColorFromSH(idx, D, M, (glm::vec3*)orig_points, *cam_pos, shs, clamped);
 		}else{
-			result = computeColorFromSH_4D(idx, D, D_t, M, (glm::vec3*)orig_points, *cam_pos, shs, clamped, ts, timestamp, time_duration);
+			// Match geometry and the mean saved for SH backward.
+			result = computeColorFromSH_4D(idx, D, D_t, M, (glm::vec3*)out_means3D, *cam_pos, shs, clamped, ts, timestamp, time_duration);
 		}
 		rgb[idx * C + 0] = result.x;
 		rgb[idx * C + 1] = result.y;
