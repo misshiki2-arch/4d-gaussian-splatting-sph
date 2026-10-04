@@ -1049,7 +1049,8 @@ renderCUDA(
 				continue;
 
 			const float G = exp(power);
-			const float alpha = min(0.99f, con_o.w * G);
+			const float raw_alpha = con_o.w * G;
+			const float alpha = min(0.99f, raw_alpha);
 			if (alpha < 1.0f / 255.0f)
 				continue;
 
@@ -1112,6 +1113,9 @@ renderCUDA(
 				bg_dot_dpixel += bg_color[i] * dL_dpixel[i];
 			dL_dalpha += (-T_final / (1.f - alpha)) * bg_dot_dpixel;
 
+			// Differentiate the executed cap, including its zero equality subgradient.
+			// Gate only the alpha-mediated chain, after every loss/background term.
+			dL_dalpha = raw_alpha < 0.99f ? dL_dalpha : 0.0f;
 
 			// Helpful reusable temporary variables
 			const float dL_dG = con_o.w * dL_dalpha;
