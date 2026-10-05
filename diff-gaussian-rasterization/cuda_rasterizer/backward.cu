@@ -604,7 +604,9 @@ __global__ void computeCov2DCUDA(int P,
 	// Gradients of loss w.r.t. transformed Gaussian mean t
 	float dL_dtx = x_grad_mul * -h_x * tz2 * dL_dJ02;
 	float dL_dty = y_grad_mul * -h_y * tz2 * dL_dJ12;
-	float dL_dtz = -h_x * tz2 * dL_dJ00 - h_y * tz2 * dL_dJ11 + (2 * h_x * t.x) * tz3 * dL_dJ02 + (2 * h_y * t.y) * tz3 * dL_dJ12;
+	// t.x/y already contain Z * clamp(X/Z, Y/Z). Outside the clamp they
+	// vary with Z, so only these covariance terms use 1 (inside/equality: 2).
+	float dL_dtz = -h_x * tz2 * dL_dJ00 - h_y * tz2 * dL_dJ11 + ((1 + x_grad_mul) * h_x * t.x) * tz3 * dL_dJ02 + ((1 + y_grad_mul) * h_y * t.y) * tz3 * dL_dJ12;
 
 	// Account for transformation of mean to t
 	// t = transformPoint4x3(mean, view_matrix);
