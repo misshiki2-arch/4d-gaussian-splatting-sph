@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **Steps-5-6-7-8-9-complete-and-user-research-Git-integrated / Step-10-camera-projection-footprint-gradient-CPU-and-CUDA-functionally-accepted / Step-10-document-review-user-research-Git-and-completion-pending / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / focused-camera-SH-and-alpha-CUDA-passed / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **Steps-5-6-7-8-9-10-complete-and-user-research-Git-integrated / Step-11-time-initialization-render-gradient-CPU-and-CUDA-functionally-accepted / Step-11-document-review-user-research-Git-and-completion-pending / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / focused-time-camera-SH-and-alpha-CUDA-passed / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -44,8 +44,8 @@ Step design and documentation timing by
 Git timing by [USR-GIT-09/10](../../4dgs-development-governance/40_USER_GIT_AND_ACCEPTANCE_RUNBOOK_JA.md),
 and overall progress by [RM-PROGRESS](../../4dgs-development-governance/30_REDMINE_WORKFLOW_JA.md).
 Technical owners, dependencies and Gate conditions remain unchanged. The
-current functional Step after completed Steps 5, 6, 7, 8 and 9 is
-[Step 10: camera projection, footprint and position gradients](#step-10-camera-projection-footprint-and-position-gradients),
+current functional Step after completed Steps 5–10 is
+[Step 11: time initialization, rendering and parameter gradients](#step-11-time-initialization-rendering-and-parameter-gradients),
 functionally accepted and awaiting document review, user research Git and
 push confirmation/completion processing.
 Former roadmap numbers, including 6=checkpoint, 7=camera and 9/10=training
@@ -98,8 +98,10 @@ artifact audit, not implementation or post-fix runtime validation.
 - Issue #25's D-PREFILTER investigation, PF-A/PF-B/PF-C, and supplemental
   safety conditions are user-accepted and synchronized under Issue #26 in
   [the renderer-owner contract](#approved-temporal-prefilter-contract).
-  Policy adoption and the Step 5 Python handoff are accepted; CUDA safety
-  validation and later consumer bindings remain open.
+  Policy adoption and the Step 5 Python handoff are accepted;
+  [Step 11](#step-11-time-initialization-rendering-and-parameter-gradients)
+  adds bounded CUDA safety/value/gradient evidence. Checks beyond that scope
+  and later consumer bindings remain open.
 - Issue #27's bounded D-TIME investigation is accepted and complete. Its
   user-adopted three input/retention/handoff contracts are synchronized under
   Issue #30 in [the time contract](#adopted-d-time-input-retention-and-handoff-contracts).
@@ -145,10 +147,13 @@ The [Step 9 alpha-cap function](#step-9-alpha-cap-correction-and-cpucuda-validat
 is also complete under the
 [Step 9 completion record](../../reports/corrected-4dgs/phase1/step9/step9-completion-report.txt),
 including document review, user research Git, push confirmation and progress processing.
-The current [Step 10 camera function](#step-10-camera-projection-footprint-and-position-gradients)
-is implemented, independently CPU- and CUDA-validated, advisor-reviewed and
-user-functionally-accepted. Its document review, consolidated user-owned
-research Git, push confirmation and completion processing remain pending.
+The [Step 10 camera function](#step-10-camera-projection-footprint-and-position-gradients)
+is complete under the
+[Step 10 completion record](../../reports/corrected-4dgs/phase1/step10/step10-completion-report.txt).
+The current [Step 11 time function](#step-11-time-initialization-rendering-and-parameter-gradients)
+is functionally accepted within its reviewed initialization/render/backward,
+CPU and real-CUDA scope. Its document review, consolidated user-owned research
+Git, push confirmation and completion/progress processing remain pending.
 These bounded acceptances are not training readiness or passage of any Gate.
 
 The Fudan Native model configuration, existing train/test-only dataset and
@@ -191,7 +196,10 @@ including SH regression on the same new binary.
 The subsequent [Step 10](#step-10-camera-projection-footprint-and-position-gradients)
 accepts existing-camera device transfer, formal render and CUDA projection/
 footprint/position-gradient validation, including the local clamp-z correction
-and same-binary alpha/SH regressions. Beyond that bounded camera scope,
+and same-binary alpha/SH regressions.
+[Step 11](#step-11-time-initialization-rendering-and-parameter-gradients) adds
+the existing time/V-B/PF connection, binary32 representation/correspondence,
+initialization and time-health/render/gradient acceptance. Beyond those scopes,
 remaining transaction runtime/CUDA validation, renderer and checkpoint
 corrections and actual GPU/training validation remain outstanding. P0 findings block only the gate whose accepted output
 would reach the defect; Viewer-only defects do not unnecessarily block corrected
@@ -872,10 +880,11 @@ initialization, or runtime owner.
   alias. The frame interval does not determine the Gaussian-center generation
   domain or the initial temporal-scale/`Σ_tt` formula.
 
-The following boundaries remain unresolved, not implicitly adopted:
+The following owner boundaries distinguish later acceptance from unresolved
+work; no unadopted choices are implied:
 
-- D-INIT retains actual GPU initialization/health validation beyond the
-  accepted seed/cast CPU connection. The
+- D-INIT retains initialization/health duties beyond the accepted Step 5 CPU
+  connection and [Step 11 limited GPU scope](#step-11-time-initialization-rendering-and-parameter-gradients). The
   [current-PLY adoption below](#adopted-current-initial-ply-reuse-and-raw-time-connection)
   resolves that input's reuse/raw-coordinate evidence, and the
   [adopted initial variance below](#adopted-initial-temporal-variance-and-d-time-connection)
@@ -886,10 +895,10 @@ The following boundaries remain unresolved, not implicitly adopted:
   inferred from the earlier frame rule. The later
   [Step 5 connection contract](#adopted-step-5-minimal-connection-contract)
   adopts seed and time/cast handoffs, now connected and CPU-validated in Step 5;
-  actual GPU cast/activation acceptance remains separate.
-- Time/runtime/renderer owners retain binary64-to-float32 representability,
-  time collapse and tolerances at that boundary, compiled-binary identity,
-  and actual CUDA validation; binary64 preflight is not post-cast proof.
+  Step 11 subsequently accepts the bounded actual GPU cast/activation checks.
+- Time/runtime/renderer owners retain representability, collapse/tolerances,
+  compiled-binary identity and CUDA duties beyond Step 11's accepted scope;
+  binary64 preflight alone is not post-cast proof.
 - D-OPT and related owners retain the positive-loss branches' time increment
   `0.1` and knn conditions for future separately adopted use, run values, and
   normalization-change effects. The initial rigid/motion-zero branch is now
@@ -982,7 +991,7 @@ The frame closed-interval rule alone did not define the initial-center domain;
 ordinary initial temporal variance is distinct from additional prefilter
 variance. Legacy reader/model behavior is not thereby formal-compliant.
 The bounded verified consumer integration is now accepted in Step 5. Remaining
-D-INIT/D-TIME numerical/GPU validation and owner/run decisions are outstanding;
+D-INIT/D-TIME validation beyond Step 11 and remaining owner/run decisions are outstanding;
 this does not complete runnable training, Phase 0, or any Gate.
 
 ##### Adopted initial temporal variance and D-TIME connection
@@ -1084,9 +1093,11 @@ semantics, and active SH. The later
 the closed key sets, time/cast handoff and initial loss branch. Remaining
 runtime collapse/tolerances, other D-* contracts, and each run's interval/
 divisor, initial point count, and other values remain open. Observed `[0,33]` selects
-neither a run interval nor a Gaussian-center domain. Step 5 now accepts parser
-enforcement and initial V-B/model handoff on CPU, not actual GPU cast/activation
-or numerical CUDA acceptance. D-INIT/D-TIME as a whole, runnable training,
+neither a run interval nor a Gaussian-center domain. Step 5 accepts parser
+enforcement and initial V-B/model handoff on CPU; the later
+[Step 11](#step-11-time-initialization-rendering-and-parameter-gradients) separately
+accepts limited actual GPU cast/activation and numerical CUDA evidence.
+D-INIT/D-TIME as a whole, runnable training,
 Phase 0 and all Gates remain incomplete.
 
 ##### Adopted D-DATA minimal connection contract
@@ -1534,15 +1545,18 @@ coverage are consolidated in [Step 5 functional acceptance](#step-5-functional-a
 not tests run by this synchronization. GPU boundaries were isolated; CUDA
 correctness and training readiness are not proven. Remaining run values and
 owner details stay open. Step 5 documentation review and user research Git
-are complete; the next selected function is the
-[Step 6 camera handoff](#step-6-canonical-camera-handoff), not another Step 5 Fix.
+are complete; its subsequent
+[Step 6 camera handoff](#step-6-canonical-camera-handoff) is also complete.
+The current Step 11 scope is recorded below, not another Step 5 Fix.
 
 ##### Remaining field and owner boundary
 
 Separate ownership does not itself complete a runnable contract. D-PREFILTER
 is [adopted](#approved-temporal-prefilter-contract), with the Step 5 Python
-handoff accepted; numerical/CUDA validation and later consumer binding remain
-outstanding. The
+handoff accepted and the
+[Step 11 time function](#step-11-time-initialization-rendering-and-parameter-gradients)
+providing bounded numerical/CUDA acceptance. Later-consumer binding and
+validation outside that scope remain outstanding. The
 [three D-TIME contracts](#adopted-d-time-input-retention-and-handoff-contracts)
 and their [adopted current-PLY connection](#adopted-current-initial-ply-reuse-and-raw-time-connection)
 are decided, as is the [initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
@@ -1561,7 +1575,7 @@ also adopts seed binding, initial loss branches, time/cast handoff, and the
 complete required/allowed key sets. Their bounded enforcement and CPU connection
 are accepted in Step 5; population/statistics CPU connection is accepted in
 [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation). Actual
-GPU/runtime health, remaining reporting/failure details and run values stay open. P3 fixes the
+GPU/runtime health beyond Step 11, remaining reporting/failure details and run values stay open. P3 fixes the
 maximum-SH input; the separate D-SH adoption selects staged active degrees,
 whose focused SH correctness is now accepted in
 [Step 8](#step-8-sh-correction-and-cpucuda-validation), not whole-renderer acceptance.
@@ -1570,7 +1584,7 @@ None of these clarifications reselects the approved Fudan Native branch.
 | Required point | Still undecided | Existing owner boundary |
 |---|---|---|
 | Before the corresponding implementation | Only remaining owner details beyond the adopted contracts, including necessary runtime health/tolerance and reporting/failure boundaries; closed key membership, seed binding, initial loss branches and time/cast handoff are not open choices or a requirement to redesign all reporting | Formal-entry field policy with the relevant existing owners; advisor review and user approval precede any new policy. Local helper/API/file/error design remains CODEX discretion. |
-| Before downstream execution acceptance | Remaining D-DATA, D-TIME, D-INIT, D-OPT, D-POP, D-SH, D-SEED-DEVICE and D-REPORT responsibilities beyond the accepted Step 5/6/7 CPU scopes and bounded [Step 8 SH CPU/CUDA scope](#step-8-sh-correction-and-cpucuda-validation); general GPU numerical health and actual-runtime transaction validation are not established by those results | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime and reporting retain their responsibilities. Do not turn their outstanding work into additional Step 5 Fix conditions or replace owner results with defaults; applicable Gate A/B requirements remain. |
+| Before downstream execution acceptance | Remaining D-DATA, D-TIME, D-INIT, D-OPT, D-POP, D-SH, D-SEED-DEVICE and D-REPORT responsibilities beyond the accepted Step 5/6/7 CPU scopes and bounded Steps 8–11 CPU/CUDA scopes, including [Step 11 time](#step-11-time-initialization-rendering-and-parameter-gradients); general GPU numerical health and actual-runtime transaction validation are not established by those results | Dataset/camera/mask, time, initialization, renderer, optimizer/population, SH schedule, determinism/runtime and reporting retain their responsibilities. Do not turn their outstanding work into additional Step 5 Fix conditions or replace owner results with defaults; applicable Gate A/B requirements remain. |
 | Before each run | Numeric seed, `N`, batch, LR and non-fixed loss weights, time interval/divisor, pilot/formal schedules and population stopping-threshold/unlimited choice within the adopted input contract, test/save cadence, actual output path/run identity | Each existing owner and the user fix explicit run values; actual GPU evidence and CUDA validation remain runtime duties. Legacy YAML values are not automatically adopted. |
 
 The D-* definitions and investigation-to-field mapping remain in the
@@ -1690,6 +1704,9 @@ Step 9 applies the same boundary to its reviewed 481 inputs and fresh alpha/SH
 run, as recorded in [its acceptance section](#step-9-alpha-cap-correction-and-cpucuda-validation).
 Step 10 binds 489 reviewed inputs to its fresh camera/alpha/SH run under the
 same boundary, as recorded in [its acceptance section](#step-10-camera-projection-footprint-and-position-gradients).
+Step 11 binds 502 reviewed inputs to fresh KNN/rasterizer builds and the
+initialization/time/camera/alpha/SH run under
+[its acceptance section](#step-11-time-initialization-rendering-and-parameter-gradients).
 The existing `4dgs310` toolchain succeeded for these bounded runs; this is not a permanent
 version pin, other-environment guarantee, whole-renderer toolchain acceptance,
 or completion of P0-A7 or a Gate. Intermediate commit/cleaning is not required.
@@ -2190,12 +2207,13 @@ The static audit alone does not establish the items below. Later
 [Step 8 SH evidence](#step-8-sh-correction-and-cpucuda-validation) and
 [Step 9 alpha/SH evidence](#step-9-alpha-cap-correction-and-cpucuda-validation),
 followed by [Step 10 camera/alpha/SH evidence](#step-10-camera-projection-footprint-and-position-gradients),
+and [Step 11 initialization/time evidence](#step-11-time-initialization-rendering-and-parameter-gradients),
 establish their reviewed input/build/loaded-binary relations and focused
 post-fix CUDA values/gradients in the observed `4dgs310` environment.
 The following limits remain outside those bounded runs:
 
-- source/binary identity beyond the recorded Step 8/9/10 runs;
-- general CUDA float32, atomic-add, and scheduling behavior beyond the focused camera/SH/alpha cases;
+- source/binary identity beyond the recorded Step 8/9/10/11 runs;
+- general CUDA float32, atomic-add, and scheduling behavior beyond the focused time/camera/SH/alpha cases;
 - deterministic ordering for equal-depth sort keys;
 - the historical full training/render invocation and effective values;
 - a same-invocation binding between the historical checkpoint and `4dgs310`,
@@ -2207,11 +2225,11 @@ The following limits remain outside those bounded runs:
 - source/build binding for later training and artifact-producing binaries;
 - the corrected checkpoint, population count, representative selection, and
   fixed range, none of which exist yet;
-- full post-fix camera and renderer runtime state beyond the synthetic camera/SH/alpha fixtures;
+- full post-fix camera and renderer runtime state beyond the synthetic initialization/time/camera/SH/alpha fixtures;
 - full-scene `num_rendered` and tile-reference population;
-- remaining post-fix forward and gradient correctness outside accepted Step 8 SH, Step 9 alpha and Step 10 camera;
+- remaining post-fix forward and gradient correctness outside accepted Step 8 SH, Step 9 alpha, Step 10 camera and Step 11 time;
 - `4dgs310` runtime acceptance for remaining renderer, training and artifact
-  responsibilities beyond the successful camera/SH/alpha fresh-build/CUDA runs;
+  responsibilities beyond the successful initialization/time/camera/SH/alpha fresh-build/CUDA runs;
 - the runtime frequency and formal-dataset impact of nonfinite values, OOM,
   and other numerical edge cases;
 - the external SuperSplat PLY coefficient/property convention;
@@ -2241,7 +2259,7 @@ the remaining items must not be presented as the formal contract.
 | decided: completed-update transaction | Start from completed count zero and execute `k=1..N` exactly once with no `N+1` fetch; apply schedules before forward; forward/loss/backward; collect and apply current densification statistics before Parameter replacement; same-Parameter optimizer step including `k=N`; zero-grad; scheduled densify/clone/split/prune; scheduled opacity reset; then declare completed state `k`, save checkpoint `k`, and evaluate that same state. Densify/prune precedes reset when simultaneous; prune reads post-step/pre-reset opacity; children derive from post-step parents; reset reaches survivors and children. Final checkpoint `N` is mandatory from effective post-merge `N`. Optimization input loss `k` remains distinct from completed-state test metric `k`; initial state zero is not an update or selection state. Candidate B is adopted and A/C/D are rejected for the bounded reasons above. [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) accepts implementation and CPU validation; actual GPU/training and separate checkpoint-owner validation remain required. |
 | decided: independent formal entry/effective configuration | Use a lightweight formal-only bootstrap, one stdlib-only pure resolver/validator, and a separately loaded heavy runtime. The resolver is the sole authority for one explicit formal configuration and completes read-only validation in the same process before heavy import/JIT. Issue #18's strict nested semantic JSON v1 + immutable verified state and single from-scratch mode, refined by Issue #23's adopted P1–P6 under Issue #24, are fixed under [the JSON contract](#approved-json-and-single-run-mode-contract); the initial formal CLI accepts only its locator, excludes `quiet`, and permits no semantic override or legacy/general bypass. The typed state is limited to semantic authority, approved fixed values, derived final/test/save schedules, unsupported-branch absence, and output identity; the [Step 5 connection contract](#adopted-step-5-minimal-connection-contract) binds seed input, initial loss branch and time/V-B handoff under closed key sets without moving runtime, digest, checkpoint, manifest, camera-math, RNG, reporting or publication owners into the resolver. Existing output rejects before heavy import; heavy load/JIT and side-effect-free preparation precede an exclusive claim immediately before the first writer. Issue #10 Candidate C/D remain rejected. Helper/file names, local API/error details, control structure, and whether the first-candidate four-file layout is suitable remain CODEX implementation discretion. |
 | required before implementation | Remaining owner details beyond the adopted closed-key/input/handoff subsets [above](#remaining-field-and-owner-boundary) and accepted Step 5 connection; checkpoint schema. Camera choices in [Step 6 A](#step-6-canonical-camera-handoff), loop connection and population statistics-lifetime/point-correspondence correction in [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) are implemented and CPU-accepted, not pending local-design approval. The completed-update event order, formal-entry authority, JSON/mode choice, adopted P1–P6, PF/time/V-B, D-DATA, minimal initialization/LR/batch/SH, configurability/population conditions and eight-field input/handoff contract, Step 5 seed/initial-loss/time-cast/key-set adoption, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
-| required before downstream execution acceptance | Remaining D-* owner decisions and implementation/validation beyond the accepted Step 5 CPU connection, as classified [above](#remaining-field-and-owner-boundary), including PF numerical/CUDA and later-consumer binding. Owner separation permits neither implicit defaults nor a claim of training readiness. |
+| required before downstream execution acceptance | Remaining D-* owner decisions and implementation/validation beyond the accepted Step 5 CPU connection and Steps 8–11 bounded CPU/CUDA scopes, as classified [above](#remaining-field-and-owner-boundary), including PF validation outside Step 11 and later-consumer binding. Owner separation permits neither implicit defaults nor a claim of training readiness. |
 | required before formal retraining | Numeric final iteration and pilot/formal schedules; explicit pilot/formal population stopping-threshold/unlimited settings within the adopted input contract; densification/prune/reset numeric schedules; complete effective-config snapshot; explicit run seed and runtime determinism/device evidence; test-report metric/cadence; nonfinite/OOM/partial-failure policy; immutable output directory and atomic publication; and, only if resume will be enabled, field-level restore state plus numerical/bitwise equivalence acceptance thresholds. |
 | required before formal artifact generation | SPL4-v2 log/linear scale representation; PNG clamp/round/color/codec; full/range CUDA Reference purposes; manifest schema and validator; source-to-binary build provenance; bundle/index/external-digest ownership; direct evidence as formal same-invocation evidence or diagnostic-only. |
 | required before Viewer restart | Corrected population and fixed range; Viewer provenance binding; strict parser acceptance; removal or versioned isolation of historical hard-coded ranges; Viewer capture/comparison bundle identity. |
@@ -2287,6 +2305,12 @@ adds independent CPU and actual-device/CUDA evidence for the existing camera
 handoff, projection/footprint and local clamp-z correction in layers 1, 2a and
 9–12, with same-binary alpha/SH regression. This does not replace later
 checkpoint/Reference/publication consumer checks or the remaining Gate duties.
+
+The accepted [Step 11 scope](#step-11-time-initialization-rendering-and-parameter-gradients)
+adds real initialization, time/V-B/PF consumer and limited time-health/value/
+gradient evidence, with fresh KNN/rasterizer identity and same-binary regression.
+It does not establish GPU training transactions, general failure handling or
+whole-Gate acceptance.
 
 | # | Validation layer | Primary findings closed |
 |---:|---|---|
@@ -2338,8 +2362,9 @@ CUDA JIT, CUDA call, or formal render is reached. Cross-entrypoint tests must
 prove that training, evaluation/test rendering, CUDA Reference generation, and
 checkpoint consumers use one effective identity rather than independently
 matching defaults. Step 5 accepts the initial formal-entry and training/render
-Python connection; the full later-checkpoint/reference cross-entrypoint suite
-and CUDA acceptance remain outstanding.
+Python connection. Steps 8–11 add their bounded CUDA acceptance; the full
+later-checkpoint/reference cross-entrypoint suite and CUDA duties outside
+those accepted scopes remain outstanding.
 
 Formal-entry validation must additionally prove import order without importing
 the heavy path in the test fixture: resolution and validation finish first,
@@ -2440,9 +2465,10 @@ rerun by this documentation sync.
 
 ### Temporal-prefilter validation requirements
 
-The following adopted requirements span the accepted Step 5 Python handoff
-and still-unaccepted numerical/CUDA/later-consumer checks. No tests were
-performed by this synchronization:
+The following adopted requirements span the accepted Step 5 Python handoff,
+the [Step 11 bounded numerical/CUDA evidence](#step-11-time-initialization-rendering-and-parameter-gradients),
+and remaining checks/later-consumer binding outside those scopes.
+No tests were performed by this synchronization:
 
 - From a valid fixture after its full contracts are resolved, independently
   invert each PF-B missing/type/value/alias/decoded-duplicate condition and
@@ -2474,8 +2500,9 @@ performed by this synchronization:
 Keep `prefiltered=False`, screen-space low-pass `0.3`, camera projection/cull,
 the original temporal cull, five renderer values, SH, alpha-cap, and training
 transaction semantics unchanged. Concrete fixtures, local APIs, and numeric
-tolerances belong to a later bounded implementation/Validation responsibility;
-none is invented or executed here. These conditions refine existing renderer
+tolerances for the accepted subset remain in Step 11's reviewed design and
+evidence; remaining checks belong to their bounded implementation/Validation
+owners. None is invented or executed here. These conditions refine existing renderer
 and consumer validation obligations, not a new roadmap Step.
 
 ## Manifest provenance requirements
@@ -2670,7 +2697,9 @@ Step 9 accepts the separately owned alpha-cap correction and its focused
 CPU/CUDA suite, including the selected float32 boundary behavior and same-run
 input/build/binary binding. Step 10 accepts the existing camera device/formal-render/
 CUDA handoff and local projection-covariance clamp-z correction, with same-binary
-alpha/SH regression. These bounded renderer results are reusable evidence,
+alpha/SH regression. Step 11 accepts the existing time-bearing initialization,
+time/V-B/PF render/gradient connection and limited CUDA health/failure propagation.
+These bounded renderer results are reusable evidence,
 not satisfaction of the remaining Gate A conditions.
 Camera consumers beyond that accepted scope, transaction device/CUDA validation, remaining renderer math,
 checkpoint foundation, broader execution/build provenance and real-data
@@ -2806,6 +2835,13 @@ P1 correction belongs to that camera/renderer boundary, not SH P0-1/P0-2/P0-3
 or alpha-cap. P0-A6 still owns later camera publication; no root/Gate is
 transferred or universally closed by these results.
 
+For initialization/time and renderer consumers, Step 11 accepts the bounded
+binary32 correspondence, time/V-B/PF handoff and CUDA health/value/gradient
+scope recorded in [its section](#step-11-time-initialization-rendering-and-parameter-gradients).
+This supplements existing owners without transferring checkpoint/publication,
+general failure handling or training-transaction GPU duties, or closing all
+renderer mathematics or P0-A7.
+
 ## Viewer unfreeze and acceptance gates
 
 Viewer development remains frozen until all of the following hold:
@@ -2837,15 +2873,16 @@ the historical `[524288,1048576)` range.
 ## Dependency order
 
 This register retains the original responsibility numbers for historical
-cross-references. Steps 5, 6, 7, 8 and 9 are complete. The current functional
-[Step 10](#step-10-camera-projection-footprint-and-position-gradients) is functionally
-accepted for camera projection/footprint/position-gradient correction and
-CPU/CUDA validation, with document review/user research Git/push confirmation/
+cross-references. Steps 5–10 are complete. The current functional
+[Step 11](#step-11-time-initialization-rendering-and-parameter-gradients) is functionally
+accepted for time-bearing initialization/rendering/original-Parameter gradients
+and CPU/CUDA validation, with document review/user research Git/push confirmation/
 completion pending. Step 7 covered
 former responsibilities 9/10, and Step 8 covered the SH subset of former item 8.
 Step 9 is the separate alpha responsibility, not former item 9's
-training-state task or former item 6's checkpoint task. Current Step 10 is the
+training-state task or former item 6's checkpoint task. Step 10 is the
 camera/projection responsibility, not former item 10's optimizer/population task.
+Step 11 is not former item 11's evaluation-policy responsibility.
 Other unstarted work remains identified
 by its finding/owner and Gate dependency. The old numbered lists do not fix
 future execution-Step numbering, order or scope; technical prerequisites and
@@ -2905,7 +2942,7 @@ Phase goals remain binding.
    Transaction runtime/CUDA validation, remaining renderer/checkpoint and
    later camera-publication/consumer duties and broader toolchain/runtime
    acceptance remain open beyond the accepted Step 8 SH, Step 9 alpha and
-   Step 10 camera/alpha/SH fresh-build/CUDA results.
+   Step 10 camera/alpha/SH and Step 11 initialization/time fresh-build/CUDA results.
    Remaining owner contracts beyond the adopted subsets, run values and
    checkpoint schema stay undecided; closed JSON membership and its Step 5
    enforcement are no longer pending. Step 5 documentation review and user
@@ -2913,8 +2950,10 @@ Phase goals remain binding.
    [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) is also
    complete under its completion record, as is
    [Step 8 SH](#step-8-sh-correction-and-cpucuda-validation) and
-   [Step 9 alpha](#step-9-alpha-cap-correction-and-cpucuda-validation). This sync records the accepted
-   [Step 10 camera function](#step-10-camera-projection-footprint-and-position-gradients); its document
+   [Step 9 alpha](#step-9-alpha-cap-correction-and-cpucuda-validation) and
+   [Step 10 camera](#step-10-camera-projection-footprint-and-position-gradients).
+   This sync records the accepted
+   [Step 11 time function](#step-11-time-initialization-rendering-and-parameter-gradients); its document
    review, user research Git and completion processing remain pending, not a
    new policy selection or source-work start.
    Confirm one root owner and one
@@ -3150,7 +3189,7 @@ Phase goals remain binding.
    the latter's CPU connection; formal publication and read-back remain open.
 
    **Step 5 functional acceptance and completion** are recorded below.
-   Steps 6, 7, 8 and 9 are also complete; the current function is Step 10 below. The legacy
+   Steps 6–10 are also complete; the current function is Step 11 below. The legacy
    register preserves responsibility references, not an unchanged Step sequence.
 
 ### Step 6: canonical camera handoff
@@ -3213,7 +3252,7 @@ being duplicated here as new permanent policies.
 The document-review/Git-pending notes in the Step 6 records describe their
 original stage; the later completion record supersedes those as current work.
 This sync carries that completion forward without repeating Git or acceptance
-operations. Steps 7, 8 and 9 are also complete; Step 10's accepted camera
+operations. Steps 7–10 are also complete; Step 11's accepted time
 function follows below. Other camera consumers/publication and Gate
 obligations remain unchanged.
 
@@ -3285,7 +3324,7 @@ output. No Fix, new Step or ticket is authorized by this documentation sync.
 
 Step 7's document review/Git/completion sequence is complete under the record
 above; this sync neither repeats it nor expands its CPU acceptance. The current
-Step 10 status and remaining review/Git sequence follow below.
+Step 11 status and remaining review/Git sequence follow below.
 
 ### Step 8: SH correction and CPU/CUDA validation
 
@@ -3349,8 +3388,8 @@ nonfinite/failure handling; the known constant-depth diagnostic risk; CUDA
 Reference and Viewer acceptance; and Gate A/B remain outstanding. Steps 5/6/7
 retain their accepted scopes, and the Viewer freeze is unchanged.
 
-Step 8's completion operations are not repeated by this sync. Step 9's
-completion and current Step 10's accepted function follow below.
+Step 8's completion operations are not repeated by this sync. Completion of
+Steps 9 and 10 and current Step 11's accepted function follow below.
 
 ### Step 9: alpha-cap correction and CPU/CUDA validation
 
@@ -3420,17 +3459,18 @@ order, JSON/population contracts, Gate requirements and Viewer freeze remain
 unchanged. The bounded success does not close another owner's obligations.
 
 Step 9's completion operations are not repeated by this sync. The subsequent
-Step 10 function and its remaining review/Git sequence follow below. The
+Step 10 completion and Step 11 function/review/Git sequence follow below. The
 [Step-internal build/Git boundary](#step-internal-build-and-git-boundary)
 permits reuse of this accepted evidence: documentation-only or commit-identity
 changes alone do not trigger another build or numerical run.
 
 ### Step 10: camera projection, footprint and position gradients
 
-**Current status:** the Step 10 function is implemented, independently CPU-
-and CUDA-validated, advisor-reviewed and user-functionally-accepted as of
-2026-10-05 JST. Document review, consolidated user research Git, push
-confirmation and completion/progress processing remain pending. The
+**Current status:** Step 10 is complete, including functional acceptance,
+document review, consolidated user research Git, push confirmation and
+completion/progress processing, under the
+[2026-10-06 completion record](../../reports/corrected-4dgs/phase1/step10/step10-completion-report.txt).
+The
 [post-acceptance sync instruction](../../reports/corrected-4dgs/phase1/step10/step10-docsync1/step10-docsync1-instruction.txt)
 records user acceptance following the
 [Validation1 advisor review](../../reports/corrected-4dgs/phase1/step10/step10-validation1/step10-validation1-advisor-review.txt).
@@ -3494,13 +3534,93 @@ explicit float PF=-1.0, time/V-B/loss/update order, JSON/population contracts
 and Viewer freeze are unchanged. Observed environment success is neither a
 permanent version pin nor a different-GPU guarantee.
 
-Next: advisor document review → consolidated user-owned research Git for
-Step 10 → push confirmation and completion/progress processing. The advisor
-then considers the next functional scope; this sync assigns no Step 11.
+Step 10's historical review/Git-pending notes are superseded by its completion
+record. The subsequent Step 11 acceptance and pending completion sequence
+follow below; no Step 10 Git/progress operation is repeated.
 No test/build/CUDA or Git/progress operation is performed by this sync.
 Under the [Step-internal build/Git boundary](#step-internal-build-and-git-boundary),
 documentation-only edits or commit-identity changes alone do not require
 repeating accepted numerical validation.
+
+### Step 11: time initialization, rendering and parameter gradients
+
+**Current status:** functionally accepted within the reviewed CPU and limited
+real-CUDA scope, under the
+[Validation3 advisor review](../../reports/corrected-4dgs/phase1/step11/step11-validation3/step11-validation3-advisor-review.txt).
+Document review, consolidated user research Git, push confirmation and
+completion/progress processing remain pending. This is the function from
+time-bearing 4D Gaussian initialization through time-conditioned rendering
+and gradients to the original Parameters, not merely a diagnostic component
+or the historical roadmap item 11's evaluation-policy task.
+
+The minimal supplementation reuses the existing reader, sampling, KNN, model,
+camera and formal render/backward. It binds binary32 time representation and
+row/time correspondence to the verified time/V-B/PF consumers, and propagates
+actual CUDA time-health failures. The normal conditional mean/covariance/
+marginal, one-time time conversion, V-B, learned temporal variance and sampling
+semantics remain unchanged. Fix1 makes only the six formal tensor arguments
+contiguous before the custom Function, preserving gradients to the original
+Parameters. Fix2 aligns the independent CPU compositor with CUDA depth-key
+order while preserving original row/leaf identity, comparison domain and
+contributor diagnostics. Fix2 v2's non-singular CPU fixture correction neither
+prohibits optical-axis Gaussians in formal training nor changes production SH.
+
+Saved evidence, using only the existing `4dgs310` interpreter:
+
+- [Implementation/CPU report](../../reports/corrected-4dgs/phase1/step11/step11-implement1/step11-implement1-report.md)
+  and [Fix1 report](../../reports/corrected-4dgs/phase1/step11/step11-fix1/step11-fix1-report.md)
+  retain their own CPU results and historical limits.
+  [Fix2 v2](../../reports/corrected-4dgs/phase1/step11/step11-fix2/step11-fix2-report-v2.md)
+  and its [review](../../reports/corrected-4dgs/phase1/step11/step11-fix2/step11-fix2-advisor-review-v2.txt)
+  record final CPU 22 plus source-identity 6 successful test methods; results
+  across stages are not added into an independent-test total.
+- [Validation3 report](../../reports/corrected-4dgs/phase1/step11/step11-validation3/step11-validation3-report.md):
+  one designated entry execution, exit 0, `passed/complete`; KNN 3-unit and
+  rasterizer 5-unit fresh build and actual load; real reader → sampling → KNN →
+  model → camera → render/backward in six initialization cases
+  (d=1/2/2.5 × all rows/replacement sampling), including seven original-
+  Parameter gradient groups, depth order, row/leaf and diagnostic invariance.
+- Time 15 cases and two-width CUDA FD 442 comparisons; health 21 records;
+  lower/upper/marker reached within 1,128 of at most 4,096 boundary candidates;
+  same-binary camera 54, alpha 34 and SH 15 cases passed at unchanged tolerances.
+  The review corrects the report's SH classification: 309 records comprise
+  295 ratio-bearing comparisons plus 14 numerical FD error summaries, not
+  nonnumerical records. Case, comparison, CPU method, FD endpoint and search
+  counts are distinct; detailed errors remain in the report/review.
+- The [502 reviewed input record](../../reports/corrected-4dgs/phase1/step11/step11-fix2/step11-fix2-source-candidate-v2.json),
+  [same-run result](../../reports/corrected-4dgs/phase1/step11/step11-validation3/step11-validation3-run/result.json)
+  and [independent evidence](../../reports/corrected-4dgs/phase1/step11/step11-validation3/step11-validation3-evidence.json)
+  bind actual inputs, fresh recipe/objects/binaries and loaded modules, with
+  WIP/index and old-result preservation. Their machine output, not manually
+  copied identifiers or base HEAD alone, is the identity authority.
+
+**Evidence limits:** initialization's independent pixel comparison concerns
+the designated pixel, whereas diagnostic noninterference checks full output
+buffers; this is not whole-image independent mathematical parity. The original
+float `m > double 0.05` remains unchanged: strict equality is unrepresentable,
+the observed marker is above it, and the selected lower sample is not the
+nearest lower float itself. Subnormal dt preserved its difference on this run;
+actual FTZ-loss rejection did not occur. Pointops2 identity and public-call
+rejection guards are not a dedicated kernel trace. The observed driver is
+617.42, unlike the previous run's 610.47; current success does not prove an
+identical historical toolchain or another GPU's reproducibility.
+
+**Remaining limits:** real-data learning/quality/convergence; training-update/
+population GPU validation; checkpoint/schema/read-back/resume/publication;
+remaining renderer mathematics and general failure handling; constant-depth
+diagnostics; CUDA Reference/artifact/manifest and full P0-A7; all Gate/Phase
+completion and Viewer unfreeze. Camera, SH3/2 with 48 slots/warmup, alpha-cap,
+PF exact float -1.0, time/V-B, JSON/population, update ordering and P2
+approximations are unchanged. These results supplement, not rewrite, the
+historical audit and Step 5's CPU-only acceptance. Limits stated in earlier
+Step sections describe their own scopes; the additional time acceptance is
+bounded by this section rather than reopening or expanding those Steps.
+
+Next: advisor document review → user Git for the whole Step 11 →
+push confirmation and completion/progress processing. Only then does the
+advisor consider the next functional scope; this sync assigns no next number,
+execution order or run values. No test/build/CUDA, Git write or Redmine connection is
+performed by this sync, nor required solely by a document/commit-identity change.
 
 ### Historical Phase 1 responsibility register (former items 6–13)
 
@@ -3510,9 +3630,11 @@ completed Step 6 camera function; former items 9/10 map to the completed
 former item 8's SH subset maps to completed
 [Step 8](#step-8-sh-correction-and-cpucuda-validation).
 The completed [Step 9 alpha function](#step-9-alpha-cap-correction-and-cpucuda-validation)
-and current [Step 10 camera function](#step-10-camera-projection-footprint-and-position-gradients)
+and completed [Step 10 camera function](#step-10-camera-projection-footprint-and-position-gradients)
 have separate functional acceptance and are not a reassignment of former
 items 9/10. Step 10 extends the camera/projection validation, not optimizer ownership.
+The current [Step 11 time function](#step-11-time-initialization-rendering-and-parameter-gradients)
+is not former item 11's evaluation-policy responsibility.
 Their accepted results are not unstarted work, while remaining
 actual runtime validation remains open. Former item 6's P0-T6 checkpoint foundation
 remains a required separate responsibility, without transfer to another owner.
@@ -3611,15 +3733,18 @@ are introduced by Step 5 completion. The subsequent
 within its update/population/save-test implementation and CPU scope.
 [Step 8](#step-8-sh-correction-and-cpucuda-validation) is complete within its SH scope;
 [Step 9](#step-9-alpha-cap-correction-and-cpucuda-validation) is complete within its alpha scope;
-current [Step 10](#step-10-camera-projection-footprint-and-position-gradients) accepts
-camera CPU/CUDA validation, with document review, user research Git, push
+[Step 10](#step-10-camera-projection-footprint-and-position-gradients) is complete
+within camera CPU/CUDA validation; current
+[Step 11](#step-11-time-initialization-rendering-and-parameter-gradients) accepts
+bounded initialization/time/V-B/PF CPU/CUDA evidence, with document review, user research Git, push
 confirmation and completion pending.
 Viewer freeze and all Gate requirements remain unchanged.
 
 ### Phase 2: focused validation
 
 The following register keeps the broader validation dependencies. Accepted
-Step 5/6/7 CPU, Step 8 SH, Step 9 alpha and Step 10 camera/alpha/SH CPU/CUDA evidence is reusable
+Step 5/6/7 CPU, Step 8 SH, Step 9 alpha, Step 10 camera/alpha/SH and
+Step 11 initialization/time CPU/CUDA evidence is reusable
 within each accepted scope; this list neither requires repetition for document
 or commit-identity changes alone nor declares Phase 2 complete.
 
@@ -3727,7 +3852,8 @@ Complete at this milestone:
   focused-validation, or Gate acceptance; and
 - repository synchronization under Issue #26 of Issue #25's adopted
   D-PREFILTER policy and safety conditions. Step 5's Python handoff is accepted;
-  numerical/CUDA validation and checkpoint/manifest binding remain incomplete.
+  Step 11 adds bounded numerical/CUDA evidence, while checkpoint/manifest
+  binding and validation beyond that scope remain incomplete.
 - Issue #27's accepted bounded investigation and repository synchronization
   under Issue #30 of the [three adopted D-TIME contracts](#adopted-d-time-input-retention-and-handoff-contracts).
   This closes only those adoption questions, not D-TIME as a whole, remaining
@@ -3740,7 +3866,8 @@ Complete at this milestone:
 - repository synchronization under Issue #34 of the
   [adopted initial-variance contract](#adopted-initial-temporal-variance-and-d-time-connection).
   Its field/initial-value/V-B adoption and Step 5 CPU initialization handoff
-  are complete, not actual GPU numerical validation or remaining time/run decisions.
+  are complete. Step 11 separately accepts bounded GPU numerical validation,
+  not remaining time/run decisions.
 - Issue #35's bounded P2, Issue #36's bounded P1, Issue #37's bounded P3,
   Issue #38's bounded P5, Issue #39's bounded P4, and Issue #41's bounded P6 component implementation
   and historical CPU acceptance, now integrated into
@@ -3764,8 +3891,12 @@ Complete at this milestone:
 - the [Step 10 camera projection, footprint and position-gradient function](#step-10-camera-projection-footprint-and-position-gradients),
   advisor-reviewed and user-functionally-accepted, including the local clamp-z
   correction, independent CPU/actual-CUDA evidence, same-binary alpha/SH
-  regression and reviewed-input/build/loaded-binary binding, not
-  whole-renderer/training or Gate acceptance.
+  regression and reviewed-input/build/loaded-binary binding, followed by
+  completed document review, user Git and push/completion processing;
+- the [Step 11 initialization/time/render/gradient function](#step-11-time-initialization-rendering-and-parameter-gradients),
+  functionally accepted with the reviewed CPU/Fix and real-CUDA results,
+  original-Parameter connection and actual-input/build/load evidence, not
+  whole-renderer/training, Step completion operations or Gate acceptance.
 
 The adopted D-DATA, initialization/LR/batch/SH, population inputs and bounded
 handoff, seed/initial-loss/time/V-B and closed-key contracts are enforced within
@@ -3778,16 +3909,16 @@ remains withdrawn; no approved policy is reselected.
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
-- Step 10 document review, consolidated user research Git, push confirmation
+- Step 11 document review, consolidated user research Git, push confirmation
   and completion processing;
 - remaining source, config, test or tool fixes beyond the accepted Step 5
   connection, Step 6 A camera scope, Step 7 A update/population/save-test scope
-  and Step 8 SH / Step 9 alpha / Step 10 camera scopes, including other renderer mathematics, later
+  and Step 8 SH / Step 9 alpha / Step 10 camera / Step 11 time scopes, including other renderer mathematics, later
   checkpoint/reference consumers and environment provenance;
 - actual-runtime/device/CUDA and real-data training validation of P0-T1/T2/T3
   beyond their accepted Step 7 implementation/CPU connection;
 - remaining post-fix focused validation and any required CUDA builds beyond
-  the accepted Step 8/9/10 runs, not a repeat triggered only by this document sync;
+  the accepted Step 8/9/10/11 runs, not a repeat triggered only by this document sync;
 - pilot training or formal retraining, including any exact-resume Fix or
   equivalence acceptance;
 - a corrected checkpoint, SPL4, CUDA Reference, or population identity;
@@ -3807,25 +3938,26 @@ Not complete and not authorized by this document sync:
   Fix or tolerance choices. Later camera publication and other consumers
   remain with their existing owners;
 - any other still-undecided supported-path renderer behavior;
-- D-PREFILTER validation beyond the accepted Python handoff: independent
-  value/gradient and fresh-binary CUDA validation, and checkpoint/manifest identity binding under the
+- D-PREFILTER validation beyond the accepted Python handoff and
+  [Step 11 independent value/gradient and fresh-binary CUDA scope](#step-11-time-initialization-rendering-and-parameter-gradients),
+  including checkpoint/manifest identity binding under the
   [adopted contract](#approved-temporal-prefilter-contract); adoption and safety
-  conditions are decided, while original `Σ_tt` health and the remainder of
+  conditions are decided, while original `Σ_tt` health outside that scope and the remainder of
   D-TIME remain unresolved. Other D-* and run values are not selected by this
   decision;
-- D-TIME work beyond the accepted CPU connection and the unresolved time, D-INIT,
+- D-TIME work beyond the accepted CPU connection and Step 11, and the unresolved time, D-INIT,
   runtime/renderer, D-OPT, remaining D-SH/P0 obligations beyond Step 8, and run-value boundaries listed with
   [its three adopted contracts](#adopted-d-time-input-retention-and-handoff-contracts);
   those three contracts and the
   [current initial-PLY adoption](#adopted-current-initial-ply-reuse-and-raw-time-connection)
   and [initial-variance adoption](#adopted-initial-temporal-variance-and-d-time-connection)
   are no longer open adoption questions; actual GPU cast/activation and
-  numerical health validation remain outstanding;
+  numerical health validation beyond Step 11 remain outstanding;
 - advisor review of this post-acceptance sync, then consolidated user research
   Git, push confirmation and completion processing for
-  [Step 10](#step-10-camera-projection-footprint-and-position-gradients). Steps 5, 6, 7, 8 and 9
+  [Step 11](#step-11-time-initialization-rendering-and-parameter-gradients). Steps 5–10
   are complete, not awaiting another Fix, local-design approval or Git checkpoint.
-  Their actual runtime/CUDA and separate downstream owner dependencies remain
+  Their remaining runtime/CUDA and separate downstream owner dependencies remain
   open. The advisor considers the next functional Step
   only after completion, without a new number or scope assigned here;
 - the remaining pre-integration owner details and per-run values classified
@@ -3835,7 +3967,8 @@ Not complete and not authorized by this document sync:
   [Step 5 connection contract](#adopted-step-5-minimal-connection-contract)
   also closes seed binding, initial loss branches, time/cast handoff and key
   membership; bounded enforcement and CPU connection are accepted, while
-  actual GPU cast/activation health and CUDA validation remain unfinished. Positive rigid/motion use is unsupported, not enabled by
+  actual GPU cast/activation health and CUDA validation outside Step 11 remain
+  unfinished. Positive rigid/motion use is unsupported, not enabled by
   the common nonnegative type; future use needs separate adoption/validation;
 - actual device/CUDA and real-data training validation of the completed-update
   transaction beyond [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation);
@@ -3876,7 +4009,8 @@ Not complete and not authorized by this document sync:
   and nonfinite/OOM/partial-failure policy; the one-seed input/initialization
   connection is adopted, not a guarantee of bitwise reproduction or resume;
 - execution/build acceptance for remaining owners beyond the successful
-  Step 8 SH, Step 9 alpha and Step 10 camera/alpha/SH fresh builds and focused CUDA runs in `4dgs310`, which recorded the
+  Step 8 SH, Step 9 alpha, Step 10 camera/alpha/SH and Step 11 initialization/time
+  fresh builds and focused CUDA runs in `4dgs310`, which recorded the
   PyTorch-CUDA/system-nvcc separation and input/binary provenance. No blanket
   toolchain acceptance, permanent pin or package update is implied;
 - remaining fields of the complete effective-config, dataset, source,
@@ -3911,23 +4045,26 @@ and Issue #34's [adopted initial-variance contract](#adopted-initial-temporal-va
 The [Step 5 minimal connection](#step-5-functional-acceptance),
 [Step 6 camera A](#step-6-canonical-camera-handoff),
 [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation),
-[Step 8 SH correction and CPU/CUDA validation](#step-8-sh-correction-and-cpucuda-validation), and
-[Step 9 alpha-cap correction and CPU/CUDA validation](#step-9-alpha-cap-correction-and-cpucuda-validation)
-are complete, including documentation review and user research Git. Current
+[Step 8 SH correction and CPU/CUDA validation](#step-8-sh-correction-and-cpucuda-validation),
+[Step 9 alpha-cap correction and CPU/CUDA validation](#step-9-alpha-cap-correction-and-cpucuda-validation), and
 [Step 10 camera projection, footprint and position gradients](#step-10-camera-projection-footprint-and-position-gradients)
-is advisor-reviewed and user-functionally-accepted. Next are advisor document review,
+are complete, including documentation review and user research Git. Current
+[Step 11 time initialization, rendering and parameter gradients](#step-11-time-initialization-rendering-and-parameter-gradients)
+is functionally accepted under the saved review. Next are advisor document review,
 consolidated user research Git, push confirmation and completion processing;
-this document task does not perform them or complete Step 10. The advisor
+this document task does not perform them or complete Step 11. The advisor
 considers the next function only after completion. Later-owner source fixes,
 downstream consumer integration and remaining device/GPU/training validation
 retain their own execution/build acceptance duties, not new Step 5/6/7 CPU
-acceptance conditions or repetition of accepted camera/SH/alpha work. No separate
+acceptance conditions or repetition of accepted time/camera/SH/alpha work. No separate
 document-only Git trigger is created.
 P0-1/P0-2/P0-3 are corrected and focused-validated within Step 8's selected
 SH branch; the separate alpha-cap correction is focused-validated and accepted
 within Step 9. Step 10 accepts the existing camera device/CUDA handoff and
 local clamp-z projection-covariance P1 correction, separately from Step 6's
-original CPU scope. Remaining P0-0 consumers, P0-T1/T2/T3, other renderer duties,
+original CPU scope. Step 11 adds limited initialization/time/V-B/PF
+render/gradient and CUDA-health acceptance, not general failure closure.
+Remaining P0-0 consumers, P0-T1/T2/T3, other renderer duties,
 P0-A6/A7 and artifact owners retain their requirements. These results do not
 expand Step 7's CPU scope or pass any Gate;
 P0-T7 remains unfixed but unreachable for the

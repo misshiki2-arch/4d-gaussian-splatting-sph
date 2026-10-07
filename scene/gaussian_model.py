@@ -259,6 +259,12 @@ class GaussianModel:
     def create_from_pcd(self, pcd : BasicPointCloud, spatial_lr_scale : float, *, formal_time=None):
         if formal_time is not None and (pcd.time is None or pcd.time.shape != (len(pcd.points), 1)):
             raise ValueError('formal_initial_time')
+        if formal_time is not None:
+            from formal_time_handoff import validate_time
+            validate_time(formal_time)
+            if tuple(self.time_duration) != formal_time.effective_interval:
+                raise ValueError('formal_model_time_interval')
+        self._formal_time = formal_time
         self.spatial_lr_scale = spatial_lr_scale
         fused_point_cloud = torch.tensor(np.asarray(pcd.points)).float().cuda()
         fused_color = RGB2SH(torch.tensor(np.asarray(pcd.colors)).float().cuda())

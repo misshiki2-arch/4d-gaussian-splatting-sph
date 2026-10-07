@@ -17,6 +17,7 @@ from .diff_gaussian_rasterization import GaussianRasterizationSettings, Gaussian
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh, eval_shfs_4d
 from utils.formal_camera_runtime import camera_binding
+from formal_time_handoff import bind_time
 
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None, *, formal_config=None):
     """
@@ -26,6 +27,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     """
  
     binding = None
+    time_binding = None
     if formal_config is not None:
         if (type(pc.prefilter_var) is not float or pc.prefilter_var != -1.0
                 or formal_config.renderer.temporal_prefilter != 'disabled'
@@ -34,6 +36,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
                 or override_color is not formal_config.renderer.override_color or pipe.env_map_res):
             raise ValueError('formal_renderer_contract')
         binding = camera_binding(viewpoint_camera, formal_config.dataset.resolution)
+        time_binding = bind_time(formal_config, pc, binding)
     elif (getattr(viewpoint_camera, 'formal_camera', None) is not None
           or getattr(viewpoint_camera, 'formal_binding', None) is not None):
         raise ValueError('formal_camera_missing_config')
@@ -83,7 +86,10 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         debug_pixel_max_entries=debug_pixel_max_entries,
         debug_preprocess_target_index=debug_preprocess_target_index,
         formal_camera=formal_config is not None,
-        camera_binding=binding
+        camera_binding=binding,
+        formal_time=formal_config is not None,
+        time_binding=time_binding,
+        time_backward_debug=getattr(pipe, 'time_backward_debug', None),
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)

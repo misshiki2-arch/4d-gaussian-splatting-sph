@@ -78,7 +78,7 @@ namespace BACKWARD
 		float* dL_dscale_t,
 		glm::vec4* dL_drot,
 		glm::vec4* dL_drot_r,
-		float* dL_dopacity);
+		float* dL_dopacity, int* temporal_status, int time_debug_target, float* time_backward_debug);
 }
 
 #endif

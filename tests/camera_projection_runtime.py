@@ -25,7 +25,8 @@ def make_camera(base, spec, *, split='train'):
     Image.new('RGBA', (spec['raw_width'], spec['raw_height']), (80, 40, 20, 255)).save(source/filename)
     value = fixture(source, base/'unused-output')
     value['dataset']['resolution']['divisor'] = spec['divisor']
-    value['dataset']['time'].update(raw_interval=[0, 1], divisor=1)
+    value['dataset']['time'].update(raw_interval=spec.get('raw_interval', [0, 1]),
+                                  divisor=spec.get('time_divisor', 1))
     value['initialization']['time_variance_denominator'] = 5
     config = resolve_formal_config(encode(value), raw_width=spec['raw_width'], raw_height=spec['raw_height'])
     pose = np.eye(4)
@@ -33,7 +34,8 @@ def make_camera(base, spec, *, split='train'):
     pose[:3, 3] = spec['center'].numpy()
     frame = dict(file_path=filename, time=spec['timestamp'], transform_matrix=pose.tolist())
     root = dict(w=spec['raw_width'], h=spec['raw_height'], frames=[frame])
-    timing = FrameTime(split, 0, filename, spec['timestamp'], spec['timestamp'])
+    timing = FrameTime(split, 0, filename,
+                      spec['timestamp']*config.time_derivation.divisor, spec['timestamp'])
     key = (split, 0, filename)
     if spec['mode'] == 'pair':
         state = build_camera(config.dataset.resolution, key,

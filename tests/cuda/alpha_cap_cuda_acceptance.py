@@ -158,9 +158,11 @@ def invoke(torch, binding, renderer, sh, case, camera, config, *, points=None,
     points = case['points'] if points is None else points
     gpu = [{k: v.detach().float().cuda().requires_grad_() for k, v in p.items()} for p in points]
     bg = torch.tensor(o.SPEC['background'], dtype=torch.float32, device='cuda')
+    from formal_time_handoff import bind_time
+    model = None if case['dim'] != 4 else sh.make_model(
+        gpu[0], (3, 2), o.SPEC, formal_time=config.time_derivation)
     if case['formal'] and not binding_only:
         from formal_views import ConsumerView
-        model = sh.make_model(gpu[0], (3, 2), o.SPEC)
         actual = renderer.render(camera, model, ConsumerView(config, 'pipeline'), bg,
                                  scaling_modifier=1.0, override_color=None, formal_config=config)
         images = dict(rgb=actual['render'], flow=actual['flow'], depth=actual['depth'], mask=actual['alpha'])
@@ -176,6 +178,8 @@ def invoke(torch, binding, renderer, sh, case, camera, config, *, points=None,
             rot_4d=case['dim'] == 4, gaussian_dim=case['dim'], force_sh_3d=False,
             prefiltered=False, debug=False, formal_camera=case['dim'] == 4,
             camera_binding=camera.formal_binding if case['dim'] == 4 else None,
+            formal_time=case['dim'] == 4,
+            time_binding=bind_time(config, model, camera.formal_binding) if case['dim'] == 4 else None,
             debug_pixel_x=px[0] if diagnostic else -1, debug_pixel_y=px[1] if diagnostic else -1,
             debug_pixel_max_entries=len(points) if diagnostic else 0)
         stack = lambda name: torch.stack([p[name] for p in gpu])

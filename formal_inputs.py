@@ -16,6 +16,7 @@ import formal_config as config
 import formal_config_json as p2
 import formal_frame_metadata as metadata
 import formal_camera as camera
+from formal_time_handoff import validate_time
 
 
 class Frame(NamedTuple):
@@ -89,6 +90,7 @@ def verify_inputs(data):
         {s: [dict(file_path=f[0], time=p2.NumberToken(str(f[1])))
              for f in ref['frames'][s]] for s in ('train', 'test')})
     train, test, times = metadata.read_frame_snapshot(p2.parse_json_bytes(data), reference)
+    validate_time(state.time_derivation, times.train + times.test)
     resolution = state.dataset.resolution
     cameras = {}
     for split, contents in (('train', train), ('test', test)):

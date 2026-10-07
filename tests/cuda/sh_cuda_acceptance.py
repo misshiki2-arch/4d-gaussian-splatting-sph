@@ -155,10 +155,14 @@ def make_camera(config, spec):
                   meta_only=True, formal_camera=state, formal_frame=frame).cuda()
 
 
-def make_model(p, stage, spec):
+def make_model(p, stage, spec, *, formal_time=None):
     from scene.gaussian_model import GaussianModel
     model = GaussianModel(3, gaussian_dim=4, time_duration=[0.,spec['duration']],
                           rot_4d=True, force_sh_3d=False, sh_degree_t=2, prefilter_var=-1.0)
+    # Isolated math fixture only: not evidence for create_from_pcd/KNN.
+    if formal_time is not None:
+        model._formal_time = formal_time
+        model.time_duration = formal_time.effective_interval
     model._xyz = p['mean'].view(1,3)
     model._t = p['time'].view(1,1)
     model._scaling = p['log_scale'][:3].view(1,3)
@@ -178,9 +182,10 @@ def make_model(p, stage, spec):
 def invoke(torch, binding, renderer, p, stage, camera, config, spec, *, integrated=False,
            diagnostic=False, three_d=False):
     from formal_views import ConsumerView
+    from formal_time_handoff import bind_time
     bg = torch.tensor(spec['background'],device='cuda',dtype=torch.float32)
+    model = None if three_d else make_model(p, stage, spec, formal_time=config.time_derivation)
     if integrated:
-        model = make_model(p,stage,spec)
         result = renderer.render(camera,model,ConsumerView(config,'pipeline'),bg,
                                  scaling_modifier=1.0,override_color=None,formal_config=config)
         rgb, alpha = result['render'],result['alpha']
@@ -195,6 +200,8 @@ def invoke(torch, binding, renderer, p, stage, camera, config, spec, *, integrat
             rot_4d=not three_d,gaussian_dim=3 if three_d else 4,force_sh_3d=False,
             prefiltered=False,debug=False,formal_camera=not three_d,
             camera_binding=None if three_d else camera.formal_binding,
+            formal_time=not three_d,
+            time_binding=None if three_d else bind_time(config, model, camera.formal_binding),
             debug_pixel_x=spec['pixel'][0] if diagnostic else -1,
             debug_pixel_y=spec['pixel'][1] if diagnostic else -1,
             debug_pixel_max_entries=1 if diagnostic else 0,

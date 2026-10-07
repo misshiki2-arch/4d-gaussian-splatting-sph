@@ -692,9 +692,16 @@ __device__ void computeCov3D_conditional(int idx, const glm::vec3 scale, const f
     const glm::vec4 rot, const glm::vec4 rot_r, const float prefilter_var, const float t, const float timestamp, const float opacity, bool& mask,
     const float* dL_dcov3Ds, const glm::vec3* dL_dmeans, float* dL_dopacity, float* dL_dts,
     glm::vec3* dL_dscales, float* dL_dscales_t,
-    glm::vec4* dL_drots, glm::vec4* dL_drots_r)
+    glm::vec4* dL_drots, glm::vec4* dL_drots_r,
+    int* temporal_status, float* time_debug, float duration)
 {
     float dt=timestamp-t;
+    if (temporal_status && (!isfinite(t) || !isfinite(timestamp) || !isfinite(dt) ||
+        (__float_as_uint(timestamp) != __float_as_uint(t) &&
+         ((__float_as_uint(timestamp) | __float_as_uint(t)) & 0x7fffffffU) != 0 && dt == 0) ||
+        !isfinite(scale_t) || scale_t <= 0)) {
+        atomicOr(temporal_status, 1); mask = false; return;
+    }
 	glm::mat4 S = glm::mat4(1.0f);
 	S[0][0] = mod * scale.x;
 	S[1][1] = mod * scale.y;
@@ -745,9 +752,21 @@ __device__ void computeCov3D_conditional(int idx, const glm::vec3 scale, const f
     glm::mat4 Sigma = glm::transpose(M) * M;
 
 	float cov_t = Sigma[3][3];
+	if (temporal_status && (!isfinite(cov_t) || cov_t <= 0 ||
+		!isfinite(Sigma[3][0]) || !isfinite(Sigma[3][1]) || !isfinite(Sigma[3][2]))) {
+		atomicOr(temporal_status, 2); mask = false; return;
+	}
 	float cov_t_prefiltered = ((prefilter_var > 0.0) ? (prefilter_var + cov_t) : cov_t);
 	float marginal_t = __expf(-0.5*dt*dt/cov_t_prefiltered);
 	mask = marginal_t > 0.05;
+	if (time_debug) {
+		time_debug[0] = cov_t; time_debug[1] = marginal_t; time_debug[2] = prefilter_var;
+		time_debug[3] = duration; time_debug[4] = timestamp; time_debug[5] = dt;
+		time_debug[6] = mask ? 1.0f : 0.0f; time_debug[7] = 1.0f;
+	}
+	if (temporal_status && !isfinite(marginal_t)) {
+		atomicOr(temporal_status, 4); mask = false; return;
+	}
 	if (!mask) return;
 
     glm::mat3 cov11 = glm::mat3(Sigma);
@@ -833,6 +852,12 @@ __device__ void computeCov3D_conditional(int idx, const glm::vec3 scale, const f
 
     dL_drots[idx] = dL_drot;
     dL_drots_r[idx] = dL_drot_r;
+    if (temporal_status) {
+        bool valid = isfinite(dL_dts[idx]) && isfinite(dL_dscales_t[idx]) && isfinite(dL_dopacity[idx]);
+        for (int k = 0; k < 3; ++k) valid = valid && isfinite(dL_dscales[idx][k]) && isfinite(dL_dmeans[idx][k]);
+        for (int k = 0; k < 4; ++k) valid = valid && isfinite(dL_drot[k]) && isfinite(dL_drot_r[k]);
+        if (!valid) atomicOr(temporal_status, 32);
+    }
 }
 
 // Backward pass of the preprocessing steps, except
@@ -869,12 +894,18 @@ __global__ void preprocessCUDA(
 	float* dL_dscale_t,
 	glm::vec4* dL_drot,
 	glm::vec4* dL_drot_r,
-	float* dL_dopacity)
+	float* dL_dopacity, int* temporal_status, int time_debug_target, float* time_backward_debug)
 {
 	auto idx = cg::this_grid().thread_rank();
 	if (idx >= P || !(radii[idx] > 0))
 		return;
     if (tiles_touched[idx] == 0) return;
+    float* time_debug = idx == time_debug_target ? time_backward_debug : nullptr;
+    if (temporal_status && (!isfinite(time_duration) || time_duration <= 0 ||
+        (D_t > 0 && !force_sh_3d && (!isfinite(2 * MY_PI * (timestamp - ts[idx]) / time_duration) ||
+         (D_t > 1 && !isfinite(2 * MY_PI * (timestamp - ts[idx]) * 2 / time_duration)))))) {
+        atomicOr(temporal_status, 16); return;
+    }
 
 	float3 m = means[idx];
 
@@ -912,7 +943,8 @@ __global__ void preprocessCUDA(
             bool time_mask=true;
             computeCov3D_conditional(idx, scales[idx], scales_t[idx], scale_modifier,
                 rotations[idx], rotations_r[idx], prefilter_var, ts[idx], timestamp, opacities[idx], time_mask,
-                dL_dcov3D, dL_dmeans, dL_dopacity, dL_dts, dL_dscale, dL_dscale_t, dL_drot, dL_drot_r);
+                dL_dcov3D, dL_dmeans, dL_dopacity, dL_dts, dL_dscale, dL_dscale_t, dL_drot, dL_drot_r,
+                temporal_status, time_debug, time_duration);
             if (!time_mask) return;
 		}else{
 			computeCov3D(idx, scales[idx], scale_modifier, rotations[idx], dL_dcov3D, dL_dscale, dL_drot);
@@ -1177,7 +1209,7 @@ void BACKWARD::preprocess(
 	float* dL_dscale_t,
 	glm::vec4* dL_drot,
 	glm::vec4* dL_drot_r,
-	float* dL_dopacity)
+	float* dL_dopacity, int* temporal_status, int time_debug_target, float* time_backward_debug)
 {
 	// Propagate gradients for the path of 2D conic matrix computation. 
 	// Somewhat long, thus it is its own kernel rather than being part of 
@@ -1231,7 +1263,7 @@ void BACKWARD::preprocess(
 		dL_dscale_t,
 		dL_drot,
 		dL_drot_r,
-		dL_dopacity);
+		dL_dopacity, temporal_status, time_debug_target, time_backward_debug);
 }
 
 void BACKWARD::render(

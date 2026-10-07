@@ -136,12 +136,13 @@ def invoke(torch, binding, renderer, sh, case, camera, config, *, points=None,
            diagnostic=False, binding_only=False, backward=True, pixel=None, target=0):
     """Actual GPU camera/model/getters/render; no CPU success substitutes."""
     from formal_views import ConsumerView
+    from formal_time_handoff import bind_time
     points = case['points'] if points is None else points
     gpu = [{k: v.detach().float().cuda().requires_grad_() for k, v in p.items()} for p in points]
     stack = lambda name: torch.stack([p[name] for p in gpu])
     s = case['camera']; bg = torch.tensor(s['background'], dtype=torch.float32, device='cuda')
     if case['dim'] == 4:
-        model = sh.make_model(gpu[0], (3, 2), s)
+        model = sh.make_model(gpu[0], case.get('stage', (3, 2)), s, formal_time=config.time_derivation)
         # Same real model getters for multi-point fixtures (no initializer/KNN).
         model._xyz, model._t = stack('mean'), stack('time')
         model._scaling, model._scaling_t = stack('log_scale')[:, :3], stack('log_scale')[:, 3:]
@@ -160,11 +161,15 @@ def invoke(torch, binding, renderer, sh, case, camera, config, *, points=None,
             image_height=s['height'], image_width=s['width'], tanfovx=camera.formal_camera.tanx,
             tanfovy=camera.formal_camera.tany, bg=bg, scale_modifier=1.0,
             viewmatrix=camera.world_view_transform, projmatrix=camera.full_proj_transform,
-            sh_degree=3, sh_degree_t=2 if case['dim'] == 4 else 0,
+            sh_degree=case.get('stage', (3, 2))[0],
+            sh_degree_t=case.get('stage', (3, 2))[1] if case['dim'] == 4 else 0,
             campos=camera.camera_center, timestamp=s['timestamp'], time_duration=s['duration'],
             rot_4d=case['dim'] == 4, gaussian_dim=case['dim'], force_sh_3d=False,
             prefiltered=False, debug=False, formal_camera=case['dim'] == 4,
             camera_binding=camera.formal_binding if case['dim'] == 4 else None,
+            formal_time=case['dim'] == 4,
+            time_binding=bind_time(config, model, camera.formal_binding) if case['dim'] == 4 else None,
+            time_backward_debug=(torch.full((8,), -1., device='cuda') if diagnostic else None),
             debug_pixel_x=px[0] if diagnostic else -1, debug_pixel_y=px[1] if diagnostic else -1,
             debug_pixel_max_entries=len(points) if diagnostic else 0,
             debug_preprocess_target_index=target if diagnostic else -1)
@@ -198,6 +203,8 @@ def invoke(torch, binding, renderer, sh, case, camera, config, *, points=None,
             for k, v in p.items():
                 g = next(iterator); record[k] = (torch.zeros_like(v) if g is None else g).detach().cpu().double()
             result['gradients'].append(record)
+        if diagnostic and binding_only:
+            result['time_backward'] = settings.time_backward_debug.detach().cpu().clone()
     torch.cuda.synchronize()
     return result
 
@@ -246,7 +253,7 @@ def diagnostics(torch, case, actual, expected, pixel, rows, target=0):
     if not torch.equal(entries[:, 20], entries[:, 21]): raise AssertionError('contribution_not_applied')
     g, s = expected['geometry'][target], case['camera']
     pre = actual['preprocess'].double().flatten()
-    if pre.numel() != 96 or pre[0] != 1 or pre[1] != target: raise AssertionError('preprocess_debug_shape')
+    if pre.numel() != 104 or pre[0] != 1 or pre[1] != target: raise AssertionError('preprocess_debug_shape')
     a = g['jacobian']; j = torch.cat((a.T, torch.zeros(3, 1, dtype=torch.float64)), dim=1)
     w = s['rotation'].T; t = w @ j
     c = g['screen_cov']; q = g['inverse']; cov = g['covariance']

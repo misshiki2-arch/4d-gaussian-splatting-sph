@@ -10,6 +10,7 @@
  */
 
 #include <math.h>
+#include <cmath>
 #include <torch/extension.h>
 #include <cstdio>
 #include <sstream>
@@ -31,6 +32,27 @@ std::function<char*(size_t N)> resizeFunctional(torch::Tensor& t) {
 		return reinterpret_cast<char*>(t.contiguous().data_ptr());
     };
     return lambda;
+}
+
+// Host metadata only. Actual temporal values are checked at their CUDA use.
+static void checkFormalTime(const torch::Tensor& xyz, const torch::Tensor& ts,
+    const torch::Tensor& scales, const torch::Tensor& scales_t,
+    const torch::Tensor& rotations, const torch::Tensor& rotations_r,
+    const torch::Tensor& covariance, float pf, float timestamp, float duration,
+    bool rot4, int dim)
+{
+    TORCH_CHECK(dim == 4 && rot4 && pf == -1.0f && covariance.numel() == 0,
+                "formal_time_native_mode");
+    TORCH_CHECK(std::isfinite(timestamp) && std::isfinite(duration) && duration > 0,
+                "formal_time_native_scalar");
+    auto check = [&](const torch::Tensor& t, int columns) {
+        TORCH_CHECK(t.is_cuda() && t.device() == xyz.device() &&
+                    t.scalar_type() == torch::kFloat32 && t.is_contiguous() &&
+                    t.dim() == 2 && t.size(0) == xyz.size(0) && t.size(1) == columns,
+                    "formal_time_native_tensor");
+    };
+    check(xyz, 3); check(ts, 1); check(scales, 3); check(scales_t, 1);
+    check(rotations, 4); check(rotations_r, 4);
 }
 
 std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
@@ -68,8 +90,11 @@ RasterizeGaussiansCUDA(
 	const int debug_pixel_x,
 	const int debug_pixel_y,
 	const int debug_pixel_max_entries,
-	const int debug_preprocess_target_index)
+	const int debug_preprocess_target_index,
+	const bool formal_time)
 {
+  if (formal_time) checkFormalTime(means3D, ts, scales, scales_t, rotations, rotations_r,
+      cov3D_precomp, prefilter_var, timestamp, time_duration, rot_4d, gaussian_dim);
   if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
     AT_ERROR("means3D must have dimensions (num_points, 3)");
   }
@@ -88,7 +113,7 @@ RasterizeGaussiansCUDA(
   torch::Tensor radii = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
   torch::Tensor out_means3D = means3D.clone();
   const int debug_pixel_stride = 32;
-  const int debug_preprocess_stride = 96;
+  const int debug_preprocess_stride = 104;
   const bool enable_debug_pixel = debug_pixel_x >= 0 && debug_pixel_y >= 0 && debug_pixel_max_entries > 0;
   const bool enable_debug_preprocess = debug_preprocess_target_index >= 0;
   torch::Tensor debug_pixel = enable_debug_pixel
@@ -163,7 +188,7 @@ RasterizeGaussiansCUDA(
 		debug_preprocess_target_index,
 		debug_pixel_x,
 		debug_pixel_y,
-		debug_preprocess_stride);
+		debug_preprocess_stride, formal_time);
   }
   char* geo_ptr = reinterpret_cast<char*>(geomBuffer.contiguous().data_ptr());
   CudaRasterizer::GeometryState geoState = CudaRasterizer::GeometryState::fromChunk(geo_ptr, P);
@@ -210,8 +235,20 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
 	const int R,
 	const torch::Tensor& binningBuffer,
 	const torch::Tensor& imageBuffer,
-	const bool debug) 
+	const bool debug,
+	const bool formal_time,
+	const int time_debug_target,
+	const torch::Tensor& time_backward_debug)
 {
+  if (formal_time) checkFormalTime(means3D, ts, scales, scales_t, rotations, rotations_r,
+      cov3D_precomp, prefilter_var, timestamp, time_duration, rot_4d, gaussian_dim);
+  if (time_backward_debug.numel()) {
+      TORCH_CHECK(time_backward_debug.dim() == 1 && time_backward_debug.numel() == 8 &&
+          time_backward_debug.scalar_type() == torch::kFloat32 &&
+          time_backward_debug.device() == means3D.device() && time_backward_debug.is_contiguous() &&
+          !time_backward_debug.requires_grad() && time_debug_target >= 0 && time_debug_target < means3D.size(0),
+          "time_backward_debug_metadata");
+  }
   const int P = means3D.size(0);
   const int H = dL_dout_color.size(1);
   const int W = dL_dout_color.size(2);
@@ -286,7 +323,8 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
 	  dL_dscales_t.contiguous().data<float>(),
 	  dL_drotations.contiguous().data<float>(),
 	  dL_drotations_r.contiguous().data<float>(),
-	  debug);
+	  debug, formal_time, time_debug_target,
+	  time_backward_debug.numel() ? time_backward_debug.data_ptr<float>() : nullptr);
   }
 
   return std::make_tuple(dL_dmeans2D, dL_dcolors, dL_dopacity, dL_dmeans3D, dL_dcov3D,

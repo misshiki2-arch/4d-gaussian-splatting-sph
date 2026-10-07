@@ -72,7 +72,8 @@ namespace CudaRasterizer
 			int debug_preprocess_target_index = -1,
 			int debug_preprocess_pixel_x = -1,
 			int debug_preprocess_pixel_y = -1,
-			int debug_preprocess_stride = 0);
+			int debug_preprocess_stride = 0,
+			bool formal_time = false);
 
 		static void backward(
 			const int P, int D, int D_t, int M, int R,
@@ -119,7 +120,7 @@ namespace CudaRasterizer
 			float* dL_dscale_t,
 			float* dL_drot,
 			float* dL_drot_r,
-			bool debug);
+			bool debug, bool formal_time, int time_debug_target, float* time_backward_debug);
 	};
 };
 

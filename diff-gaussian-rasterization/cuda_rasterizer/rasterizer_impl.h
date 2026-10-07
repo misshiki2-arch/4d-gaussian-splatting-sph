@@ -28,6 +28,7 @@ namespace CudaRasterizer
 
 	struct GeometryState
 	{
+		int* temporal_status;
 		size_t scan_size;
 		float* depths;
 		char* scanning_space;

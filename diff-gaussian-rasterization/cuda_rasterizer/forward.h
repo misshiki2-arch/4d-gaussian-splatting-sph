@@ -58,7 +58,7 @@ namespace FORWARD
 		int debug_preprocess_target_index,
 		int debug_preprocess_pixel_x,
 		int debug_preprocess_pixel_y,
-		int debug_preprocess_stride);
+		int debug_preprocess_stride, int* temporal_status);
 
 	// Main rasterization method.
 	void render(

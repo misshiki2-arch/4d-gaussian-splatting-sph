@@ -303,10 +303,17 @@ __device__ void computeCov3D(const glm::vec3 scale, float mod, const glm::vec4 r
 
 __device__ void computeCov3D_conditional(const glm::vec3 scale, const float scale_t, float mod,
 		const glm::vec4 rot, const glm::vec4 rot_r, float* cov3D, float3& p_orig,
-		float t, const float timestamp, int idx, bool& mask, float& opacity, const float prefilter_var)
+		float t, const float timestamp, int idx, bool& mask, float& opacity, const float prefilter_var,
+		int* temporal_status, float* time_debug, float duration)
 {
 	// Create scaling matrix
 	float dt=timestamp-t;
+	if (temporal_status && (!isfinite(t) || !isfinite(timestamp) || !isfinite(dt) ||
+		(__float_as_uint(timestamp) != __float_as_uint(t) &&
+		 ((__float_as_uint(timestamp) | __float_as_uint(t)) & 0x7fffffffU) != 0 && dt == 0) ||
+		!isfinite(scale_t) || scale_t <= 0)) {
+		atomicOr(temporal_status, 1); mask = false; return;
+	}
 	glm::mat4 S = glm::mat4(1.0f);
 	S[0][0] = mod * scale.x;
 	S[1][1] = mod * scale.y;
@@ -355,8 +362,20 @@ __device__ void computeCov3D_conditional(const glm::vec3 scale, const float scal
 	glm::mat4 M = S * R;
 	glm::mat4 Sigma = glm::transpose(M) * M;
 	float cov_t = Sigma[3][3];
+	if (temporal_status && (!isfinite(cov_t) || cov_t <= 0 ||
+		!isfinite(Sigma[0][3]) || !isfinite(Sigma[1][3]) || !isfinite(Sigma[2][3]))) {
+		atomicOr(temporal_status, 2); mask = false; return;
+	}
 	float marginal_t = __expf(-0.5*dt*dt/((prefilter_var > 0.0) ? (prefilter_var + cov_t) : cov_t));
 	mask = marginal_t > 0.05;
+	if (time_debug) {
+		time_debug[0] = cov_t; time_debug[1] = marginal_t; time_debug[2] = prefilter_var;
+		time_debug[3] = duration; time_debug[4] = timestamp; time_debug[5] = dt;
+		time_debug[6] = mask ? 1.0f : 0.0f; time_debug[7] = 1.0f;
+	}
+	if (temporal_status && !isfinite(marginal_t)) {
+		atomicOr(temporal_status, 4); mask = false; return;
+	}
 	if (!mask) return;
 	opacity*=marginal_t;;
 	glm::mat3 cov11 = glm::mat3(Sigma);
@@ -374,6 +393,11 @@ __device__ void computeCov3D_conditional(const glm::vec3 scale, const float scal
 	p_orig.x+=delta_mean.x;
 	p_orig.y+=delta_mean.y;
 	p_orig.z+=delta_mean.z;
+	if (temporal_status) {
+		bool valid = isfinite(p_orig.x) && isfinite(p_orig.y) && isfinite(p_orig.z) && isfinite(opacity);
+		for (int k = 0; k < 6; ++k) valid = valid && isfinite(cov3D[k]);
+		if (!valid) { atomicOr(temporal_status, 8); mask = false; }
+	}
 }
 
 // Perform initial steps for each Gaussian prior to rasterization.
@@ -415,7 +439,7 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 	int debug_preprocess_target_index,
 	int debug_preprocess_pixel_x,
 	int debug_preprocess_pixel_y,
-	int debug_preprocess_stride)
+	int debug_preprocess_stride, int* temporal_status)
 {
 	auto idx = cg::this_grid().thread_rank();
 	if (idx >= P)
@@ -488,7 +512,9 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 		bool time_mask=true;
 		computeCov3D_conditional(scales[idx], scales_t[idx], scale_modifier,
 			rotations[idx], rotations_r[idx], cov3Ds + idx * 6, p_orig, ts[idx], timestamp, idx, time_mask, opacity,
-			prefilter_var);
+			prefilter_var, temporal_status,
+			debug_preprocess_row && debug_preprocess_stride >= 104 ? debug_preprocess_row + 96 : nullptr,
+			time_duration);
 		if (debug_preprocess)
 			debug_preprocess_row[25] = time_mask ? 1.0f : 0.0f;
 		if (!time_mask) return;
@@ -593,6 +619,11 @@ __global__ void preprocessCUDA(int P, int D, int D_t, int M,
 			result = computeColorFromSH(idx, D, M, (glm::vec3*)orig_points, *cam_pos, shs, clamped);
 		}else{
 			// Match geometry and the mean saved for SH backward.
+			if (temporal_status && (!isfinite(time_duration) || time_duration <= 0 ||
+				(D_t > 0 && (!isfinite(2 * MY_PI * (timestamp - ts[idx]) / time_duration) ||
+				 (D_t > 1 && !isfinite(2 * MY_PI * (timestamp - ts[idx]) * 2 / time_duration)))))) {
+				atomicOr(temporal_status, 16); return;
+			}
 			result = computeColorFromSH_4D(idx, D, D_t, M, (glm::vec3*)out_means3D, *cam_pos, shs, clamped, ts, timestamp, time_duration);
 		}
 		rgb[idx * C + 0] = result.x;
@@ -971,7 +1002,7 @@ void FORWARD::preprocess(int P, int D, int D_t, int M,
 	int debug_preprocess_target_index,
 	int debug_preprocess_pixel_x,
 	int debug_preprocess_pixel_y,
-	int debug_preprocess_stride)
+	int debug_preprocess_stride, int* temporal_status)
 {
 	preprocessCUDA<NUM_CHANNELS> << <(P + 255) / 256, 256 >> > (
 		P, D, D_t, M,
@@ -1011,6 +1042,6 @@ void FORWARD::preprocess(int P, int D, int D_t, int M,
 		debug_preprocess_target_index,
 		debug_preprocess_pixel_x,
 		debug_preprocess_pixel_y,
-		debug_preprocess_stride
+		debug_preprocess_stride, temporal_status
 		);
 }

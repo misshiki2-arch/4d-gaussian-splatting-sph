@@ -13,6 +13,7 @@ from typing import NamedTuple
 import torch.nn as nn
 import torch
 from utils.formal_camera_runtime import validate_settings
+from formal_time_handoff import validate_settings as validate_time_settings
 # from . import _C
 import os
 from torch.utils.cpp_extension import load
@@ -48,6 +49,16 @@ def rasterize_gaussians(
     prefilter_var,
     raster_settings,
 ):
+    if raster_settings.formal_time:
+        # Legal consumer views may be strided. Normalize only storage, outside
+        # the custom Function, so the copy's autograd edge reaches the original
+        # Parameter/activation. The same buffers are saved for native backward.
+        means3D = means3D.contiguous()
+        ts = ts.contiguous()
+        scales = scales.contiguous()
+        scales_t = scales_t.contiguous()
+        rotations = rotations.contiguous()
+        rotations_r = rotations_r.contiguous()
     return _RasterizeGaussians.apply(
         means3D,
         means2D,
@@ -86,6 +97,7 @@ class _RasterizeGaussians(torch.autograd.Function):
     ):
 
         validate_settings(raster_settings)
+        validate_time_settings(raster_settings, prefilter_var)
         # Restructure arguments the way that the C++ lib expects them
         args = (
             raster_settings.bg, 
@@ -122,6 +134,7 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.debug_pixel_y,
             raster_settings.debug_pixel_max_entries,
             raster_settings.debug_preprocess_target_index,
+            raster_settings.formal_time,
         )
 
         # Invoke C++/CUDA rasterizer
@@ -141,9 +154,11 @@ class _RasterizeGaussians(torch.autograd.Function):
         ctx.forward_settings = raster_settings
         ctx.num_rendered = num_rendered
         ctx.prefilter_var = prefilter_var
+        ctx.forward_prefilter_var = prefilter_var
         ctx.save_for_backward(colors_precomp, means3D, out_means3D, scales, rotations, cov3Ds_precomp, radii, sh, 
                                 flow_2d, opacities, ts, scales_t, rotations_r,
                                 geomBuffer, binningBuffer, imgBuffer)
+        ctx.mark_non_differentiable(debug_pixel, debug_preprocess)
         return color, radii, depth, 1-T, flow, covs_com, debug_pixel, debug_preprocess
 
     @staticmethod
@@ -156,6 +171,9 @@ class _RasterizeGaussians(torch.autograd.Function):
             raise ValueError('formal_camera_context_changed')
         validate_settings(raster_settings, grad_out_color)
         prefilter_var = ctx.prefilter_var
+        if ctx.forward_settings.formal_time and prefilter_var != ctx.forward_prefilter_var:
+            raise ValueError('formal_time_context_changed')
+        validate_time_settings(raster_settings, prefilter_var)
         (colors_precomp, means3D, out_means3D, scales, rotations, cov3Ds_precomp, radii, sh, 
          flow_2d, opacities, ts, scales_t, rotations_r,
          geomBuffer, binningBuffer, imgBuffer) = ctx.saved_tensors
@@ -197,7 +215,11 @@ class _RasterizeGaussians(torch.autograd.Function):
                 num_rendered,
                 binningBuffer,
                 imgBuffer,
-                raster_settings.debug)
+                raster_settings.debug,
+                raster_settings.formal_time,
+                raster_settings.debug_preprocess_target_index,
+                (raster_settings.time_backward_debug if raster_settings.time_backward_debug is not None
+                 else means3D.new_empty(0)))
 
         # Compute gradients for relevant tensors by invoking backward method
         if raster_settings.debug:
@@ -259,6 +281,11 @@ class GaussianRasterizationSettings(NamedTuple):
     debug_preprocess_target_index: int = -1
     formal_camera: bool = False
     camera_binding: object = None
+    formal_time: bool = False
+    time_binding: object = None
+    # Explicit backward-only, non-gradient diagnostic storage. Never the saved
+    # forward diagnostic tensor. Native validates shape/dtype/device.
+    time_backward_debug: object = None
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):

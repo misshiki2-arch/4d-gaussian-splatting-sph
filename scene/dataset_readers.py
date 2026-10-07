@@ -363,11 +363,14 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png", num_pt
         storePly(ply_path, xyz, SH2RGB(shs) * 255)
     if formal_inputs is not None:
         from io import BytesIO
+        from formal_time_handoff import validate_classes
         # BytesIO may copy the approved bounded PLY once. No file reopen/mmap.
         with BytesIO(formal_inputs.ply_bytes) as stream:
             pcd = fetchPly(stream)
         if pcd.time is None or pcd.time.dtype != np.dtype('float32') or pcd.time.shape != (len(pcd.points), 1):
             raise ValueError('formal_ply_time_shape')
+        if any(a.shape != (len(pcd.points), 3) for a in (pcd.points, pcd.colors, pcd.normals)):
+            raise ValueError('formal_ply_row_shape')
         raw = pcd.time.astype(np.float64)  # Exact widening BEFORE any sampling.
         time = formal_inputs.config.time_derivation
         if not len(raw) or not np.isfinite(raw).all() or (raw < time.raw_interval[0]).any() or (raw > time.raw_interval[1]).any():
@@ -375,6 +378,8 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png", num_pt
         effective = (raw / time.divisor).astype(np.float32)
         if not np.isfinite(effective).all() or ((raw != 0) & (effective == 0)).any():
             raise ValueError('formal_ply_time_cast')
+        # Validate classes before sampling, without changing record order.
+        validate_classes(raw[:, 0], effective[:, 0])
         pcd = BasicPointCloud(points=pcd.points, colors=pcd.colors, normals=pcd.normals, time=effective)
     else:
         try:

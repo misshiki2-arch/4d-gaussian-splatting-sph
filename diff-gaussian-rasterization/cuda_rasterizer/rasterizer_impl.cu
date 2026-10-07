@@ -156,6 +156,7 @@ void CudaRasterizer::Rasterizer::markVisible(
 CudaRasterizer::GeometryState CudaRasterizer::GeometryState::fromChunk(char*& chunk, size_t P)
 {
 	GeometryState geom;
+	obtain(chunk, geom.temporal_status, 1, 128);
 	obtain(chunk, geom.depths, P, 128);
 	obtain(chunk, geom.clamped, P * 3, 128);
 	obtain(chunk, geom.internal_radii, P, 128);
@@ -240,7 +241,7 @@ int CudaRasterizer::Rasterizer::forward(
 	int debug_preprocess_target_index,
 	int debug_preprocess_pixel_x,
 	int debug_preprocess_pixel_y,
-	int debug_preprocess_stride)
+	int debug_preprocess_stride, bool formal_time)
 {
 	const float focal_y = height / (2.0f * tan_fovy);
 	const float focal_x = width / (2.0f * tan_fovx);
@@ -248,6 +249,8 @@ int CudaRasterizer::Rasterizer::forward(
 	size_t chunk_size = required<GeometryState>(P);
 	char* chunkptr = geometryBuffer(chunk_size);
 	GeometryState geomState = GeometryState::fromChunk(chunkptr, P);
+	if (formal_time && cudaMemset(geomState.temporal_status, 0, sizeof(int)) != cudaSuccess)
+		throw std::runtime_error("formal_time_status_init");
 
 	if (radii == nullptr)
 	{
@@ -305,8 +308,16 @@ int CudaRasterizer::Rasterizer::forward(
 		debug_preprocess_target_index,
 		debug_preprocess_pixel_x,
 		debug_preprocess_pixel_y,
-		debug_preprocess_stride
+		debug_preprocess_stride,
+		formal_time ? geomState.temporal_status : nullptr
 	), debug)
+	// Whole-call failure BEFORE prefix scan, sorting or image production.
+	if (formal_time) {
+		int status = 0;
+		if (cudaMemcpy(&status, geomState.temporal_status, sizeof(int), cudaMemcpyDeviceToHost) != cudaSuccess)
+			throw std::runtime_error("formal_time_forward_status_read");
+		if (status) throw std::runtime_error("formal_time_forward_health:" + std::to_string(status));
+	}
 
 	// Compute prefix sum over full list of touched tile counts by Gaussians
 	// E.g., [2, 3, 0, 2, 1] -> [2, 5, 5, 7, 8]
@@ -430,9 +441,11 @@ void CudaRasterizer::Rasterizer::backward(
 	float* dL_dscale_t,
 	float* dL_drot,
 	float* dL_drot_r,
-	bool debug)
+	bool debug, bool formal_time, int time_debug_target, float* time_backward_debug)
 {
 	GeometryState geomState = GeometryState::fromChunk(geom_buffer, P);
+	if (formal_time && cudaMemset(geomState.temporal_status, 0, sizeof(int)) != cudaSuccess)
+		throw std::runtime_error("formal_time_status_init");
 	BinningState binningState = BinningState::fromChunk(binning_buffer, R);
 	ImageState imgState = ImageState::fromChunk(img_buffer, width * height);
 
@@ -512,5 +525,12 @@ void CudaRasterizer::Rasterizer::backward(
 		dL_dscale_t,
 		(glm::vec4*)dL_drot,
 		(glm::vec4*)dL_drot_r,
-		dL_dopacity), debug)
+		dL_dopacity, formal_time ? geomState.temporal_status : nullptr,
+		time_debug_target, time_backward_debug), debug)
+	if (formal_time) {
+		int status = 0;
+		if (cudaMemcpy(&status, geomState.temporal_status, sizeof(int), cudaMemcpyDeviceToHost) != cudaSuccess)
+			throw std::runtime_error("formal_time_backward_status_read");
+		if (status) throw std::runtime_error("formal_time_backward_health:" + std::to_string(status));
+	}
 }
