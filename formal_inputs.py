@@ -37,6 +37,7 @@ class Inputs(NamedTuple):
     ply_bytes: bytes
     train_cameras: tuple
     test_cameras: tuple
+    reference_bytes: bytes
 
 
 def _reference():
@@ -121,4 +122,5 @@ def verify_inputs(data):
         raise p2.JSONInputError('ply_header')
     freeze = lambda frames: tuple(Frame(f.split, f.index, f.file_path, f.raw_time, f.effective_time) for f in frames)
     return Inputs(state, data, train, test, freeze(times.train), freeze(times.test), ply,
-                  tuple(cameras['train']), tuple(cameras['test']))
+                  tuple(cameras['train']), tuple(cameras['test']),
+                  json.dumps(ref, sort_keys=True, separators=(',', ':')).encode())

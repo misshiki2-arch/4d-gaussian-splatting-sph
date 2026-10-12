@@ -79,13 +79,12 @@ def config_value(source, output, case):
     return value
 
 
-def prepare(base, case):
-    """Real temporary reader/camera/KNN/seed/optimizer; only reference is local."""
+def create_fixture(base, case):
+    """Files only: reusable before the ordinary entry imports the runtime."""
     from PIL import Image
     from plyfile import PlyData, PlyElement
     import formal_inputs
     from test_formal_config import encode
-    import train
 
     base.mkdir()
     source = base/'data'
@@ -125,9 +124,18 @@ def prepare(base, case):
     PlyData([PlyElement.describe(rows, 'vertex')], byte_order='<').write(buffer)
     store('points3d.ply', buffer.getvalue())
     (base/'config.json').write_bytes(encode(value))
+    return value, reference
+
+
+def prepare(base, case, *, native_evidence=None):
+    """Real temporary reader/camera/KNN/seed/optimizer; only reference is local."""
+    import formal_inputs
+    import train
+    from test_formal_config import encode
+    value, reference = create_fixture(base, case)
     with patch.object(formal_inputs, '_reference', return_value=reference):
         inputs = formal_inputs.verify_inputs(encode(value))
-    prepared = train.prepare_formal_runtime(inputs)
+    prepared = train.prepare_formal_runtime(inputs, native_evidence=native_evidence)
     o.require(math.isclose(prepared.scene.cameras_extent, .55, rel_tol=1e-6), 'fixture_extent')
     initialize_population(prepared, case)
     return prepared
@@ -673,7 +681,7 @@ class Observation:
         self.last_loss, self.evaluation = None, None
         return result
 
-    def run(self, writer):
+    def run(self, writer, checkpoint_observer=None, continue_call=None):
         loader, outer = self.p.dataloader, self
         class Batches:
             def __iter__(self):
@@ -715,9 +723,14 @@ class Observation:
                     return _wrapper(_original, *args, **kwargs)
                 stack.enter_context(patch.object(owner, name, observed))
             stack.enter_context(patch.object(self.train, 'render', self.render))
-            stack.enter_context(patch.object(self.torch, 'save', self.save))
+            original_save = self.p.scene.save
+            def observed_save(k):
+                self.save((m.capture(), k), Path(self.p.scene.model_path)/f'chkpnt{k}.pth')
+                if checkpoint_observer is not None:
+                    return checkpoint_observer(original_save, k)
+            stack.enter_context(patch.object(self.p.scene, 'save', observed_save))
             try:
-                completed = self.train.continue_formal_training(self.p._replace(dataloader=Batches()), writer)
+                completed = (continue_call or self.train.continue_formal_training)(self.p._replace(dataloader=Batches()), writer)
             except BaseException as error:
                 self.trace['error'] = f'{type(error).__name__}: {error}'
                 self.trace['failure_snapshot'] = snapshot(m)
@@ -790,7 +803,9 @@ def execute_case(p, case, budget, renderer=None, observer_callback=None):
     claim = formal_entry.OutputClaim(p.inputs)
     writer = None
     try:
-        writer = train.begin_formal_output(p, claim)
+        # Historical Step 12 verifies handoff, not formal checkpoint I/O. Keep
+        # that boundary explicit; Step 13 uses begin_formal_output and real save.
+        writer = train.prepare_output_and_logger(p.dataset, claim=claim, scene=p.scene)
         return observer.run(writer)
     finally:
         if writer is not None:

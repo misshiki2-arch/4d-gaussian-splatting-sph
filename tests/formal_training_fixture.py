@@ -160,7 +160,9 @@ class CPUCase(unittest.TestCase):
             stack.enter_context(patch.object(model, 'update_learning_rate', lr))
             stack.enter_context(patch.object(model.optimizer, 'step', step))
             stack.enter_context(patch.object(model.optimizer, 'zero_grad', zero))
-            stack.enter_context(patch.object(torch, 'save', save))
+            # Handoff observer only. New checkpoint tests call the real writer.
+            stack.enter_context(patch.object(p.scene, 'save',
+                lambda k: save((model.capture(), k), p.scene.model_path+f'/chkpnt{k}.pth')))
             stack.enter_context(patch.object(train, 'training_report', observed_report))
             trace['completed'] = train.continue_formal_training(p._replace(dataloader=Batches()), writer)
         self.assertFalse(torch.cuda.is_initialized())

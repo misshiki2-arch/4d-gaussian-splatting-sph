@@ -178,16 +178,22 @@ class ConnectionTests(unittest.TestCase):
     def prepare(self, bundle=None):
         return self.train.prepare_formal_runtime(self.verify() if bundle is None else bundle)
 
+    def checkpoint_evidence(self):
+        from checkpoint_native_fixture import evidence_for_loaded_cpu_modules
+        if not hasattr(self, '_checkpoint_evidence'):
+            self._checkpoint_evidence = evidence_for_loaded_cpu_modules(self.base)
+        return self._checkpoint_evidence
+
     def test_real_entry_consumers_writer_order_and_single_authority(self):
         locator = self.base / 'config.json'
         locator.write_bytes(encode(self.value))
         events, saved = [], []
         prepare = self.train.prepare_formal_runtime
         begin = self.train.begin_formal_output
-        def observed_prepare(bundle):
+        def observed_prepare(bundle, **kwargs):
             self.assertFalse(self.output.exists())
             events.append('prepare')
-            p = prepare(bundle)
+            p = prepare(bundle, **kwargs)
             saved.append(p)
             self.assertFalse(self.output.parent.exists())
             for view in (p.dataset, p.opt, p.pipe):
@@ -206,7 +212,11 @@ class ConnectionTests(unittest.TestCase):
             self.assertTrue(all((self.output/n).is_file() for n in ('cfg_args','input.ply','cameras.json')))
             events.append('tensorboard')
             return None
-        with patch.object(self.train, 'prepare_formal_runtime', side_effect=observed_prepare), \
+        import formal_native_bootstrap
+        # This historical handoff test starts with train loaded. Fresh-process
+        # bootstrap/collector coverage is in test_formal_checkpoint instead.
+        with patch.object(formal_native_bootstrap, 'bootstrap', return_value=(self.train, self.checkpoint_evidence())), \
+                patch.object(self.train, 'prepare_formal_runtime', side_effect=observed_prepare), \
                 patch.object(self.train, 'begin_formal_output', side_effect=observed_begin), \
                 patch.object(self.train, 'TENSORBOARD_FOUND', True), \
                 patch.object(self.train, 'SummaryWriter', side_effect=tensorboard, create=True), \
@@ -337,7 +347,9 @@ class ConnectionTests(unittest.TestCase):
 
     def test_prepare_failure_and_exclusive_claim_loser_never_write(self):
         locator=self.base/'config.json'; locator.write_bytes(encode(self.value))
-        with patch.object(self.train,'prepare_formal_runtime',side_effect=RuntimeError('prepare_failure')), \
+        import formal_native_bootstrap
+        with patch.object(formal_native_bootstrap, 'bootstrap', return_value=(self.train, self.checkpoint_evidence())), \
+                patch.object(self.train,'prepare_formal_runtime',side_effect=RuntimeError('prepare_failure')), \
                 patch.object(self.train,'begin_formal_output') as writer:
             with self.assertRaisesRegex(RuntimeError,'prepare_failure'): entry.run(locator)
             writer.assert_not_called()
@@ -350,7 +362,7 @@ class ConnectionTests(unittest.TestCase):
         with self.assertRaises(ValueError): self.train.prepare_output_and_logger(self.train.ConsumerView(bundle.config,'dataset'))
 
     def test_claim_writer_failure_keeps_leaf_no_retry(self):
-        p=self.prepare()
+        p=self.train.prepare_formal_runtime(self.verify(), native_evidence=self.checkpoint_evidence())
         claim=entry.OutputClaim(p.inputs); self.addCleanup(claim.close)
         with patch.object(p.scene,'write_initial_files',side_effect=OSError('fixture_writer_failure')) as writer:
             with self.assertRaisesRegex(OSError,'fixture_writer_failure'): self.train.begin_formal_output(p,claim)

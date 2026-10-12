@@ -68,8 +68,11 @@ def run(locator):
     with open(locator, 'rb') as stream:
         data = stream.read(p2.MAX_INPUT_BYTES + 1)
     inputs = verify_inputs(data)
-    import train  # Same process, after ALL pre-heavy checks.
-    prepared = train.prepare_formal_runtime(inputs)
+    from formal_checkpoint_identity import source_snapshot
+    source = source_snapshot()  # Still stdlib, before cache or output writes.
+    from formal_native_bootstrap import bootstrap
+    train, native = bootstrap(source)
+    prepared = train.prepare_formal_runtime(inputs, native_evidence=native)
     claim = OutputClaim(inputs)
     try:
         writer = train.begin_formal_output(prepared, claim)

@@ -252,6 +252,17 @@ def resolve_formal_config(data: bytes, *, raw_width: int,
     runtime imports. Failure raises JSONInputError and returns no state.
     Cost is bounded by input size, not total_updates or population magnitude.
     """
+    state = _derive_formal_config(data, raw_width=raw_width, raw_height=raw_height)
+    paths = p6.preflight_p6_paths(p2.parse_json_bytes(data))
+    return state._replace(paths=CanonicalPaths(paths.source_path, paths.output_directory))
+
+
+def _derive_formal_config(data: bytes, *, raw_width: int, raw_height: int) -> FormalConfig:
+    """Internal pure semantics only; NOT a verified runtime entry (paths=None).
+
+    Used by the diagnostic checkpoint reader. Public training resolution above
+    unconditionally performs P6; there is no caller-selectable skip flag.
+    """
     parsed = p2.parse_json_bytes(data)
     root = parsed.root
     _closed_objects(root)
@@ -308,10 +319,6 @@ def resolve_formal_config(data: bytes, *, raw_width: int,
         schedules.total_updates, batch_size, learning_rate, loss, population,
         SHSchedule(_integer(opt["sh"]["increase_interval"], 1)))
 
-    # The only filesystem boundary. No state escapes before P6 succeeds;
-    # no directory/content reader, output creation or exclusive claim here.
-    paths = p6.preflight_p6_paths(parsed)
-
     model, renderer = root["model"], root["renderer"]
     return FormalConfig(
         schema=root["schema"], run_mode=root["run_mode"],
@@ -337,7 +344,7 @@ def resolve_formal_config(data: bytes, *, raw_width: int,
                              sh.slot_count, sh.mode_slot_ranges, sh.legacy_eval_shfs_4d),
         time_derivation=TimeDerivation(*(getattr(time, f) for f in TimeDerivation._fields)),
         save_updates=schedules.save_updates,
-        paths=CanonicalPaths(paths.source_path, paths.output_directory),
+        paths=None,
         fixed=FixedConditions(True, "existing_sidecar", True, 0, True, 0,
                               "log_interpolation", "constant", 20, True, True,
                               ((0, 0), (1, 0), (2, 0), (3, 0), (3, 1), (3, 2))),

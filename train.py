@@ -49,11 +49,18 @@ class PreparedFormal(NamedTuple):
     scene: object
     background: object
     dataloader: object
+    checkpoint_context: object = None
 
 
-def prepare_formal_runtime(inputs):
+def prepare_formal_runtime(inputs, *, native_evidence=None):
     """Output-free preparation using existing consumers, never a CPU fallback."""
     c = inputs.config
+    # Preparation remains output-free. Legacy CPU handoff probes may prepare
+    # without evidence, but cannot begin formal output or save a checkpoint.
+    context = None
+    if native_evidence is not None:
+        from formal_checkpoint import prepare_context
+        context = prepare_context(inputs, native_evidence)
     if not torch.cuda.is_available():
         raise RuntimeError('formal_cuda_unavailable')
     torch.cuda.set_device(0)
@@ -80,12 +87,14 @@ def prepare_formal_runtime(inputs):
     dataloader = DataLoader(training_dataset, batch_size=c.optimization.batch_size,
         shuffle=c.fixed.shuffle, num_workers=c.fixed.num_workers, collate_fn=lambda x: x,
         drop_last=c.fixed.drop_last)
-    return PreparedFormal(inputs, dataset, opt, pipe, gaussians, scene, background, dataloader)
+    return PreparedFormal(inputs, dataset, opt, pipe, gaussians, scene, background, dataloader, context)
 
 
 def begin_formal_output(prepared, claim):
     if claim.path != prepared.inputs.config.paths.output_directory:
         raise ValueError('formal_output_claim')
+    from formal_checkpoint import CheckpointWriter
+    prepared.scene._checkpoint_writer = CheckpointWriter(prepared.checkpoint_context, claim, prepared.scene)
     return prepare_output_and_logger(prepared.dataset, claim=claim, scene=prepared.scene)
 
 

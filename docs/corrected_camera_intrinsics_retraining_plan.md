@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **Steps-5-6-7-8-9-10-11-complete-and-user-research-Git-integrated / Step-12-learning-update-population-CPU-and-CUDA-functionally-accepted / Step-12-document-review-user-research-Git-and-completion-pending / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / focused-time-camera-SH-and-alpha-CUDA-passed / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
+Status: **Steps-5-6-7-8-9-10-11-12-complete-and-user-research-Git-integrated / Step-13-advisor-reviewed-and-user-functionally-accepted / Step-13-document-review-and-user-research-Git-completion-pending / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / focused-time-camera-SH-and-alpha-CUDA-passed / pilot-not-started / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -44,10 +44,11 @@ Step design and documentation timing by
 Git timing by [USR-GIT-09/10](../../4dgs-development-governance/40_USER_GIT_AND_ACCEPTANCE_RUNBOOK_JA.md),
 and overall progress by [RM-PROGRESS](../../4dgs-development-governance/30_REDMINE_WORKFLOW_JA.md).
 Technical owners, dependencies and Gate conditions remain unchanged. The
-current functional Step after completed Steps 5–11 is
-[Step 12: learning updates and population CUDA validation](#step-12-learning-updates-and-population-cuda-validation),
-functionally accepted and awaiting document review, user research Git and
-push confirmation/completion processing.
+current functional Step after completed Steps 5–12 is
+[Step 13: completed-state checkpoint save and diagnostic read-back](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back).
+Its implementation and bounded CPU/synthetic actual-CUDA results are advisor-
+reviewed and user-functionally-accepted; document review, consolidated user
+research Git/push confirmation and completion/progress processing remain pending.
 Former roadmap numbers, including 6=checkpoint, 7=camera and 9/10=training
 state/optimizer-population responsibilities, remain historical
 references rather than the current execution sequence. Future functional Step
@@ -154,10 +155,12 @@ The [Step 11 time function](#step-11-time-initialization-rendering-and-parameter
 is complete under the
 [Step 11 completion record](../../reports/corrected-4dgs/phase1/step11/step11-completion-report.txt),
 including document review, user research Git, push confirmation and progress processing.
-The current [Step 12](#step-12-learning-updates-and-population-cuda-validation) learning-update/population function is advisor-reviewed and
-user-functionally-accepted within its CPU and synthetic real-CUDA scope.
-Its document review, consolidated user research Git, push confirmation and
-completion/progress processing remain pending.
+The [Step 12](#step-12-learning-updates-and-population-cuda-validation) learning-update/population function is complete,
+including document review and user research Git/push, under the
+[Step 12 completion record](../../reports/corrected-4dgs/phase1/step12/step12-completion-report.txt).
+The current [Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back) has advisor-reviewed, user-accepted implementation and bounded
+CPU/synthetic actual-CUDA evidence; document review and user research Git/
+completion processing remain pending.
 These bounded acceptances are not training readiness or passage of any Gate.
 
 The Fudan Native model configuration, existing train/test-only dataset and
@@ -1560,7 +1563,7 @@ correctness and training readiness are not proven. Remaining run values and
 owner details stay open. Step 5 documentation review and user research Git
 are complete; its subsequent
 [Step 6 camera handoff](#step-6-canonical-camera-handoff) is also complete.
-The current Step 12 scope is recorded below, not another Step 5 Fix.
+Step 12 completion and the current Step 13 scope are recorded below, not another Step 5 Fix.
 
 ##### Remaining field and owner boundary
 
@@ -1825,8 +1828,11 @@ transaction `k` have succeeded. A checkpoint labelled `k` saves that completed
 state, never the state before those events. Checkpoint save precedes test
 evaluation when both observe the same completed state. Final checkpoint `N` is
 mandatory, and its save condition must be constructed and verified from the
-effective `N` after CLI/config merge. Atomic write, incomplete-state recovery,
-and field-level checkpoint schema remain separate open responsibilities.
+effective `N` after CLI/config merge. The separate
+[checkpoint owner](#approved-checkpoint-foundation-and-exact-resume-staging)
+owns field semantics and checkpoint-local publication, with bounded acceptance
+recorded in [Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back).
+General incomplete-state recovery remains outstanding.
 [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) accepts the
 implemented save-then-test connection and CPU observation of completed state.
 [Step 12](#step-12-learning-updates-and-population-cuda-validation) adds actual-CUDA completed-state save→report handoff, with terminal
@@ -1977,7 +1983,205 @@ P0-T6's versioned semantic schema, diagnostic state, semantic validation, and
 dataset/config/source/renderer provenance. It does not own the loop count,
 same-Parameter optimizer transaction, or exact-resume continuation state.
 Incomplete, unknown-version, or semantically incompatible state must fail
-closed. The schema's field-level design remains open.
+closed. Step 13 adopts the following v1 contract from the
+[reviewed detailed design v2](../../reports/corrected-4dgs/phase1/step13/step13-design1/step13-design1-design-report-v2.md)
+and [advisor review v2](../../reports/corrected-4dgs/phase1/step13/step13-design1/step13-design1-advisor-review-v2.txt),
+under the [contract-sync instruction](../../reports/corrected-4dgs/phase1/step13/step13-docsync1/step13-docsync1-instruction.txt).
+This owner section is the canonical contract, not a delegation of required
+semantics to those reports. The [Step 13 status and acceptance boundary](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back)
+records the now-accepted bounded implementation/validation separately from
+pending document review and research Git completion. Local helper/API/file structure, error representation
+and finite I/O budgets remain implementation choices within these semantics.
+
+#### Adopted checkpoint v1 state and identity
+
+Use the existing 19-item 4D capture in a versioned formal-only bundle under the
+claimed run root, separate from legacy `chkpnt*.pth` tuples:
+
+| File | Required responsibility |
+|---|---|
+| `metadata.json` | Closed schema `corrected-formal-checkpoint-v1`, capture-layout version, completed-state boundary, completed `k` / verified `N`, intermediate/final identity, population `M`, raw JSON plus the complete effective config, model/renderer semantics, and dataset/source/build/load provenance. |
+| `state.pt` | Normal torch-save ZIP with a closed schema/layout/`k`/capture envelope, containing detached, independent, contiguous CPU tensor snapshots and plain primitives, not live Parameters or custom objects. |
+| `complete.json` | The only completion marker: checkpoint schema, `k`, fixed payload/metadata names, required sizes and actual-byte digests. Its own digest is recorded externally, not self-embedded. |
+
+JSON is strict: unknown/duplicate keys, unknown versions, missing required
+fields, coercion and nonfinite values reject. Read limits are bounded and
+over-limit input rejects rather than truncates. `k` is an integer excluding
+bool, `1 <= k <= N`, present in the verified save schedule; final means
+`k == N`. Zero diagnostics and best selection are not checkpoint kinds.
+`M` is positive and agrees across every row-bearing field; rejecting an empty
+v1 diagnostic checkpoint does not implement general empty-population recovery
+or turn the population stopping threshold into a hard cap.
+
+Preserve the following capture layout and meanings. Tensor entries are finite
+float32 CPU contiguous values unless stated otherwise. All rows use the same
+completed-state array order across attributes, statistics and moments; this
+does not introduce persistent SPH particle IDs or reconstruct past lineage.
+
+| Slot | Content and required semantics |
+|---|---|
+| 0, 18 | Integer (not bool) active spatial/temporal SH degrees; match the existing six-stage warmup derived from `k` and verified interval, with maximum 3/2 and capacity 48. |
+| 1 | `xyz [M,3]`, in world coordinates. |
+| 2, 3 | `features_dc [M,1,3]`, `features_rest [M,47,3]`; preserve all 48 slots, including inactive coefficients and row/slot order. |
+| 4, 14 | `scaling [M,3]`, `scaling_t [M,1]` as raw log scales; float32 exponentiation must be finite and positive. Do not replace stored logs with activation values. |
+| 5, 15 | Left/right quaternion `rotation [M,4]`, `rotation_r [M,4]`; raw values, finite nonzero norms, no save-time normalization. |
+| 6 | `opacity [M,1]` as finite logits; do not invent an epsilon lower bound on sigmoid values that can round to zero or one. |
+| 7 | `max_radii2D [M]`, nonnegative, preserving the actual post-mutation/reset state. |
+| 8 | `xyz_gradient_accum [M,1]`, nonnegative. |
+| 9 | `t_gradient_accum [M,1]`, signed; no nonnegative constraint. |
+| 10 | `denom [M,1]`, nonnegative integer-valued, including zero. |
+| 11 | Diagnostic optimizer state with the nine-group correspondence below. |
+| 12 | `spatial_lr_scale`, finite positive Python float preserving the actual Scene extent; no later reconstruction from dataset contents. |
+| 13 | `t [M,1]` in its already-transformed effective time units; no second conversion or restriction of learned values to the initial interval. |
+| 16, 17 | `rot_4d=true` and `env_map=None` exactly. False, tensor environment state or a constructor's empty environment tensor reject. |
+
+Validate shape, dtype, finite values, row correspondence and activation domains;
+never clamp/repair an invalid snapshot. Finite saved tensors do not establish
+whole-renderer numerical health.
+
+The nine optimizer groups are `xyz, f_dc, f_rest, opacity, scaling, rotation,
+t, scaling_t, rotation_r`, each with one Parameter. Immediately before capture,
+verify each group's Parameter is the corresponding model attribute and its
+grad is None. Serialization IDs are internal references, not semantic
+identity: require a bijection among group name, capture slot, ID and shape,
+with no duplicate or extra state. Record each group's initialized flag and
+actual scalar-step dtype. Initialized state contains exactly `step, exp_avg,
+exp_avg_sq`: finite shape-matched float32 moments, nonnegative second moments,
+and a finite nonnegative integer-valued scalar step no greater than `k`.
+**Adam step is not completed-update authority and need not equal `k`.**
+Only truly uninitialized lazy state may be explicitly absent; missing state
+declared initialized is corruption, not permission to fabricate zero moments.
+
+Preserve actual group LR, betas, eps, weight_decay, amsgrad, maximize, foreach,
+capturable, differentiable and fused settings, distinguishing None from false
+and rejecting unknown keys/types. Primitive conversion of NumPy scalars must
+preserve values. Compare the fixed Adam and verified LR meaning without
+discarding the accepted binary32 extent/multiplication behavior. Preserve
+post-topology moment slicing/child-zero/scalar-step inheritance, opacity-reset
+moments and statistics-window results without redesigning their owners.
+RNG, sampler position, next batch and scheduler closures are not added as
+resume state.
+
+Bind original config bytes and a complete fixed projection of the same verified
+config, including all root meanings, derived time/save conditions, canonical
+paths and fixed restrictions. Re-derive and compare raw JSON and effective
+values; `cfg_args`, repr, defaults, YAML/CLI or a reread replacement config
+are not authorities. Bind retained train/test metadata and PLY sizes/digests,
+frame order/raw-effective time, approved reference identity, raw/effective
+camera dimensions/mode, actual model/time/V-B/PF/SH and five-field renderer
+invocation. Duplicate recorded meanings must agree. Do not claim full pixel
+generation provenance or rescan all images merely to manufacture such a claim.
+
+#### Adopted ordinary-entry source-build-load connection
+
+After the existing stdlib input/preflight checks, the ordinary formal entry
+collects the actual bounded repository/source/header/recipe input snapshot,
+then calls a formal-only heavy bootstrap reusing the existing KNN setup recipe
+and rasterizer loader. At **each ordinary formal startup**, these fixed two
+extensions are freshly built and loaded in a new exclusive isolated area under
+the existing build-cache root, separate from dataset, repository and formal
+output. This adds startup time, disk use and possible compiler/build failure.
+Reuse that evidence and binary within the run; do not rebuild per checkpoint.
+
+Keep the lightweight top-level import boundary and existing order:
+input/source validation → heavy build/load → output-free runtime preparation
+→ exclusive claim → first writer. The ordinary entry itself generates
+source/build/actual-load evidence; successful production save cannot depend
+on a test-supplied receipt. Pass the same checked context through prepare,
+PreparedFormal, begin/claim binding and Scene's formal writer. Bind it to the
+same verified config/model and output claim; missing context must not fall
+back to legacy saving.
+
+Use real input bytes, successful recipe/argv and generated objects/binaries,
+loaded module/function correspondence, and observed interpreter/Torch/CUDA
+build information. Recheck source/header identity before/after build and
+loaded binary/source identity before save. Reject missing/conflicting evidence,
+foreign preload or a load outside the new build area; preserve failure evidence,
+without automatic rebuild or cleanup. A current cache hash alone does not
+prove historical build provenance. Include required bounded evidence in the
+checkpoint metadata, not only an external receipt locator. Base Git HEAD is
+provenance, not a substitute for actual WIP bytes or a clean/intermediate-commit
+condition; the [Step-internal build/Git boundary](#step-internal-build-and-git-boundary)
+is unchanged.
+
+Reuse the fixed existing recipes without changing numerical semantics, compiler
+flag meanings or the existing `4dgs310` environment. No package installation,
+semantic JSON/CLI extension, production dependency on tests, generic build/cache
+manager, registry or persistent environment reconfiguration is adopted.
+This evidence covers the observed repository inputs/build/load relationship,
+not every external header/library, driver or toolchain's authenticity.
+
+#### Adopted diagnostic read-back and no-resume boundary
+
+Read completion and metadata through bounded, read-only/no-follow regular-file
+checks and actual-byte size/digest verification. In the stdlib metadata stage
+(M), validate versions, raw/effective config, `k/N`, schedule and model/
+dataset/source/binary meanings **before Torch/model/renderer import**.
+Share pure semantic derivation internally, but never weaken the new-training
+P6 preflight or expose `skip_p6` / `allow_existing_output` bypasses. The
+diagnostic reader separately checks saved canonical root/path correspondence;
+no automatic remap or default completion is adopted.
+
+Only after M succeeds may stage T import Torch CPU, restrict input to normal
+torch-save ZIP (reject TorchScript, malformed/duplicate entries and unsafe
+forms), and load with `map_location='cpu', weights_only=True`. No unsafe
+fallback or custom-class allowlist. Then independently validate all 19 slots,
+optimizer semantics and payload schema/`k` against metadata. A T-stage error
+may occur after Torch CPU import/load, but must precede model construction,
+renderer/GPU use and output writes. Writer validation never replaces reader
+validation.
+
+Construct a separate diagnostic model from the verified config and independent
+storage; reuse `restore(capture, training_args=None)`. Explicitly restore
+xyz/time gradient accumulators and denom omitted by that path, bind
+percent_dense and the same verified time-derivation identity, and check
+maximum SH, force_sh_3d, time interval and PF. Compare attributes directly;
+do not use optimizer-dependent capture to inspect the restored model.
+Keep optimizer=None: the saved optimizer snapshot is diagnostic data, not
+permission for training_setup, optimizer load/continuation, RNG restart or
+resume. Heavy model/GPU use requires prior checked source/binary correspondence.
+
+Old unversioned tuples and old render/export consumers are not implicitly
+compatible with this bundle. Preserve legacy files and paths; do not silently
+convert them or migrate all consumers. CUDA Reference/SPL4/Viewer integration
+remains separately owned.
+
+#### Adopted checkpoint-local publication exception
+
+For the Step 13 diagnostic checkpoint only, atomic publication is the
+no-replace creation of `complete.json` by a same-filesystem hard link,
+after temporary writing and actual read-back validation of immutable payload
+and metadata. This is an explicit checkpoint-local alternative to the
+atomic-rename requirement in the
+[manifest/publication register](#integrated-p1p2-disposition-by-owner);
+it does not replace publication rules for other artifacts.
+
+Under the existing claim, exclusively reserve the checkpoint directory,
+write/flush/fsync/close real payload/metadata files, read them back and compare
+with the pre-save snapshot, then create/fsync/read back a private
+pending marker. Link it to the canonical marker without overwrite, fsync the
+directory and independently verify the published files. A directory without a
+valid marker, or with invalid/missing content, is incomplete. Required sizes/
+digests bind payload and metadata; record the marker digest externally.
+Readers recognize only the canonical marker and required bound files, never
+a pending marker. No shared public-reader option permits incomplete input.
+
+Existing checkpoint/file/symlink collisions reject, preserving prior completed
+checkpoints. Unsupported hard-link/fsync behavior fails without rename/copy
+fallback. A failure stops report/next-batch processing and preserves evidence;
+it does not roll back the completed optimizer update, retry, overwrite or
+delete prior checkpoints. If publication happened but subsequent verification
+or durability checks failed, report an uncertain/failed save/run outcome,
+not success or a reason to resend. Independent later read-back and run success
+are separate. A successful checkpoint followed by report failure stays a valid
+checkpoint but does not make the run successful.
+
+Completed update, confirmed checkpoint and successful run are distinct facts.
+This one-checkpoint protocol neither promises unconditional power-loss
+durability nor implements a whole-run transaction or CUDA Reference/SPL4/
+Viewer bundle publication.
+
+#### Exact resume remains deferred
 
 Pilot runs start from iteration 0, prohibit resume, and reject every resume
 entry. Legacy checkpoint warm-start is always prohibited. Exact resume is not
@@ -2163,11 +2367,11 @@ them.
 | config/run mode/provenance | Require effective `eval=True`, reject effective `eval=False`, apply the adopted strict nested JSON / immutable state and single from-scratch mode, and enforce the [adopted closed key sets](#adopted-step-5-minimal-connection-contract) without legacy override authority; remaining owner details and integration are separate. Reject legacy output/path reuse, capture the complete effective config, and replace executable config parsing where it reaches formal tooling. | Report path-remap and duplicate-basename ambiguity as bounded diagnostics. |
 | training state machine | P0-T1/T2 own exact `k=1..N`, the final step, no `N+1` batch fetch, completed labels, and the completed-state checkpoint/test boundary. [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) accepts implementation/CPU connection; [Step 12](#step-12-learning-updates-and-population-cuda-validation) adds synthetic CUDA completed-update/save-report evidence, not full runtime closure. | Keep loop/helper API local; consumers verify rather than redefine completed count. |
 | optimizer/densification transaction | P0-T3 owns current statistics capture, same-Parameter step, zero-grad, then topology and reset mutation, with densify/prune before reset when simultaneous. | Population owner retains the adopted event/input/handoff conditions, statistics lifetime/point correspondence, and actual threshold/interval/schedule values; [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) accepts bounded transaction implementation/CPU validation and [Step 12](#step-12-learning-updates-and-population-cuda-validation) adds actual-CUDA evidence; real-data and general failure validation remain open. |
-| diagnostic checkpoint foundation | P0-T6 owns versioned field semantics, semantic validation, provenance, and diagnostic state; it consumes the P0-T1/T2 completed label but does not own loop order or exact resume. Atomic writes and field-level state remain to be defined. | Record interruption/OOM behavior and checkpoint-size/hash cost. |
+| diagnostic checkpoint foundation | P0-T6 owns versioned field semantics, semantic validation, provenance, and diagnostic state; it consumes the P0-T1/T2 completed label but does not own loop order or exact resume. The [adopted v1 state/read-back/publication contract](#approved-checkpoint-foundation-and-exact-resume-staging) is defined; bounded implementation/validation are accepted in [Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back), with document review/research Git completion pending. | Record interruption/OOM behavior and checkpoint-size/hash cost. |
 | exact resume (conditional) | After known P0 and transaction stability, a separate root Fix owns complete restore and resume equivalence; until acceptance, resume fails closed. | Compare scheduler/RNG/sampler/dataloader, optimizer, population, and topology continuation only if resume will be enabled. |
 | dataset/mask | Bind the approved `v01-v31` train and `v00` test transforms/images/masks without adding validation; preserve the [adopted delayed-loader/sidecar connection](#adopted-d-data-minimal-connection-contract) and its existing RGB/mask/loss meaning through the single verified state. | Issue #50 supplies bounded current-input evidence, not complete generation/semantic proof; remaining run-dependent alignment and loss values stay with this owner, without automatic fallback-removal or generic-resize work. |
 | PLY/legacy v1/diagnostic export | Exclude 3D-sequence PLY from formal parity; exclude lossy SPL4-v1; either specify PLY SH property order and metadata or keep PLY diagnostic-only. | External SuperSplat PLY convention remains unverified. |
-| manifest/publication | Require immutable output, temporary write and atomic rename, final external digest, completion index, required-field validation, correct debug vocabulary, PNG encoding, and `num_rendered`/tile-reference policy. | Full-file rehash cost and diagnostic metadata volume are performance/observability issues. |
+| manifest/publication | Require immutable output, temporary write and atomic rename (with the checkpoint-only exception under [Approved checkpoint foundation and exact-resume staging](#adopted-checkpoint-local-publication-exception)), final external digest, completion index, required-field validation, correct debug vocabulary, PNG encoding, and `num_rendered`/tile-reference policy. | Full-file rehash cost and diagnostic metadata volume are performance/observability issues. |
 | Viewer parser/handoff | P0-A3/A4 own strict parsing and provenance binding; additionally decide canonical scale representation and remove or version-isolate historical hard-coded selection. | Structured fetch failure and allocation/overflow guards are bounded robustness. |
 | determinism/failure handling | Enforce adopted one-seed initialization while retaining runtime ownership, define fatal nonfinite behavior, partial-output cleanup, and the deterministic claims allowed for CUDA and equal-depth sorting. | Runtime nonfinite/OOM frequency and equal-depth ordering remain evidence gaps. |
 | logging/visualization | Keep training-report PNG, alpha/depth visualization, helper quantization, and diagnostic rerenders outside acceptance unless their exact contract is selected. | `round` versus truncation and depth colormap differences are bounded when one formal writer is fixed. |
@@ -2279,7 +2483,7 @@ the remaining items must not be presented as the formal contract.
 | decided: alpha-cap derivative | Keep `alpha=min(0.99f, raw_alpha)` in forward; after aggregating all `dL/dalpha`, use the independent piecewise gate `raw_alpha < 0.99f` for the alpha-mediated opacity/G/screen-xy/conic/covariance chain and zero that chain for `raw_alpha >= 0.99f`, including a zero selected subgradient at bitwise-equal float32 `0.99f`; preserve direct color/flow/depth and depth-to-screen-z gradients. Do not use an STE/surrogate, cap removal, smooth cap, or cap-triggered formal rejection. The local correction and focused CPU/CUDA validation are accepted in [Step 9](#step-9-alpha-cap-correction-and-cpucuda-validation); this does not close other renderer or Gate duties. |
 | decided: completed-update transaction | Start from completed count zero and execute `k=1..N` exactly once with no `N+1` fetch; apply schedules before forward; forward/loss/backward; collect and apply current densification statistics before Parameter replacement; same-Parameter optimizer step including `k=N`; zero-grad; scheduled densify/clone/split/prune; scheduled opacity reset; then declare completed state `k`, save checkpoint `k`, and evaluate that same state. Densify/prune precedes reset when simultaneous; prune reads post-step/pre-reset opacity; children derive from post-step parents; reset reaches survivors and children. Final checkpoint `N` is mandatory from effective post-merge `N`. Optimization input loss `k` remains distinct from completed-state test metric `k`; initial state zero is not an update or selection state. Candidate B is adopted and A/C/D are rejected for the bounded reasons above. [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) accepts implementation and CPU validation; [Step 12](#step-12-learning-updates-and-population-cuda-validation) adds bounded synthetic CUDA evidence. Real-data/general runtime and separate checkpoint-owner validation remain required. |
 | decided: independent formal entry/effective configuration | Use a lightweight formal-only bootstrap, one stdlib-only pure resolver/validator, and a separately loaded heavy runtime. The resolver is the sole authority for one explicit formal configuration and completes read-only validation in the same process before heavy import/JIT. Issue #18's strict nested semantic JSON v1 + immutable verified state and single from-scratch mode, refined by Issue #23's adopted P1–P6 under Issue #24, are fixed under [the JSON contract](#approved-json-and-single-run-mode-contract); the initial formal CLI accepts only its locator, excludes `quiet`, and permits no semantic override or legacy/general bypass. The typed state is limited to semantic authority, approved fixed values, derived final/test/save schedules, unsupported-branch absence, and output identity; the [Step 5 connection contract](#adopted-step-5-minimal-connection-contract) binds seed input, initial loss branch and time/V-B handoff under closed key sets without moving runtime, digest, checkpoint, manifest, camera-math, RNG, reporting or publication owners into the resolver. Existing output rejects before heavy import; heavy load/JIT and side-effect-free preparation precede an exclusive claim immediately before the first writer. Issue #10 Candidate C/D remain rejected. Helper/file names, local API/error details, control structure, and whether the first-candidate four-file layout is suitable remain CODEX implementation discretion. |
-| required before implementation | Remaining owner details beyond the adopted closed-key/input/handoff subsets [above](#remaining-field-and-owner-boundary) and accepted Step 5 connection; checkpoint schema. Camera choices in [Step 6 A](#step-6-canonical-camera-handoff), loop connection and population statistics-lifetime/point-correspondence correction in [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) are implemented and CPU-accepted, not pending local-design approval. The completed-update event order, formal-entry authority, JSON/mode choice, adopted P1–P6, PF/time/V-B, D-DATA, minimal initialization/LR/batch/SH, configurability/population conditions and eight-field input/handoff contract, Step 5 seed/initial-loss/time-cast/key-set adoption, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
+| required before implementation | Remaining owner details beyond the adopted closed-key/input/handoff subsets [above](#remaining-field-and-owner-boundary) and accepted Step 5 connection. The [Step 13 checkpoint v1 and publication/entry contracts](#approved-checkpoint-foundation-and-exact-resume-staging) are adopted, not open schema choices; bounded implementation/validation are accepted in [Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back), with document review/research Git completion pending. Camera choices in [Step 6 A](#step-6-canonical-camera-handoff), loop connection and population statistics-lifetime/point-correspondence correction in [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) are implemented and CPU-accepted, not pending local-design approval. The completed-update event order, formal-entry authority, JSON/mode choice, adopted P1–P6, PF/time/V-B, D-DATA, minimal initialization/LR/batch/SH, configurability/population conditions and eight-field input/handoff contract, Step 5 seed/initial-loss/time-cast/key-set adoption, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
 | required before downstream execution acceptance | Remaining D-* owner decisions and implementation/validation beyond the accepted Step 5 CPU connection and Steps 8–12 bounded CPU/CUDA scopes, as classified [above](#remaining-field-and-owner-boundary), including PF validation outside Step 11 and later-consumer binding. Owner separation permits neither implicit defaults nor a claim of training readiness. |
 | required before formal retraining | Numeric final iteration and pilot/formal schedules; explicit pilot/formal population stopping-threshold/unlimited settings within the adopted input contract; densification/prune/reset numeric schedules; complete effective-config snapshot; explicit run seed and runtime determinism/device evidence; test-report metric/cadence; nonfinite/OOM/partial-failure policy; immutable output directory and atomic publication; and, only if resume will be enabled, field-level restore state plus numerical/bitwise equivalence acceptance thresholds. |
 | required before formal artifact generation | SPL4-v2 log/linear scale representation; PNG clamp/round/color/codec; full/range CUDA Reference purposes; manifest schema and validator; source-to-binary build provenance; bundle/index/external-digest ownership; direct evidence as formal same-invocation evidence or diagnostic-only. |
@@ -2306,8 +2510,11 @@ requirements.
 The accepted [Step 7 A scope](#step-7-learning-update-consistency-and-cpu-validation)
 adds existing-loop, real Adam/population and save/test CPU connection evidence
 for layers 4–6. It alone did not establish GPU execution/gradients; Step 12's
-additional evidence is recorded below. Real-data training and the separately
-owned checkpoint schema/read-back/publication/resume obligations remain open. These are saved
+additional evidence is recorded below. Step 13 separately accepts bounded v1
+checkpoint save/read-back/publication evidence under the
+[checkpoint owner](#approved-checkpoint-foundation-and-exact-resume-staging);
+real-data training, exact resume and broader artifact obligations remain open.
+These are saved
 implementation results, not tests rerun by this documentation sync.
 
 The accepted [Step 8 SH scope](#step-8-sh-correction-and-cpucuda-validation)
@@ -2340,12 +2547,18 @@ process receipt establish validation completion, not formal checkpoint
 serialization, publication or resume. Real-data and general failure coverage
 remain outside this bounded evidence.
 
+The accepted [Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back) scope adds layer 3's v1 save/public-reader/diagnostic-restore and
+checkpoint-local publication evidence, including ordinary-entry fresh-build/
+load provenance. CPU rejection/fault coverage is distinct from synthetic CUDA
+state/render correspondence. Neither establishes exact resume, general failure
+handling, formal real-data checkpoints or all downstream artifact consumers.
+
 | # | Validation layer | Primary findings closed |
 |---:|---|---|
 | 1 | Pure CPU canonical-camera tests for SPH intrinsics, both supported modes, raw-sentinel isolation, dimensions/resolution scaling, clipping/cull separation, and the mixed/partial/nonfinite/invalid/off-center rejection matrix | P0-0 and camera/projection P1; P0-A6 consumes the accepted result later |
 | 2 | Pure resolver and lightweight-bootstrap tests for the [adopted strict JSON/single-mode and P1–P6 contract](#approved-json-and-single-run-mode-contract), with no `torch`, renderer, `Scene`, or CUDA dependency: accept one explicit authority and the approved dataset/model/camera/renderer state; allow only the locator CLI and reject `quiet`, semantic options, legacy/general bypass, recursive missing/unknown/duplicate fields, type/nonfinite/bool-as-int errors, expressions/coercion/aliases, implicit defaults, authority overwrite, `eval=False`, resume/warm-start/best/environment checkpoint state, unsupported JSON keys even with inactive values, and legacy/pre-existing output at preflight. Prove immutable typed-state scope, explicit fixed values including `scaling_modifier=1.0`/`override_color=None`, verified `N` with mandatory final `N` exactly once, selection-free derived test/save conditions, one output identity, and the separate failure-stage expectations below. | independent formal-entry policy, P0-T4, P0-A2, P0-T6/T7, renderer/config/run-mode P1 |
 | 2a | Execution-environment identity test using the `4dgs310` first candidate: invoke its explicit Python path, verify `sys.executable`, record package/PyTorch-CUDA/compiler/driver/GPU identities without changing them, build the extension freshly from the reviewed corrected inputs under the [Step-internal build and Git boundary](#step-internal-build-and-git-boundary), including reviewed uncommitted/new files, and bind the loaded binary to those actual inputs before focused CUDA acceptance. Existing cache and upstream `environment.yml` are rejected as execution authority. | formal environment boundary and P0-A7 build provenance |
-| 3 | Versioned checkpoint field serialization, semantic validation, diagnostic provenance, and rejection matrix; consume rather than redefine the completed-state label from P0-T1/T2 | P0-T6, P0-A1/A2 |
+| 3 | Implement and validate the [adopted checkpoint v1](#approved-checkpoint-foundation-and-exact-resume-staging) serialization, M/T semantic rejection, diagnostic provenance/read-back and exclusive publication; use independent state expectations and the [Step 13 accepted normal-entry/CPU/CUDA evidence](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back); consume rather than redefine the P0-T1/T2 label | P0-T6, P0-A1/A2 |
 | 4 | Training state-machine mock proving completed count starts at zero, `k=1..N` performs exactly `N` batch fetches and optimizer steps including final `N`, no `N+1` fetch occurs, and checkpoint-first/test-second both observe the post-topology/post-reset completed state | P0-T1/T2 |
 | 5 | Optimizer transaction test proving current visibility/radii/screen/time statistics are captured before replacement, the backward-owned Parameter is stepped, zero-grad precedes mutation, and ordinary/final/reset/topology transactions follow the approved event order | P0-T3, optimizer P1 |
 | 6 | Densification clone/split/prune and opacity-reset test proving post-step parent/survivor values, Adam-row preservation or zero initialization, post-step/pre-reset prune opacity, densify/prune-before-reset when simultaneous, and reset coverage of survivors and children | P0-T3 boundary, population P1 |
@@ -2728,11 +2941,14 @@ CUDA handoff and local projection-covariance clamp-z correction, with same-binar
 alpha/SH regression. Step 11 accepts the existing time-bearing initialization,
 time/V-B/PF render/gradient connection and limited CUDA health/failure propagation.
 Step 12 accepts bounded synthetic CUDA update/Adam/population and completed-state
-save/report handoff. These results are reusable evidence, not satisfaction of
+save/report handoff. Step 13 adds bounded v1 checkpoint save, diagnostic
+read-back and checkpoint-local publication with ordinary-entry build/load
+identity. These results are reusable evidence, not satisfaction of
 remaining Gate A conditions.
 Camera consumers and transaction validation beyond those accepted scopes, remaining renderer math,
-checkpoint foundation, broader execution/build provenance and real-data
-training validation remain outstanding; these are later owner duties, not
+checkpoint consumers beyond the
+[accepted Step 13 scope](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back),
+broader execution/build provenance and real-data training validation remain outstanding; these are later owner duties, not
 additional Step 5/6/7 CPU acceptance requirements. Gate A remains unpassed.
 
 ### Gate B: before formal retraining
@@ -2842,7 +3058,7 @@ state, and checkpoint/manifest consumers bind rather than redefine it.
 | evaluation/best policy | Formal reporting is selection-free and the best branch is unsupported; any future validation/best experiment needs a separate policy, identity, and output owner | conditional best lineage in P0-T5/A8 only outside this baseline |
 | fixed-final checkpoint selection | Canonical identity is mandatory final checkpoint `N`, constructed from effective post-merge `N` and saved after update/topology/reset at its exact completed boundary, not `chkpnt_best.pth` | P0-A8 manifest and artifact consumers |
 | independent formal entry / pure effective-state resolver | Sole owner of one explicit formal authority and bounded verified typed state, implemented through a lightweight formal-only bootstrap, stdlib-only resolver, and separately loaded heavy runtime. Initial CLI is config-locator-only and excludes `quiet`; legacy/general entry cannot bypass it. Resolve and reject before heavy import/JIT, run the read-only existing-output preflight, load and prepare the runtime without writers, then claim output exclusively immediately before the first writer. Bind approved semantic values and derived conditions, including [adopted seed input and time/loss connections](#adopted-step-5-minimal-connection-contract), without transferring runtime/RNG/digest/checkpoint/manifest/camera-math/reporting/publication ownership. | training and later evaluation/CUDA Reference consume the state; P0-A2 and manifest publish/verify rather than redefine it; local names/API/error structure remain CODEX discretion |
-| diagnostic checkpoint foundation | P0-T6: version, field-level schema, semantic validation, diagnostics, and provenance; consume the P0-T1/T2 completed label without owning loop or optimizer order | P0-A1/A2/A8 consumers |
+| diagnostic checkpoint foundation | P0-T6: [adopted checkpoint v1 state, diagnostic reader, ordinary-entry provenance and checkpoint-local publication](#approved-checkpoint-foundation-and-exact-resume-staging); bounded implementation/validation accepted in [Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back); consume the P0-T1/T2 completed label without owning loop or optimizer order | P0-A1/A2/A8 consumers |
 | exact resume (conditional independent root) | Complete continuation state and equivalence, including any resume-reachable P0-T5/T6 handling, only after known P0/transaction stability; do not merge it into the diagnostic foundation or transaction Fix | formal continuation only after gate acceptance; otherwise fail closed |
 | environment-map lifecycle (future conditional root) | P0-T7 remains unfixed but unreachable under `env_map_res=0`; any future enablement requires separate policy and complete lifecycle/checkpoint/optimizer/resume validation | first-baseline CUDA reconstruction must reject environment state; future runtime publication follows only after separate acceptance |
 | SPL4 exporter/provenance | v2 representation, atomic export, exact population binding | Viewer bundle input |
@@ -2903,10 +3119,13 @@ the historical `[524288,1048576)` range.
 ## Dependency order
 
 This register retains the original responsibility numbers for historical
-cross-references. Steps 5–11 are complete. The current functional
-[Step 12](#step-12-learning-updates-and-population-cuda-validation) is advisor-reviewed and user-functionally-accepted for learning updates,
-population and CPU/CUDA validation, with document review/user research Git/push
-confirmation/completion pending. Step 7 covered
+cross-references. Steps 5–12 are complete, including user research Git, under
+their completion records. The current functional
+[Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back)
+has advisor-reviewed, user-accepted bounded implementation/validation;
+document review, consolidated user research Git/push and completion processing
+remain pending.
+Step 7 covered
 former responsibilities 9/10, and Step 8 covered the SH subset of former item 8.
 Step 9 is the separate alpha responsibility, not former item 9's
 training-state task or former item 6's checkpoint task. Step 10 is the
@@ -2973,9 +3192,10 @@ Phase goals remain binding.
    broader toolchain/runtime and real-data training acceptance stay open beyond
    Step 8 SH, Step 9 alpha, Step 10 camera, Step 11 initialization/time and
    [Step 12](#step-12-learning-updates-and-population-cuda-validation)'s bounded learning-update/population fresh-build/CUDA results.
-   Remaining owner contracts beyond the adopted subsets, run values and
-   checkpoint schema stay undecided; closed JSON membership and its Step 5
-   enforcement are no longer pending. Step 5 documentation review and user
+   Remaining owner contracts beyond the adopted subsets and run values stay
+   undecided. [Checkpoint v1](#approved-checkpoint-foundation-and-exact-resume-staging)
+   is now adopted; implementation/validation remain pending. Closed JSON
+   membership and its Step 5 enforcement are no longer pending. Step 5 documentation review and user
    research Git are complete, as are the Step 6 camera A completion operations.
    [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) is also
    complete under its completion record, as is
@@ -2983,9 +3203,9 @@ Phase goals remain binding.
    [Step 9 alpha](#step-9-alpha-cap-correction-and-cpucuda-validation) and
    [Step 10 camera](#step-10-camera-projection-footprint-and-position-gradients) and
    [Step 11 time function](#step-11-time-initialization-rendering-and-parameter-gradients).
-   This sync records accepted [Step 12](#step-12-learning-updates-and-population-cuda-validation); its document review, user research Git,
-   push confirmation and completion processing remain pending, not a new policy
-   selection or source-work start.
+   This sync records completed [Step 12](#step-12-learning-updates-and-population-cuda-validation)
+   and the [Step 13 bounded functional acceptance](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back)
+   under its adopted contract; no source or validation is rerun by this sync.
    Confirm one root owner and one
    bounded Fix responsibility at a time only after the applicable policy is
    decided. The formal-entry authority, component separation, initial formal
@@ -3219,7 +3439,7 @@ Phase goals remain binding.
    the latter's CPU connection; formal publication and read-back remain open.
 
    **Step 5 functional acceptance and completion** are recorded below.
-   Steps 6–11 are also complete; the current function is Step 12 below. The legacy
+   Steps 6–12 are also complete; the current function is Step 13 below. The legacy
    register preserves responsibility references, not an unchanged Step sequence.
 
 ### Step 6: canonical camera handoff
@@ -3352,8 +3572,8 @@ any necessary bounded correction before constant-depth or real-data/pilot diagno
 acceptance; Step 12's nonconstant CUDA fixtures do not repair this helper. No Fix, new Step or ticket is authorized by this documentation sync.
 
 Step 7's document review/Git/completion sequence is complete under the record
-above; this sync neither repeats it nor expands its CPU acceptance. The current
-Step 12 status and remaining review/Git sequence follow below.
+above; this sync neither repeats it nor expands its CPU acceptance.
+Step 12 completion and current Step 13 status follow below.
 
 ### Step 8: SH correction and CPU/CUDA validation
 
@@ -3420,7 +3640,7 @@ Reference and Viewer acceptance; and Gate A/B remain outstanding. Steps 5/6/7
 retain their accepted scopes, and the Viewer freeze is unchanged.
 
 Step 8's completion operations are not repeated by this sync. Completion of
-Steps 9–11 and current Step 12's accepted function follow below.
+Steps 9–12 and the current Step 13 functional-acceptance status follow below.
 
 ### Step 9: alpha-cap correction and CPU/CUDA validation
 
@@ -3492,7 +3712,7 @@ order, JSON/population contracts, Gate requirements and Viewer freeze remain
 unchanged. The bounded success does not close another owner's obligations.
 
 Step 9's completion operations are not repeated by this sync. The subsequent
-Steps 10–11 completion and Step 12 acceptance/review/Git sequence follow below. The
+Steps 10–12 completion and Step 13 functional-acceptance status follow below. The
 [Step-internal build/Git boundary](#step-internal-build-and-git-boundary)
 permits reuse of this accepted evidence: documentation-only or commit-identity
 changes alone do not trigger another build or numerical run.
@@ -3569,7 +3789,7 @@ and Viewer freeze are unchanged. Observed environment success is neither a
 permanent version pin nor a different-GPU guarantee.
 
 Step 10's historical review/Git-pending notes are superseded by its completion
-record. Subsequent Step 11 completion and Step 12 acceptance/pending completion
+record. Subsequent Steps 11–12 completion and Step 13 functional-acceptance status
 follow below; no Step 10 Git/progress operation is repeated.
 No test/build/CUDA or Git/progress operation is performed by this sync.
 Under the [Step-internal build/Git boundary](#step-internal-build-and-git-boundary),
@@ -3654,20 +3874,23 @@ historical audit and Step 5's CPU-only acceptance. Limits stated in earlier
 Step sections describe their own scopes; the additional time acceptance is
 bounded by this section rather than reopening or expanding those Steps.
 
-Step 11 completion operations are not repeated by this sync. The current
-Step 12 acceptance and remaining document/Git/completion sequence follow below.
+Step 11 completion operations are not repeated by this sync.
+Step 12 completion and current Step 13 functional-acceptance status follow below.
 No test/build/CUDA, Git write or Redmine connection is performed by this sync,
 nor required solely by a document/commit-identity change.
 
 ### Step 12: learning updates and population CUDA validation
 
-**Current status:** advisor-reviewed and user-functionally-accepted within the
-reviewed CPU and small synthetic real-CUDA scope. The
+**Current status:** complete within the reviewed CPU and small synthetic
+real-CUDA scope, following advisor review and user functional acceptance. The
 [post-acceptance sync instruction](../../reports/corrected-4dgs/phase1/step12/step12-docsync1/step12-docsync1-instruction.txt)
 records the advisor's acceptance review and subsequent user decision; earlier
 reports' review/acceptance-pending labels are historical.
-Steps 5–11 are complete. Step 12's document review, consolidated user research
-Git, push confirmation and completion/progress processing remain pending.
+**Step completion:** document review, consolidated user research Git/push and
+completion processing are complete under the
+[Step 12 completion record](../../reports/corrected-4dgs/phase1/step12/step12-completion-report.txt).
+Earlier review/Git-pending wording is historical; its then-current progress
+percentage or calculation method is not adopted as today's progress basis.
 
 The accepted function reuses `continue_formal_training → training` and the
 existing render/loss/backward/Adam/population implementation. Step 12 adds six
@@ -3743,12 +3966,84 @@ Gate/Phase completion and Viewer unfreeze remain outside this scope.
 Camera, SH3/2 with 48 slots/warmup, alpha-cap, PF, time/V-B, JSON/population,
 update ordering and train/test non-selection contracts are unchanged.
 
-Next: advisor document review → user Git for the whole Step 12 → push
-confirmation and completion/progress processing. Only then does the advisor
-consider the next functional scope. This sync assigns no new Step number,
-order or run value and performs no test/build/CUDA, Git write or Redmine
-connection. Documentation/commit-identity changes alone do not require
-repeating accepted numerical validation.
+Those Step 12 completion operations are not repeated. The current
+[Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back)
+has bounded functional acceptance, with document review and research Git/
+completion processing pending; later Step numbers/order and run
+values are not assigned here. This sync performs no test/build/CUDA, Git write
+or Redmine connection. Documentation/commit-identity changes alone do not
+require repeating accepted numerical validation.
+
+### Step 13: completed-state checkpoint save and diagnostic read-back
+
+**Current status:** implementation and bounded CPU/synthetic actual-CUDA results
+are advisor-reviewed and user-functionally-accepted under the
+[validation2 advisor review](../../reports/corrected-4dgs/phase1/step13/step13-validation2/step13-validation2-advisor-review.txt)
+and [user-acceptance/document-sync instruction](../../reports/corrected-4dgs/phase1/step13/step13-docsync2/step13-docsync2-instruction.txt).
+Document review, consolidated user research Git, push confirmation and advisor
+completion/progress processing remain pending; Step 13 is not yet complete.
+The [adopted checkpoint owner contract](#approved-checkpoint-foundation-and-exact-resume-staging)
+is unchanged, not replaced by the observed fixture values below.
+
+The implemented function reuses the existing completed-update/save-before-test boundary,
+19-item capture and diagnostic restore(None), with the adopted v1 adapter,
+ordinary-entry provenance and checkpoint-local publication. Acceptance is one
+connected function: actual saving from existing learning, correspondence with
+independently obtained expected state/config/provenance, real-file read-back,
+restoration into a separate model and rendering comparison, plus rejection of
+corruption, semantic mismatch, incomplete saves and publication collisions.
+A schema/helper, CPU-only round trip, prepared CUDA entry or document sync
+alone is insufficient. Existing legacy consumers are not migrated as part of
+this acceptance.
+
+The [reviewed v2 validation plan](../../reports/corrected-4dgs/phase1/step13/step13-design1/step13-design1-design-report-v2.md)
+sections 7–8 now has the following saved evidence; this sync reruns none of it:
+
+- [Implementation/CPU report](../../reports/corrected-4dgs/phase1/step13/step13-implement1/step13-implement1-report.md):
+  277 unique successful CPU tests and a separate failed metadata-ordering
+  diagnostic, not an unconditional pass of that stage. [Fix1](../../reports/corrected-4dgs/phase1/step13/step13-fix1/step13-fix1-report.md)
+  corrected optimizer-descriptor rejection ordering and passed 66 unique tests
+  within its selected suites. [Fix2](../../reports/corrected-4dgs/phase1/step13/step13-fix2/step13-fix2-report.md)
+  corrected the separate reader process's extension connection and passed 12
+  CPU tests. These stage counts overlap and are not added into one independent
+  test total. The resolved M/T and reader-extension failures are historical,
+  not remaining defects.
+- M-stage metadata checks precede Torch/model/renderer imports; T-stage actual
+  payload semantics follow Torch CPU load but precede model/GPU/output use.
+  CPU tests use real dependencies/files and cover the public reader, separate-
+  storage diagnostic model, previous-checkpoint preservation, rejection of
+  malformed/incomplete/colliding state and save-failure behavior. Those fault
+  cases do not establish general runtime failure/empty/OOM handling.
+- [Validation2](../../reports/corrected-4dgs/phase1/step13/step13-validation2/step13-validation2-report.md)
+  used existing `4dgs310` for a fresh build and actual load: five synthetic
+  cases, 15 updates, 13 saved checkpoints and separate-process/model diagnostic
+  restores, with 39 finite, exactly equal original/restored rendering pairs.
+  Final result/receipt and saved input/build/load correspondence were
+  independently checked. The report links their machine identity authority.
+- G0a traversed the ordinary formal entry's fresh-build/evidence/prepare/claim/
+  save path with a test-local dataset reference. G1/G4/G5/G8 exercised state,
+  SH/topology/reset coverage using the same checked binary and real preparation/
+  training, not four more full ordinary-entry passes. Independent expected
+  state/config/provenance and exact dtype/shape/byte preservation were checked
+  independently of the writer's decoder; no resume was executed.
+- Same-GPU/binary/camera/time exact state/render correspondence is separate
+  from the 2,814 independent CPU-formula-versus-CUDA comparisons within their
+  existing bounds. Counts, measured errors and environment are evidence for
+  this run, not permanent contract values, blanket toolchain acceptance or
+  reproduction guarantees for other hardware. No tolerance was relaxed.
+
+Limited synthetic CUDA checkpoints now exist. A formal corrected checkpoint
+and population identity from the Karman-vortex pilot/formal retraining do not.
+Exact resume, legacy-consumer migration, other-GPU/toolchain reproducibility,
+general quality/performance, general failure/empty/OOM and full P0-A7,
+CUDA Reference/SPL4/Viewer integration, and Gate/Phase completion remain
+outside acceptance; Viewer stays frozen. Checkpoint-local publication does
+not complete general artifact publication, and ordinary-entry build cost and
+actual-source/build/load binding remain required by the adopted contract.
+
+Next are advisor document review, consolidated user research Git/push and
+advisor completion/progress re-evaluation. No next Step, run value or execution
+authorization is assigned here; this sync stops for document review.
 
 ### Historical Phase 1 responsibility register (former items 6–13)
 
@@ -3762,11 +4057,13 @@ and completed [Step 10 camera function](#step-10-camera-projection-footprint-and
 have separate functional acceptance and are not a reassignment of former
 items 9/10. Step 10 extends the camera/projection validation, not optimizer ownership.
 The completed [Step 11 time function](#step-11-time-initialization-rendering-and-parameter-gradients)
-is not former item 11's evaluation-policy responsibility. The current [Step 12](#step-12-learning-updates-and-population-cuda-validation)
+is not former item 11's evaluation-policy responsibility. The completed [Step 12](#step-12-learning-updates-and-population-cuda-validation)
 is not former item 12's conditional-P0/reached-P1 responsibility.
 Their accepted results are not unstarted work, while remaining
 actual runtime validation remains open. Former item 6's P0-T6 checkpoint foundation
-remains a required separate responsibility, without transfer to another owner.
+is now addressed within the [Step 13 accepted scope](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back),
+with document review/research Git completion pending and no owner transfer. This does not
+renumber former item 13 or adopt its general failure-handling scope.
 Withdrawn checkpoint-oriented Step 6 instructions are not execution authority.
 
 6. After its field-level schema policy is approved, implement the minimum
@@ -3865,9 +4162,12 @@ within its update/population/save-test implementation and CPU scope.
 [Step 10](#step-10-camera-projection-footprint-and-position-gradients) is complete
 within camera CPU/CUDA validation;
 [Step 11](#step-11-time-initialization-rendering-and-parameter-gradients) is complete
-within bounded initialization/time/V-B/PF CPU/CUDA validation. Current
-[Step 12](#step-12-learning-updates-and-population-cuda-validation) accepts bounded update/population CUDA evidence, with document review,
-user research Git, push confirmation and completion pending.
+within bounded initialization/time/V-B/PF CPU/CUDA validation.
+[Step 12](#step-12-learning-updates-and-population-cuda-validation) is complete
+with bounded update/population CUDA evidence and user research Git.
+Current [Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back)
+has bounded functional acceptance; document review and research Git/completion
+processing remain pending.
 Viewer freeze and all Gate requirements remain unchanged.
 
 ### Phase 2: focused validation
@@ -4031,8 +4331,13 @@ Complete at this milestone:
 - the [Step 12](#step-12-learning-updates-and-population-cuda-validation) learning-update/population function, advisor-reviewed and
   user-functionally-accepted with independent CPU/actual-CUDA update and
   save/report handoff evidence, fresh-input/build/load binding and verified
-  process/result completion; its document review and Git/completion remain pending.
-  Neither acceptance establishes whole-renderer/training or Gate completion.
+  process/result completion, followed by completed document review, user
+  research Git/push and completion processing under its saved record;
+- [Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back)
+  implementation and bounded CPU/synthetic actual-CUDA evidence under the
+  adopted checkpoint v1 contract, advisor-reviewed and user-functionally-
+  accepted; document review and research Git/completion processing are pending.
+  These milestones do not establish whole-renderer/training or Gate completion.
 
 The adopted D-DATA, initialization/LR/batch/SH, population inputs and bounded
 handoff, seed/initial-loss/time/V-B and closed-key contracts are enforced within
@@ -4046,19 +4351,20 @@ remains withdrawn; no approved policy is reselected.
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
-- Step 12 document review, consolidated user research Git, push confirmation
-  and completion processing;
+- Step 13 document review, consolidated user research Git/push confirmation
+  and advisor completion/progress processing;
 - remaining source, config, test or tool fixes beyond the accepted Step 5
   connection, Step 6 A camera scope, Step 7 A update/population/save-test scope
-  and Step 8 SH / Step 9 alpha / Step 10 camera / Step 11 time / Step 12 update-population scopes, including other renderer mathematics, later
+  and Step 8 SH / Step 9 alpha / Step 10 camera / Step 11 time / Step 12 update-population / Step 13 checkpoint scopes, including other renderer mathematics, later
   checkpoint/reference consumers and environment provenance;
 - real-data training, general failure and actual-runtime validation of P0-T1/T2/T3
   beyond their accepted Step 7 CPU and Step 12 synthetic CUDA connection;
 - remaining post-fix focused validation and any required CUDA builds beyond
-  the accepted Step 8/9/10/11/12 runs, not a repeat triggered only by this document sync;
+  the accepted Step 8/9/10/11/12/13 runs, not a repeat triggered only by this document sync;
 - pilot training or formal retraining, including any exact-resume Fix or
   equivalence acceptance;
-- a corrected checkpoint, SPL4, CUDA Reference, or population identity;
+- a formal real-data corrected checkpoint/population identity, SPL4 or CUDA
+  Reference; Step 13's limited synthetic checkpoints are distinct;
 - Viewer restart, fixed-range parity, full-scene correctness, or Acceptance
   Level 4;
 - performance, interactive behavior, scalability, or LOD work.
@@ -4090,13 +4396,12 @@ Not complete and not authorized by this document sync:
   and [initial-variance adoption](#adopted-initial-temporal-variance-and-d-time-connection)
   are no longer open adoption questions; actual GPU cast/activation and
   numerical health validation beyond Step 11 remain outstanding;
-- advisor review of this post-acceptance sync, then consolidated user research
-  Git, push confirmation and completion processing for
-  [Step 12](#step-12-learning-updates-and-population-cuda-validation). Steps 5–11
-  are complete, not awaiting another Fix, local-design approval or Git checkpoint.
-  Their remaining runtime/CUDA and separate downstream owner dependencies remain
-  open. The advisor considers the next functional Step
-  only after completion, without a new number or scope assigned here;
+- advisor document review of this Step 13 accepted-results sync, followed by
+  consolidated user research Git/push and advisor completion/progress
+  re-evaluation under [its functional acceptance boundary](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back).
+  Steps 5–12 are complete, not awaiting another Fix, local-design approval or
+  Git checkpoint. Their remaining runtime/CUDA and separate downstream owner
+  dependencies remain open; no subsequent Step number or scope is assigned;
 - the remaining pre-integration owner details and per-run values classified
   [above](#remaining-field-and-owner-boundary), not reopening P1–P6, PF/time/V-B,
   D-DATA, minimal initialization/LR/batch/SH, population inputs/conditions,
@@ -4141,7 +4446,9 @@ Not complete and not authorized by this document sync:
   later checkpoint/Reference/publication consumer validation;
 - manifest schema/version impact;
 - selection-free test-report metric, cadence, and acceptance criteria;
-- checkpoint field-level semantic/state schema;
+- checkpoint consumers and real-data/general-runtime validation beyond the
+  [accepted Step 13 v1 state/read-back/publication scope](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back),
+  not renewed field-level policy selection or repetition of accepted evidence;
 - only if exact resume is pursued, its restored field ownership and numerical
   or bitwise equivalence threshold;
 - actual run seed, runtime GPU evidence, deterministic claims/CUDA validation,
@@ -4149,14 +4456,19 @@ Not complete and not authorized by this document sync:
   connection is adopted, not a guarantee of bitwise reproduction or resume;
 - execution/build acceptance for remaining owners beyond the successful
   Step 8 SH, Step 9 alpha, Step 10 camera/alpha/SH, Step 11 initialization/time
-  and Step 12 learning-update/population fresh builds and focused CUDA runs in `4dgs310`, which recorded the
+  and Step 12 learning-update/population and Step 13 checkpoint fresh builds and focused CUDA runs in `4dgs310`, which recorded the
   PyTorch-CUDA/system-nvcc separation and input/binary provenance. No blanket
   toolchain acceptance, permanent pin or package update is implied;
-- remaining fields of the complete effective-config, dataset, source,
-  environment, and build provenance schema; the single-authority/pre-JIT
-  policy and `4dgs310` first-candidate role are decided;
-- formal output owner, atomic publication, completion index, and digest;
-- new checkpoint iteration and population count;
+- broader effective-config/dataset/source/environment/build provenance and
+  later artifact schemas beyond the [adopted Step 13 checkpoint context](#adopted-ordinary-entry-source-build-load-connection);
+  that normal-entry connection has bounded acceptance in Step 13, not pending
+  implementation or adoption. Single-authority/pre-JIT and `4dgs310` contracts
+  are unchanged;
+- formal output owner and general artifact atomic publication/index/digest
+  beyond the [checkpoint-local exception](#adopted-checkpoint-local-publication-exception),
+  whose bounded implementation/validation is accepted in Step 13;
+- pilot/formal real-data checkpoint iteration and population count, distinct
+  from the limited synthetic checkpoint evidence;
 - SPL4-v2 representation and export identity;
 - corrected CUDA Reference output identity;
 - manifest schema, runtime-state validator, and direct-evidence boundary;
@@ -4188,11 +4500,14 @@ The [Step 5 minimal connection](#step-5-functional-acceptance),
 [Step 9 alpha-cap correction and CPU/CUDA validation](#step-9-alpha-cap-correction-and-cpucuda-validation),
 [Step 10 camera projection, footprint and position gradients](#step-10-camera-projection-footprint-and-position-gradients),
 and [Step 11 time initialization, rendering and parameter gradients](#step-11-time-initialization-rendering-and-parameter-gradients)
-are complete, including documentation review and user research Git. Current
-[Step 12](#step-12-learning-updates-and-population-cuda-validation) learning updates/population is advisor-reviewed and user-functionally-accepted. Next are advisor document review,
-consolidated user research Git, push confirmation and completion processing;
-this document task does not perform them or complete Step 12. The advisor
-considers the next function only after completion. Later-owner source fixes,
+are complete, including documentation review and user research Git, as is
+[Step 12](#step-12-learning-updates-and-population-cuda-validation) under its
+completion record. Current [Step 13](#step-13-completed-state-checkpoint-save-and-diagnostic-read-back)
+has advisor-reviewed and user-functionally-accepted bounded implementation/
+CPU/actual-CUDA results. This sync records that acceptance, not a new execution.
+Next is advisor document review, then consolidated user research Git/push and
+advisor completion/progress re-evaluation; these remain pending.
+Later-owner source fixes,
 downstream consumer integration and remaining device/GPU/training validation
 retain their own execution/build acceptance duties, not new Step 5/6/7 CPU
 acceptance conditions or repetition of accepted time/camera/SH/alpha work. No separate
@@ -4205,6 +4520,10 @@ original CPU scope. Step 11 adds limited initialization/time/V-B/PF
 render/gradient and CUDA-health acceptance, not general failure closure.
 Step 12 adds bounded synthetic CUDA update/Adam/population and save/report handoff,
 not real-data training or formal checkpoint acceptance.
+Step 13 separately adds accepted v1 checkpoint save/read-back, separate-model
+render correspondence and checkpoint-local publication with ordinary-entry
+build/load provenance, not formal real-data checkpoint/population identity,
+exact resume or general artifact/failure closure.
 Remaining P0-0 consumers, P0-T1/T2/T3, other renderer duties,
 P0-A6/A7 and artifact owners retain their requirements. These results do not
 expand Step 7's CPU scope or pass any Gate;

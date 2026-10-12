@@ -111,6 +111,10 @@ class Scene:
                 json.dump(self._initial_cameras, dest)
 
     def save(self, iteration):
+        if self._formal_inputs is not None:
+            if not hasattr(self, '_checkpoint_writer'):
+                raise ValueError('formal_checkpoint_context_missing')
+            return self._checkpoint_writer.save(iteration)
         torch.save((self.gaussians.capture(), iteration), self.model_path + "/chkpnt" + str(iteration) + ".pth")
 
     def getTrainCameras(self, scale=1.0):

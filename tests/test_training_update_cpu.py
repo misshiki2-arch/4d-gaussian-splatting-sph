@@ -557,11 +557,11 @@ class ObservationTests(CPUCase):
                     trace = runtime.execute_case(p, case, dict(forwards=0), renderer, held.append)
                 else:
                     stack.enter_context(patch.object(self.train, 'render', renderer))
-                    stack.enter_context(patch.object(self.torch, 'save', lambda *a, **kw: None))
+                    stack.enter_context(patch.object(p.scene, 'save', lambda *a, **kw: None))
                     claim = formal_entry.OutputClaim(p.inputs)
                     writer = None
                     try:
-                        writer = self.train.begin_formal_output(p, claim)
+                        writer = self.train.prepare_output_and_logger(p.dataset, claim=claim, scene=p.scene)
                         self.assertEqual(self.train.continue_formal_training(p, writer), case['n'])
                     finally:
                         if writer is not None:
