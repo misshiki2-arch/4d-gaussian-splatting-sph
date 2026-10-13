@@ -221,7 +221,10 @@ class ConnectionTests(unittest.TestCase):
                 patch.object(self.train, 'TENSORBOARD_FOUND', True), \
                 patch.object(self.train, 'SummaryWriter', side_effect=tensorboard, create=True), \
                 patch.object(self.train, 'continue_formal_training', side_effect=lambda p,w: events.append('loop_boundary')):
-            entry.run(locator)
+            # A handoff-only stub is no longer a successful formal run. Keep
+            # its boundary observations, and require the new false-success guard.
+            with self.assertRaisesRegex(RuntimeError, 'formal_run_incomplete'):
+                entry.run(locator)
         self.assertEqual(events, ['prepare','claimed','tensorboard','loop_boundary'])
         self.seed.assert_called_once_with(23)
         self.device.assert_called_once_with(0)

@@ -13,6 +13,7 @@ import sys
 import formal_config_json as p2
 import formal_config_p6 as p6
 from formal_inputs import verify_inputs
+from formal_run_diagnostic import RunDiagnostic
 
 
 class OutputClaim:
@@ -65,20 +66,55 @@ class OutputClaim:
 
 
 def run(locator):
-    with open(locator, 'rb') as stream:
-        data = stream.read(p2.MAX_INPUT_BYTES + 1)
-    inputs = verify_inputs(data)
-    from formal_checkpoint_identity import source_snapshot
-    source = source_snapshot()  # Still stdlib, before cache or output writes.
-    from formal_native_bootstrap import bootstrap
-    train, native = bootstrap(source)
-    prepared = train.prepare_formal_runtime(inputs, native_evidence=native)
-    claim = OutputClaim(inputs)
+    record = RunDiagnostic()
+    claim = writer = None
+    close_attempted = False
+    claim_close_attempted = False
     try:
+        with open(locator, 'rb') as stream:
+            data = stream.read(p2.MAX_INPUT_BYTES + 1)
+        inputs = verify_inputs(data)
+        from formal_checkpoint_identity import source_snapshot
+        source = source_snapshot()  # Still stdlib, before cache or output writes.
+        record.stage = 'bootstrap'
+        from formal_native_bootstrap import bootstrap
+        train, native = bootstrap(source)
+        record.stage = 'preparation'
+        prepared = train.prepare_formal_runtime(inputs, native_evidence=native)
+        record = prepared.health_run
+        record.stage = 'claim'
+        claim = OutputClaim(inputs)
+        record.stage = 'begin'
         writer = train.begin_formal_output(prepared, claim)
-        return train.continue_formal_training(prepared, writer)
-    finally:
+        result = train.continue_formal_training(prepared, writer)
+        record.finish_updates(inputs.config, result)
+        if writer is not None:
+            record.stage = 'writer_flush'
+            writer.flush()
+            record.stage = 'writer_close'
+            close_attempted = True
+            writer.close()
+        record.stage = 'claim_close'
+        claim_close_attempted = True
         claim.close()
+        claim = None
+        record.stage = 'normal_return'
+        return result
+    except BaseException as error:
+        record.failure(error)
+        # Each cleanup is attempted at most once. A secondary failure cannot
+        # replace the original traceback or imply a successful run.
+        if writer is not None and not close_attempted:
+            try:
+                writer.close()
+            except BaseException:
+                pass
+        if claim is not None and not claim_close_attempted:
+            try:
+                claim.close()
+            except BaseException:
+                pass
+        raise
 
 
 def main(argv=None):

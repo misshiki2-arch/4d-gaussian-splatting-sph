@@ -19,9 +19,18 @@ def psnr(img1, img2):
     return 20 * torch.log10(1.0 / torch.sqrt(mse))
 
 def easy_cmap(x: torch.Tensor):
+    if not isinstance(x, torch.Tensor) or x.ndim != 2 or not x.numel() or not torch.isfinite(x).all():
+        raise ValueError('depth_display_input')
     x_rgb = torch.zeros((3, x.shape[0], x.shape[1]), dtype=torch.float32, device=x.device)
     x_max, x_min = x.max(), x.min()
-    x_normalize = (x - x_min) / (x_max - x_min)
+    if x_max == x_min:
+        return x_rgb
+    span = x_max - x_min
+    if not torch.isfinite(span):
+        raise ValueError('depth_display_range')
+    x_normalize = (x - x_min) / span
+    if not torch.isfinite(x_normalize).all():
+        raise ValueError('depth_display_result')
     x_rgb[0] = torch.clamp(x_normalize, 0, 1)
     x_rgb[1] = torch.clamp(x_normalize, 0, 1)
     x_rgb[2] = torch.clamp(x_normalize, 0, 1)

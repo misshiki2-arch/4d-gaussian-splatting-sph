@@ -633,7 +633,7 @@ class Observation:
         # Terminal observer, intentionally NOT checkpoint serialization acceptance.
 
     def report(self, original, tb_writer, iteration, Ll1, loss, l1_loss, elapsed,
-               testing_iterations, scene, renderFunc, renderArgs, loss_dict=None):
+               testing_iterations, scene, renderFunc, renderArgs, loss_dict=None, *, _formal_run=None):
         self.finish_view()
         k = iteration
         o.require(k == self.k, 'report_completed_label')
@@ -658,7 +658,7 @@ class Observation:
         start = self.trace['forwards']
         try:
             result = original(tb_writer, iteration, Ll1, loss, l1_loss, elapsed,
-                              testing_iterations, scene, renderFunc, renderArgs, loss_dict)
+                              testing_iterations, scene, renderFunc, renderArgs, loss_dict, _formal_run=_formal_run)
         finally:
             self.report_mode = False
         expected = 7 if k == 0 or k in self.p.inputs.config.reporting.test_updates else 0

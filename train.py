@@ -34,6 +34,8 @@ from PIL import Image
 from typing import NamedTuple
 from functools import partial
 from formal_views import ConsumerView
+import formal_training_health as health
+from formal_run_diagnostic import RunDiagnostic
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -50,6 +52,7 @@ class PreparedFormal(NamedTuple):
     background: object
     dataloader: object
     checkpoint_context: object = None
+    health_run: object = None
 
 
 def prepare_formal_runtime(inputs, *, native_evidence=None):
@@ -74,20 +77,15 @@ def prepare_formal_runtime(inputs, *, native_evidence=None):
         time_duration=c.time_derivation.effective_interval, shuffle=c.fixed.shuffle, formal_inputs=inputs)
     if not np.isfinite(scene.cameras_extent) or scene.cameras_extent <= 0:
         raise ValueError('formal_scene_extent')
-    rows = len(gaussians._xyz)
-    for parameter in (gaussians._xyz, gaussians._features_dc, gaussians._features_rest,
-                      gaussians._scaling, gaussians._rotation, gaussians._opacity,
-                      gaussians._t, gaussians._scaling_t, gaussians._rotation_r):
-        if not rows or len(parameter) != rows or not torch.isfinite(parameter).all():
-            raise ValueError('formal_parameter_rows')
     gaussians.training_setup(opt, formal_config=c)
+    health.model_state(gaussians, c, 0)
     background = torch.tensor([0, 0, 0], dtype=torch.float32, device='cuda')
     training_dataset = scene.getTrainCameras()
     scene.getTestCameras()  # Both splits' image/mask checks precede claim.
     dataloader = DataLoader(training_dataset, batch_size=c.optimization.batch_size,
         shuffle=c.fixed.shuffle, num_workers=c.fixed.num_workers, collate_fn=lambda x: x,
         drop_last=c.fixed.drop_last)
-    return PreparedFormal(inputs, dataset, opt, pipe, gaussians, scene, background, dataloader, context)
+    return PreparedFormal(inputs, dataset, opt, pipe, gaussians, scene, background, dataloader, context, RunDiagnostic())
 
 
 def begin_formal_output(prepared, claim):
@@ -116,6 +114,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         time_duration = [time_duration[0] / dataset.frame_ratio,  time_duration[1] / dataset.frame_ratio]
     
     first_iter = 0
+    run = None if _formal_prepared is None else _formal_prepared.health_run
     tb_writer = prepare_output_and_logger(dataset) if _formal_prepared is None else _formal_writer
     
     print(f"[DBG] dataset.sh_degree = {dataset.sh_degree}")
@@ -146,6 +145,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda") if _formal_prepared is None else _formal_prepared.background
     
     # Initial diagnostic, not a completed update or part of verified schedules.
+    if run is not None:
+        run.stage = 'initial_report'
     with torch.no_grad():
         training_report(
             tb_writer, first_iter,
@@ -157,7 +158,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             scene=scene,
             renderFunc=render_func,
             renderArgs=(pipe, background),
-            loss_dict=None
+            loss_dict=None,
+            _formal_run=run
         )
 
     iter_start = torch.cuda.Event(enable_timing = True)
@@ -191,6 +193,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     completed = first_iter
     while completed < opt.iterations:
         epoch_had_batch = False
+        if run is not None:
+            run.stage, run.attempted = 'fetch', completed + 1
         for batch_data in training_dataloader:
             epoch_had_batch = True
             iteration = completed + 1
@@ -199,7 +203,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 print(f"[DBG] iter={iteration} num_gauss={gaussians.get_xyz.shape[0]}")
 
             iter_start.record()
+            if run is not None:
+                run.stage = 'learning_rate'
             gaussians.update_learning_rate(iteration)
+            if run is not None:
+                health.optimizer_settings(gaussians, c, iteration)
             
             # Every 1000 its we increase the levels of SH up to a maximum degree
             if iteration % opt.sh_increase_interval == 0:
@@ -220,7 +228,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gt_image = gt_image.cuda()
                 viewpoint_cam = viewpoint_cam.cuda()
 
+                if run is not None:
+                    run.stage = 'render'
                 render_pkg = render_func(viewpoint_cam, gaussians, pipe, background)
+                if run is not None:
+                    health.raw_render(render_pkg, gt_image, gaussians)
+                    run.stage = 'loss'
                 image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
                 depth = render_pkg["depth"]
                 alpha = render_pkg["alpha"]
@@ -229,6 +242,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 Ll1 = l1_loss(image, gt_image)
                 Lssim = 1.0 - ssim(image, gt_image)
                 loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * Lssim
+                if run is not None:
+                    health.scalar(Ll1, 'loss/L1')
+                    health.scalar(Lssim, 'loss/SSIM')
+                    health.scalar(loss, 'loss/weighted')
                 
                 ###### opa mask Loss ######
                 # EMAログが Lopa_mask を参照するので、常に定義しておく
@@ -249,6 +266,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
                     Lopa_mask = (- sky * torch.log(1 - o)).mean()
                     loss = loss + opt.lambda_opa_mask * Lopa_mask
+                    if run is not None:
+                        health.scalar(Lopa_mask, 'loss/mask')
+                        health.scalar(loss, 'loss/combined')
                 ###### opa mask Loss ######
                 if iteration < 5:
                     m = getattr(viewpoint_cam, "gt_alpha_mask", None)
@@ -288,7 +308,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 ########################
 
                 loss = loss / batch_size
+                if run is not None:
+                    health.scalar(loss, 'loss/batch')
+                    run.stage = 'backward'
                 loss.backward()
+                if run is not None:
+                    run.stage = 'gradients'
+                    health.gradients(gaussians, viewspace_point_tensor)
                 batch_point_grad.append(torch.norm(viewspace_point_tensor.grad[:,:2], dim=-1))
                 batch_radii.append(radii)
                 batch_visibility_filter.append(visibility_filter)
@@ -309,12 +335,19 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             else:
                 if gaussians.gaussian_dim == 4:
                     batch_t_grad = gaussians._t.grad.clone().detach()
+
+            if run is not None:
+                run.stage = 'statistics_input'
+                health.statistic_input(gaussians, batch_viewspace_point_grad if batch_size > 1
+                                       else batch_point_grad[0].unsqueeze(1), batch_t_grad)
             
             iter_end.record()
             loss_dict = {"Ll1": Ll1,
                         "Lssim": Lssim}
 
             with torch.no_grad():
+                if run is not None:
+                    run.stage = 'statistics'
                 # Statistics still refer to the parameters used by backward.
                 if iteration < opt.densify_until_iter:
                     gaussians.max_radii2D[visibility_filter] = torch.max(
@@ -332,8 +365,14 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                                 batch_t_grad if gaussians.gaussian_dim == 4 else None)
 
                 # Step the backward-owned Parameters, including the final N.
+                if run is not None:
+                    health.statistics(gaussians)
+                    run.stage = 'adam'
                 gaussians.optimizer.step()
                 gaussians.optimizer.zero_grad(set_to_none=True)
+                if run is not None:
+                    run.stage = 'post_adam'
+                    health.model_state(gaussians, c, iteration)
                 if pipe.env_map_res and iteration < pipe.env_optimize_until:
                     env_map_optimizer.step()
                     env_map_optimizer.zero_grad(set_to_none=True)
@@ -341,19 +380,34 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 if iteration < opt.densify_until_iter:
                     if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
                         size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                        if run is not None:
+                            run.stage = 'population'
                         gaussians.densify_and_prune(
                             opt.densify_grad_threshold, thresh_opa_prune,
                             scene.cameras_extent, size_threshold,
                             densify_grad_t_threshold, prune_only=not can_densify)
+                        if run is not None:
+                            run.stage = 'post_population'
+                            health.model_state(gaussians, c, iteration)
                     if iteration % opt.opacity_reset_interval == 0 or (
                         dataset.white_background and iteration == opt.densify_from_iter
                     ):
+                        if run is not None:
+                            run.stage = 'reset'
                         gaussians.reset_opacity()
+                        if run is not None:
+                            run.stage = 'post_reset'
+                            health.opacity_reset(gaussians, iteration)
 
                 # Failure above propagates before completion/observation. A
                 # subsequent save/report failure does not roll this update back.
                 completed = iteration
-                psnr_for_log = psnr(image, gt_image).mean().double()
+                if run is not None:
+                    run.completed, run.stage = completed, 'progress'
+                psnr_values = psnr(image, gt_image)
+                if run is not None:
+                    health.psnr_channels(psnr_values, image, gt_image)
+                psnr_for_log = psnr_values.mean().double()
                 # Progress bar
                 ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
                 ema_l1loss_for_log = 0.4 * Ll1.item() + 0.6 * ema_l1loss_for_log
@@ -385,8 +439,22 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 # optimization input from this update's pre-step forward.
                 if (iteration in saving_iterations):
                     print("\n[ITER {}] Saving Gaussians".format(iteration))
-                    scene.save(iteration)
-                test_psnr = training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render_func, (pipe, background), loss_dict)
+                    if run is not None:
+                        run.stage, run.save_attempt, run.save_outcome = 'save', iteration, 'in_progress'
+                    try:
+                        scene.save(iteration)
+                    except BaseException:
+                        if run is not None:
+                            run.save_outcome = 'failed_or_uncertain'
+                        raise
+                    if run is not None:
+                        run.last_confirmed_save, run.save_outcome = iteration, 'confirmed'
+                        run.saves += 1
+                if run is not None:
+                    run.stage = 'report'
+                test_psnr = training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render_func, (pipe, background), loss_dict, _formal_run=run)
+                if run is not None and iteration in testing_iterations:
+                    run.tests += 1
                 if _formal_prepared is None and (iteration in testing_iterations):
                     if test_psnr >= best_psnr:
                         best_psnr = test_psnr
@@ -395,8 +463,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                         
             if completed == opt.iterations:
                 break  # Do not fetch a batch for N+1, even within this epoch.
+            if run is not None:
+                run.stage, run.attempted = 'fetch', completed + 1
         if not epoch_had_batch:
             raise RuntimeError('training_empty_epoch')
+    if run is not None:
+        run.stage = 'updates_return'
+        run.finish_updates(c, completed)
     return completed
 
 def prepare_output_and_logger(args, *, claim=None, scene=None):
@@ -431,7 +504,7 @@ def prepare_output_and_logger(args, *, claim=None, scene=None):
         print("Tensorboard not available: not logging progress")
     return tb_writer
 
-def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, scene : Scene, renderFunc, renderArgs, loss_dict=None):
+def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, scene : Scene, renderFunc, renderArgs, loss_dict=None, *, _formal_run=None):
     if tb_writer:
         tb_writer.add_scalar('train_loss_patches/l1_loss', Ll1.item(), iteration)
         tb_writer.add_scalar('train_loss_patches/ssim_loss', Ll1.item(), iteration)
@@ -473,6 +546,8 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
                     viewpoint = viewpoint.cuda()
                     
                     render_pkg = renderFunc(viewpoint, scene.gaussians, *renderArgs)
+                    if _formal_run is not None:
+                        health.raw_render(render_pkg, gt_image, scene.gaussians)
                     image = torch.clamp(render_pkg["render"], 0.0, 1.0)
                     
                     depth = easy_cmap(render_pkg['depth'][0])
@@ -498,10 +573,19 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
                         _save_chw01(depth,    os.path.join(dump_root, f"{idx:03d}_depth.png"))
                     # --- end dump ---
 
-                    l1_test += l1_loss(image, gt_image).mean().double()
-                    psnr_test += psnr(image, gt_image).mean().double()
-                    ssim_test += ssim(image, gt_image).mean().double()
-                    msssim_test += msssim(image[None].cpu(), gt_image[None].cpu())
+                    l1_value = l1_loss(image, gt_image).mean().double()
+                    psnr_value = psnr(image, gt_image)
+                    ssim_value = ssim(image, gt_image).mean().double()
+                    msssim_value = msssim(image[None].cpu(), gt_image[None].cpu())
+                    if _formal_run is not None:
+                        health.metric(l1_value, 'metric/L1')
+                        health.psnr_channels(psnr_value, image, gt_image)
+                        health.metric(ssim_value, 'metric/SSIM')
+                        health.metric(msssim_value, 'metric/MS-SSIM')
+                    l1_test += l1_value
+                    psnr_test += psnr_value.mean().double()
+                    ssim_test += ssim_value
+                    msssim_test += msssim_value
                 psnr_test /= len(config['cameras'])
                 l1_test /= len(config['cameras']) 
                 ssim_test /= len(config['cameras'])     
