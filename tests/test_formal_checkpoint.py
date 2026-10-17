@@ -67,6 +67,24 @@ def assert_expected(test, expected, result):
 
 
 class CheckpointTests(CPUCase):
+    def test_private_readback_released_before_published_readback(self):
+        import weakref
+        self.setup_writer(); self.update(1)
+        refs=[]; pair=cp._read_pair; public=cp.read_checkpoint
+        def observed_pair(*a,**kw):
+            value=pair(*a,**kw)
+            if not refs: refs.append(weakref.ref(value[1]['capture'][1]))
+            return value
+        def observed_public(*a,**kw):
+            self.assertEqual(len(refs),1)
+            self.assertIsNone(refs[0](), 'private state overlaps published read-back')
+            return public(*a,**kw)
+        expected=independent(self.m)
+        with patch.object(cp,'_read_pair',observed_pair),patch.object(cp,'read_checkpoint',observed_public):
+            self.p.scene.save(1)
+        assert_expected(self,expected,cp.read_checkpoint(self.directory()))
+        self.assertFalse(self.writer.failed)
+
     def test_diagnostic_camera_real_png_extension_frame_and_time(self):
         import ast
         import inspect

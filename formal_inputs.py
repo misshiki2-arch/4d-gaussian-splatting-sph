@@ -76,9 +76,8 @@ def verify_inputs(data):
     state = config.resolve_formal_config(data, raw_width=ref['width'], raw_height=ref['height'])
     if state.paths.source_path != ref['source_path']:
         raise p2.JSONInputError('dataset_owner')
-    # First-baseline constraints, not new generic resolver numeric domains.
-    if state.initialization.time_variance_denominator != 5.0:
-        raise p2.JSONInputError('baseline_time_variance')
+    # The explicit first-baseline coefficient is run-owned, not a fixed input
+    # domain. The resolver already validates positive finite c and V-B values.
     if state.optimization.loss.lambda_rigid != 0 or state.optimization.loss.lambda_motion != 0:
         raise p2.JSONInputError('baseline_loss_branch')
     if any(os.environ.get(name) for name in (

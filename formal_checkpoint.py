@@ -201,6 +201,7 @@ class CheckpointWriter:
             read_meta, read_state, _, files = _read_pair(child, Path(self.claim.path))
             require(canonical(read_meta) == encoded, 'metadata_readback')
             equal_state(state, read_state)
+            del read_state  # Private comparison is complete; do not overlap published read-back.
             marker = canonical(dict(schema=SCHEMA, k=k, files=files))
             _write(child, '.complete.pending', lambda f: f.write(marker))
             stream, before = checked_file(child, '.complete.pending', 4096)

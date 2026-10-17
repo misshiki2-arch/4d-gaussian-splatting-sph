@@ -314,13 +314,48 @@ class ConnectionTests(unittest.TestCase):
                         value=json.loads(original); value['optimization']['loss']['lambda_rigid']=1
                         locator.write_bytes(encode(value))
                     if case=='variance':
-                        value=json.loads(original); value['initialization']['time_variance_denominator']=4
+                        value=json.loads(original); value['initialization']['time_variance_denominator']=0
                         locator.write_bytes(encode(value))
                     prepare=guards.enter_context(patch.object(self.train,'prepare_formal_runtime'))
                     with self.assertRaises(ValueError): entry.run(locator)
                     prepare.assert_not_called()
                 self.assertFalse(self.output.parent.exists())
         self.seed.assert_not_called()
+
+    def test_explicit_coefficient_domain_and_real_initialization(self):
+        # These fixture coefficients are not extra run authorizations.
+        for coefficient in (5,33,2,.5):
+            with self.subTest(coefficient=coefficient):
+                self.value['initialization']['time_variance_denominator']=coefficient
+                p=self.prepare();d=p.inputs.config.time_derivation
+                expected=8/coefficient/4  # raw duration 8, divisor 2: V-B.
+                self.assertEqual(d.time_variance_denominator,coefficient)
+                self.assertEqual(d.effective_variance,expected)
+                self.torch.testing.assert_close(p.gaussians._scaling_t,
+                    self.torch.full((4,1),math.log(math.sqrt(8/coefficient)/2)))
+                self.torch.testing.assert_close(p.gaussians.get_scaling_t.square(),
+                    self.torch.full((4,1),expected))
+                self.assertFalse(self.output.parent.exists())
+
+    def test_invalid_coefficient_rejected_before_metadata_or_bootstrap(self):
+        raw=encode(self.value)
+        field=b'"time_variance_denominator":5'
+        self.assertIn(field,raw)
+        cases=[raw.replace(field,b'"time_variance_denominator":'+token)
+               for token in (b'0',b'-1',b'true',b'"5"',b'null',b'NaN',b'Infinity',b'1e309',b'1e-400',b'5e-324')]
+        missing=json.loads(raw);missing['initialization'].pop('time_variance_denominator');cases.append(encode(missing))
+        # Derived variance underflow even though all three inputs are finite.
+        under=json.loads(raw);under['initialization']['time_variance_denominator']=1e308
+        under['dataset']['time']['divisor']=1e160;cases.append(encode(under))
+        import formal_native_bootstrap
+        locator=self.base/'invalid-coefficient.json'
+        for data in cases:
+            with self.subTest(data=data[:60]),patch.object(inputs.metadata,'read_frame_snapshot') as metadata, \
+                    patch.object(formal_native_bootstrap,'bootstrap') as bootstrap,patch.object(entry,'OutputClaim') as claim:
+                locator.write_bytes(data)
+                with self.assertRaises(ValueError):entry.run(locator)
+                metadata.assert_not_called();bootstrap.assert_not_called();claim.assert_not_called()
+        self.seed.assert_not_called();self.assertFalse(self.output.parent.exists())
 
     def test_mask_mismatch_preclaim_and_lazy_missing_mask_rejected(self):
         self.value['dataset']['resolution']['divisor']=2
