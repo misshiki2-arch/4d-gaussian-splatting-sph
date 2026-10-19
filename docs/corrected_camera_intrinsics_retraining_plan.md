@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **Steps-5-6-7-8-9-10-11-12-13-14-15-complete-and-user-research-Git-integrated / Gate-A-passed-by-user-approved-cumulative-evidence / Step-16-comparison-function-and-report-user-accepted-document-review-and-research-Git-pending / corrected-coefficient-5-and-33-pilots-and-saved-result-comparison-recorded / successful-setting-derived-SH3-2-nominal12000-adopted / Validation5-failure-preserved-Validation6-saved-B-readback-and-AB-GT-comparison-accepted / slight-B-improvement-common-blur-unresolved / Gate-B-not-passed / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / focused-time-camera-SH-and-alpha-CUDA-passed / formal-retraining-not-started / Viewer-frozen**
+Status: **Steps-5-6-7-8-9-10-11-12-13-14-15-16-complete-and-user-research-Git-integrated / Gate-A-passed-by-user-approved-cumulative-evidence / Step-16-comparison-complete-quality-unaccepted / Step-17-four-stage-reconstruction-execution-and-diagnostic-function-accepted-document-review-user-research-Git-completion-pending / corrected-coefficient-5-and-33-pilots-and-saved-result-comparison-recorded / successful-setting-derived-SH3-2-nominal12000-adopted / Validation5-failure-preserved-Validation6-saved-B-readback-and-AB-GT-comparison-accepted / slight-B-improvement-common-blur-unresolved / Gate-B-not-passed / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / focused-time-camera-SH-and-alpha-CUDA-passed / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -44,17 +44,25 @@ Step design and documentation timing by
 Git timing by [USR-GIT-09/10](../../4dgs-development-governance/40_USER_GIT_AND_ACCEPTANCE_RUNBOOK_JA.md),
 and overall progress by [RM-PROGRESS](../../4dgs-development-governance/30_REDMINE_WORKFLOW_JA.md).
 Technical owners, dependencies and Gate conditions remain unchanged. The
-current functional Step after completed Steps 5–15 is
-[Step 16: matched fresh-training comparison](#step-16-matched-fresh-training-comparison)
+current functional Step after completed Steps 5–16 is
+[Step 17: diagnostic staged learning from saved original A](#step-17-diagnostic-staged-learning-from-saved-original-a)
 within Phase 3. Step 15's document review, user research Git/push and completion
 processing are complete under its
 [completion record](../../reports/corrected-4dgs/phase2/step15/step15-completion-report.txt);
 the user-approved cumulative Gate A passage is maintained. Step 16's A/B
-comparison function and report are user-accepted under its adopted conditions.
+comparison function/report, document review, user research Git/push and completion
+processing are complete under its
+[completion record](../../reports/corrected-4dgs/phase3/step16/step16-completion-report.txt).
 Normal-baseline quality, including the common blur, and Gate B remain open.
-This synchronization records those distinct boundaries; document review, user
-research Git, final Step completion processing and batch progress update remain
-pending. It does not perform or authorize those operations or a next execution.
+Step 17 preserves Validation1's former one-stage diagnosis, with small improvement
+and strong blur remaining. Validation2 subsequently executed the adopted four-stage
+reconstruction from the saved 3DGS-derived 4DGS initial input, not that learned
+parent. Stage saves/read-backs/GT comparison and bounded real-resource checks
+passed; advisor image review and user functional acceptance are recorded in
+[Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a). Its document
+review, user research Git/push and Step completion/progress processing remain
+pending. The reconstructed A approaches historical E3 but retains GT quality
+gaps; B is not updated and Gate B remains open. This sync authorizes no execution.
 Step 14's document
 review, user research Git/push and completion processing are complete under its
 [completion record](../../reports/corrected-4dgs/phase1/step14/step14-completion-report.txt).
@@ -178,14 +186,20 @@ under its [completion record](../../reports/corrected-4dgs/phase1/step14/step14-
 including document review, user research Git/push and completion processing.
 Together with Steps 5–14, its accepted real-input evidence supports the
 user-approved [Gate A passage](#gate-a-before-pilot-training).
-Current [Step 16](#step-16-matched-fresh-training-comparison) records user acceptance
+Completed [Step 16](#step-16-matched-fresh-training-comparison) records user acceptance
 of the A/B comparison function and report: Validation5's fresh pair followed by
 Validation6's saved-B independent read-back and A/B/GT comparison. Earlier
 coefficient-5/33 pilots, Validation4's reader failure/unstarted B and Validation5's
 B-parent failure remain historical evidence, not rewritten successes.
 B's slight improvement does not resolve the strong common blur or establish
-normal-baseline quality. Document review, user research Git and final Step
-processing remain pending; Gate B is not passed and Gates C/D remain open.
+normal-baseline quality. Its document review, user research Git/push and final
+processing are complete under the completion record. Current
+[Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a) preserves
+Validation1's executed one-stage diagnosis and now records Validation2's four-stage
+reconstruction from 4DGS initial learning, including saves/independent read-backs/GT
+comparison, bounded resource checks and user diagnostic functional acceptance
+after image review. Document review, user research Git/push and Step completion/
+progress processing remain pending; Gate B is not passed and Gates C/D remain open.
 Historical Issue/component and individual Step boundaries below describe what
 each result alone established. They do not override this cumulative current
 boundary or reopen the closed Gate A consumer/provenance gap.
@@ -2222,6 +2236,14 @@ Viewer bundle publication.
 
 #### Exact resume remains deferred
 
+**Scope:** the prohibitions below govern corrected B pilot/formal training and
+its exact-resume path. The separately adopted
+[Step 17 original-A diagnosis](#step-17-diagnostic-staged-learning-from-saved-original-a)
+uses A's existing `loaded_pth` staged learning with a new optimizer/schedule,
+not B warm-start or exact resume. It neither relaxes these formal prohibitions
+nor requires the unimplemented exact-resume feature/equivalence gate as a new
+prerequisite for A's diagnostic stage.
+
 Pilot runs start from iteration 0, prohibit resume, and reject every resume
 entry. Legacy checkpoint warm-start is always prohibited. Exact resume is not
 a prerequisite for the known camera/renderer P0 fixes or for a no-resume
@@ -2990,6 +3012,12 @@ each against the same GT. Common external conditions and intentional internal
 bug differences are distinguished there. Corrected-only pilots and historical
 checkpoints cannot substitute for that fresh A/B pair.
 
+The adopted [Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a)
+is a separate original-A reconstruction from 4DGS initial learning through four
+historically grounded stages and GT comparison, not a replacement fresh A/B
+comparison, mandatory single-cause blur diagnosis, B correction-effect proof or
+authorization to warm-start the formal corrected baseline.
+
 The following fixed-checkpoint renderer comparison retains its separate
 historical/diagnostic role; it is not the fresh-training comparison above.
 Under matched dataset, camera, frame/time, viewport, background, renderer
@@ -3198,12 +3226,17 @@ the cumulative Gate A passage and the following evidence are not blanket closure
 | Pilot comparison and save/read-back | [Step 16](#step-16-matched-fresh-training-comparison) comparison function/report accepted: Validation5 fresh A/B, A read-back, then Validation6 saved-B read-back and fixed A/B/GT comparison; test non-selection retained. B exact correspondence is to its own saved state/render, not A or GT; old failures remain failures |
 | Normal-baseline quality | Unaccepted: B's small metric improvement does not resolve the strong blur shared by A/B; the minor-result-difference allowance does not classify that GT gap as normal |
 | Formal-run settings/schedule and full Gate checklist | Final reconciliation/adoption remains required; the comparison-run settings, bounded numerical/finiteness/save checks and functional acceptance do not themselves select formal conditions or satisfy every Gate requirement |
-| Accepted source revision and closure | Current WIP still requires user research Git and identification of the accepted revision, after document review; final Step processing/progress update is pending |
+| Accepted source revision and closure | Step 16 document review, user research Git/push and completion/progress processing are complete under its [completion record](../../reports/corrected-4dgs/phase3/step16/step16-completion-report.txt); Step 17's four-stage A reconstruction, save/read-back/GT comparison and diagnostic function are now user-accepted after Validation2 and image review. Step 17 document review, user research Git/push and completion/progress processing remain pending, separately from B's necessary source/Git finalization and Gate closure |
 
 The legacy A comparison exceptions do not relax formal B transaction, camera,
 renderer or checkpoint contracts. No new quality threshold, mandatory extra
-pilot, training count or formal-run condition is adopted here. Quality judgment
-and any further investigation/execution return to advisor/user authorization.
+formal pilot, formal training count or formal-run condition is adopted here.
+The functionally accepted [Step 17 A-only reconstruction](#step-17-diagnostic-staged-learning-from-saved-original-a)
+approaches historical E3 while retaining GT gaps; it does not update B, satisfy
+or relax Gate B, or add exact-resume equivalence as an A-stage prerequisite.
+B normal-baseline quality, formal settings/schedule and full Gate reconciliation,
+and necessary source/Git finalization remain subject to their existing requirements
+and separate advisor/user judgment, not automatic additional training.
 
 ### Gate C: before corrected SPL4 and CUDA Reference generation
 
@@ -3334,16 +3367,21 @@ the historical `[524288,1048576)` range.
 ## Dependency order
 
 This register retains the original responsibility numbers for historical
-cross-references. Steps 5–15 are complete, including document review, user
+cross-references. Steps 5–16 are complete, including document review, user
 research Git/push and completion processing, under their completion records.
 The accepted [Step 15](#step-15-real-input-integration-and-gate-a-acceptance)
-integration and cumulative Gate A passage remain closed. Current
-[Step 16](#step-16-matched-fresh-training-comparison) is in Phase 3: the fresh
+integration and cumulative Gate A passage remain closed.
+[Step 16](#step-16-matched-fresh-training-comparison) is complete in Phase 3: the fresh
 A/B comparison function and report are user-accepted, separately from
-normal-baseline quality and Gate B. Next are document review, user research Git
-and final completion processing/batch progress update; no operation is performed
-by this sync. Quality/formal-condition judgments remain open, not a new Step 15
-completion, automatic extra training or authorization of the next Step.
+normal-baseline quality and Gate B. Current
+[Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a) preserves the
+executed one-stage Validation1 diagnosis and now records Validation2's four-stage
+reconstruction from the saved 4DGS initial input: execution, saves/independent
+read-backs/GT comparison and bounded resource checks passed, followed by advisor
+image review and user functional acceptance. Document review, user research
+Git/push and Step completion/progress processing remain pending.
+Quality/formal-condition judgments remain open, without repeating prior Step
+completion or permitting automatic extra training.
 Step 7 covered
 former responsibilities 9/10, and Step 8 covered the SH subset of former item 8.
 Step 9 is the separate alpha responsibility, not former item 9's
@@ -4600,8 +4638,10 @@ or commit-identity changes alone nor declares Phase 2 complete.
 **Current status:** comparison function and report user-accepted after
 Validation6 advisor review, under the
 [Step16-docsync3 instruction](../../reports/corrected-4dgs/phase3/step16/step16-docsync3/step16-docsync3-instruction.txt).
-Document review, user research Git and final Step completion processing/batch
-progress update remain pending. Normal-baseline quality is not accepted;
+Document review, user research Git/push and final Step completion processing/batch
+progress update are complete under the
+[Step 16 completion record](../../reports/corrected-4dgs/phase3/step16/step16-completion-report.txt).
+Normal-baseline quality is not accepted;
 **Gate B is not passed**. The successful-setting-derived conditions, SH 3/2,
 nominal12000 and resource correction remain adopted under the
 [Step16-docsync2 instruction](../../reports/corrected-4dgs/phase3/step16/step16-docsync2/step16-docsync2-instruction.txt).
@@ -4641,8 +4681,16 @@ training has warm-start/point-count/LR differences and remains auxiliary evidenc
 The bounded [history note](../../reports/corrected-4dgs/phase3/step16/step16-docsync3/step16-docsync3-history-note.txt)
 also records dissatisfaction with early training quality and later favorable
 results amid initial-state/width changes and additional training. Historical
-image attachments were not retrieved and the first run's complete provenance
-was not reconstructed. This fresh pair is not a complete reproduction of the
+image attachments were not retrieved at that note's date. The later
+[Step 17 history evidence](../../reports/corrected-4dgs/phase3/step17/step17-design1/step17-design1-history-evidence.json)
+and [reviewed design, section 3](../../reports/corrected-4dgs/phase3/step17/step17-design1/step17-design1-design-report.md)
+record 101 recovered images; 27 non-image attachments remain missing and complete
+provenance remains unproven. March 12 before/after images and the user's additional-
+learning report are distinct from March 27 E6. Current YAML differs from the
+historical version, and checkpoint parent/configuration correspondence remains
+incomplete; image recovery establishes neither cause nor sufficient quality.
+The old unavailable-image note is preserved as history. This fresh pair is not a
+complete reproduction of the
 historical successful run. Sufficient convergence from fresh inputs with the
 later-success-derived LR/budget, or improvement from additional training alone,
 is unproven; old poor results do not establish today's blur as normal.
@@ -4840,7 +4888,7 @@ budget. Any required allocation/limit change needs a separate evidence-backed
 decision. Preserve the old Design4 report as historical evidence, with this
 correction governing its interpretation.
 
-**Preservation and next boundary.** Preserve A, B's uncommitted/untracked WIP,
+**Preservation and next boundary.** Preserve A, B's accepted source and any later WIP,
 old checkpoints/images/logs and dataset. Any separately authorized preparation must preserve
 restorable source/config/WIP bytes, not call a hash list a backup. Use separate
 source copies, outputs, caches and processes, executed serially; check actual
@@ -4862,15 +4910,417 @@ completed comparison are recorded by Validation5/6; do not repopulate or rerun
 them through this sync. Warm-start-free convergence sufficient for normal-baseline
 quality and historical SH differences' quality effects remain unproven; blur is
 not assigned a single cause.
-Next: document review → user research Git/accepted revision → final Step
-completion processing and batch progress update, with quality/formal-condition
-judgments still outstanding under Gate B. These procedural items are not
-performed here. No implementation, build, CUDA, extra pilot or learning is
-authorized. Formal retraining is unstarted, Gates B–D and downstream artifacts
-remain outstanding, and Viewer stays frozen.
+Step 16's document review, user research Git/push and completion processing are
+complete, not repeated here. The current adopted design/comparison contract is
+[Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a); its A-only
+four-stage reconstruction does not change this completed fresh pair's conditions
+or evidence, and does not reclassify Step 16 as historical initial-learning or
+sufficient-quality reproduction.
+Quality/formal-condition judgments remain outstanding under Gate B. No
+implementation, build, CUDA, extra pilot or learning is authorized by this sync.
+Formal retraining is unstarted, Gates B–D and downstream artifacts remain
+outstanding, and Viewer stays frozen.
+
+#### Step 17: diagnostic staged learning from saved original A
+
+**Current adopted scope and status (Step17-docsync4).** Under the
+[user-approved adoption instruction](../../reports/corrected-4dgs/phase3/step17/step17-docsync2/step17-docsync2-instruction.txt),
+adopt Design2 **案1: reconstruction from 4DGS initial learning through four
+stages**, its supplements and fixed-final parents. The subsequently user-approved
+time-stop and Fix3 resource corrections below supersede only the old resource
+conditions for this current four-stage A diagnosis, not historical runs or B.
+The [reviewed design](../../reports/corrected-4dgs/phase3/step17/step17-design2/step17-design2-design-report.md),
+[setting material](../../reports/corrected-4dgs/phase3/step17/step17-design2/step17-design2-design-settings.json)
+and [evidence](../../reports/corrected-4dgs/phase3/step17/step17-design2/step17-design2-design-evidence.json)
+remain unchanged; their adoption-pending wording records their creation time.
+The limited connection/resource implementation and CPU validation through
+[Fix3](../../reports/corrected-4dgs/phase3/step17/step17-fix3/step17-fix3-report.md)
+are user-accepted under the
+[DocSync3 instruction](../../reports/corrected-4dgs/phase3/step17/step17-docsync3/step17-docsync3-instruction.txt).
+The recorded full CPU suite passed 16 tests, followed by a final recheck of two
+related tests, **not 18 unique tests**. Initial failures/corrections remain in
+the linked report and evidence. Validation2 subsequently executed all four stages
+and their save/independent read-back/GT checks. Following the advisor image review,
+the user accepted **Step 17's diagnostic reconstruction function** under the
+[current acceptance/synchronization instruction](../../reports/corrected-4dgs/phase3/step17/step17-docsync4/step17-docsync4-instruction.txt).
+**Document review, user research Git/push and Step completion/progress processing
+remain pending; Gate B is not passed.** Earlier reports and raw results containing
+review-pending wording or `step17_accepted=false` remain unchanged creation-time
+records, not a reversal of the later user acceptance. Old Validation1 remains
+separate evidence; this sync authorizes no further execution.
+The existing heading/anchor is retained for references; the current starting
+point is the saved initial input below, not the learned Step 16 A checkpoint.
+
+**Initial input, stages and state transfer.** Reconstruct from the beginning
+of 4DGS learning using the saved initialization generated from previously
+trained sequential 3DGS PLYs with corrected position, spatial scale and temporal
+width:
+`/home/demo/work/data/4dgs_sph_scene/init_from_3dgs_35_200_aligned_sigmaT0p05.pth`.
+This is 1,326,947 initial points, not the Step 16 learned 495992-point A or a
+historical final checkpoint. 3DGS retraining and init regeneration are excluded.
+The similarly named tight init has a different spatial scale: future consumers
+must check the existing tensor evidence and actual layout, not select by name.
+This document task does not load either file. The
+[Original 4DGS history](../../docs/original-4dgs-training-history/README.md)
+distinguishes observed copies, reconstructed settings, inference and missing
+provenance; adoption does not turn those categories into historical proof.
+
+| Stage | Parent | Nominal T | Forward/LR calls | Optimizer calls | Saves / observations |
+|---|---|---:|---:|---:|---|
+| Stabilization | Saved corrected 3DGS-derived init | 12000 | 11999 | 11998 | T/2,T / 0,T/2,T |
+| Growth | New stabilization fixed final | 30000 | 29999 | 29998 | T/2,T / 0,T/2,T |
+| E2-like | New growth fixed final | 12000 | 11999 | 11998 | T/2,T / 0,T/2,T |
+| E3-like | New E2-like fixed final | 12000 | 11999 | 11998 | T/2,T / 0,T/2,T |
+
+Only after the preceding new stage's save, independent reader and completion
+verification succeed may its fixed final become the next parent. E1/E2 were
+separate branches, not E1→E2. Design2's 案2 from existing E1, the 6.71-million-
+point failed trial and E4/E5/E6 are excluded, including automatic fallback.
+Preserve A labels2…T, optimizer calls only below T, and save/update ordering.
+Nominal total66000, forward/LR65996 and optimizer65992 are distinct from each
+Parameter's Adam step. Midpoint saving precedes that label's population/update;
+do not call it T/2 completed updates.
+
+After initial loading, reuse existing `loaded_pth` staged learning to inherit
+all nine learned Parameters and active SH. Restart Adam, statistics, stage
+labels/schedules and seed/sampling at each stage; this is not exact resume.
+Preserve learned `t`, `scaling_t` and `rotation_r`; never re-inject `.05` in later
+stages or reduce the initial population to `num_pts=600000`. New-chain Scene
+extent and parent→initial learned state must agree under the same current split.
+Use fixed finals, not train/test best search. Old best matching the final is
+supported by source/logs, not proven for every parent hash; it is not evidence
+that historical best meant train argmax.
+
+**Adopted settings and explicit supplements.** Adopt the stage, common and
+derived values in Design2 section 5 and its setting material; do not duplicate
+the complete JSON here or reuse today's `my_update_best.yaml` for every stage.
+Major settings are:
+
+| Field | Stabilization | Growth | E2-like | E3-like |
+|---|---:|---:|---:|---:|
+| xyz LR initial / final | 8e-5 / 8e-7 | 8e-5 / 8e-7 | 5e-5 / 5e-7 | 2e-5 / 2e-7 |
+| xyz LR horizon | 12000 | 12000 | 12000 | 12000 |
+| scaling LR / rotation LR | 1e-4 / 5e-4 | 2e-4 / 5e-4 | 3e-4 / 3e-4 | 1.5e-4 / 1.5e-4 |
+| opacity LR | .01 | .01 | .015 | .01 |
+| densify from / until | 1e9 / 0 | 14000 / 26000 | 200 / 3000 | 2500 / 9000 |
+| interval / spatial gradient threshold | 100 / 1.0 | 200 / .0006 | 400 / .0006 | 100 / .00022 |
+| opacity prune threshold | 0 | .002 | .05 | .02 |
+| population threshold | -1 | -1 | 2500000 | 3200000 |
+| mask weight | .02 | .02 | .01 | .01 |
+| SH increase / opacity reset interval | 1e9 / 1e9 | 1e9 / 1e9 | 1e9 / 1e9 | 1e9 / 1e9 |
+
+The stable/growth entries derive from historical messages/configuration excerpts;
+E2 combines the reconstructed record, observed copy and event correspondence;
+E3 combines the historical proposal, reported use and event/tensor correspondence.
+The current same-name YAML is not proof of its March 12 version. Growth's
+population threshold was unrecorded: **-1 is an adopted source-default-based
+supplement, not a known historical value or safe hard cap**. Common defaults and
+maintained comparison values do not prove every historical CLI value. Explicit
+`position_t_lr_init` equals each stage's xyz initial LR, equivalent to existing
+derivation; the LR formula is unchanged.
+
+Adopt constructor maximum SH3/2 separately from **active SH0/0 and physical16
+coefficients**. Use the existing native actual-array-width path. No SH increase,
+padding, truncation or Python-SH substitution is allowed. The old captures do
+not prove historical constructor maxima. Keep default/derived provenance and
+strict input/consumer checks rather than silently adapting an incompatible shape.
+
+**A-diagnosis-only population semantics.** Reconstruct the historical outer
+population-block condition: after the point threshold is reached, do not enter
+the block containing radii/stat updates, densify/prune and reset. This differs
+in learning semantics from current A's continuing `prune_only`, not merely in
+observation plumbing. Old code fragments, point transitions and Adam steps
+support it; the exact code version of every historical run remains unproven.
+Confine derivation/connection to new diagnostic support, preserving original A/B,
+existing prepared source and old connections. Bind source and effective-function
+identities/local difference and verify other operations/order are unchanged.
+Local APIs and implementation remain CODEX's SE responsibility within this
+contract. No generic trainer, whole-source rollback or kernel change is adopted.
+
+**Evaluation and functional boundary.** Preserve train5146/test166, effective
+`eval=True`, 1280×720, black background, seed0, batch1/lazy reading and exact
+image/mask/frame/camera/time correspondence. Do not restore historical all5312
+training. Historical init may contain information from current test images, so
+A diagnostic test scores are not leakage-free generalization or B Gate evidence.
+Test cannot choose settings, stopping point or parent.
+
+Keep fixed train9 and the historical-image train5 as separate sets (14 views),
+using Design2's frame/camera/time/GT correspondence. Do not mix their aggregates
+with ordinary train5/test166, or change training sampling to add the five views.
+For every stage, bind initial state, point transitions, saves, independent
+read-back and before/after GT whole-image/crop/metrics. Preserve parent→initial
+inheritance, observation non-interference, saved-state and same-binary raw
+agreement. Rendered vortex separation, gaps and detail must be assessable as
+approaching/not approaching/worsening relative to GT. No PSNR30, exact3.28M
+population or completion-only acceptance line is introduced. Historical camera
+provenance and PNG quantization limits remain. This diagnosis does not require
+a single blur cause, parameter search or renewed proof of B's corrections.
+
+**Accepted four-stage execution and image findings (Validation2).** The
+[progress/read-back report](../../reports/corrected-4dgs/phase3/step17/step17-validation2/step17-validation2-progress-20261019.txt),
+[machine evidence](../../reports/corrected-4dgs/phase3/step17/step17-validation2/step17-validation2-progress-20261019-evidence.json),
+[parent exit record](../../reports/corrected-4dgs/phase3/step17/step17-validation2/step17-validation2-run-exit.json)
+and [whole-chain result](../../reports/corrected-4dgs/phase3/step17/step17-fix3/four-stage-run/completion/result.json)
+record one execution of each stage from the saved 1,326,947-point 3DGS-derived
+init. This was 4DGS initial learning, not new 3DGS training or continuation from
+Step 16's learned A. Per-stage saved comparisons are linked below.
+
+| Executed stage | Nominal label | Optimizer calls | Final points | Saved GT comparison |
+|---|---:|---:|---:|---|
+| Stabilization | 12000 | 11998 | 1,326,947 | [comparison](../../reports/corrected-4dgs/phase3/step17/step17-fix3/four-stage-run/stabilization/run/completion/comparison/comparison.json) |
+| Growth | 30000 | 29998 | 2,331,484 | [comparison](../../reports/corrected-4dgs/phase3/step17/step17-fix3/four-stage-run/growth/run/completion/comparison/comparison.json) |
+| E2-like | 12000 | 11998 | 2,333,940 | [comparison](../../reports/corrected-4dgs/phase3/step17/step17-fix3/four-stage-run/e2_like/run/completion/comparison/comparison.json) |
+| E3-like | 12000 | 11998 | 3,204,870 | [comparison](../../reports/corrected-4dgs/phase3/step17/step17-fix3/four-stage-run/e3_like/run/completion/comparison/comparison.json) |
+
+Totals are nominal66000, forward/LR65996 and optimizer65992, not each Parameter's
+Adam step. The parent and all12 worker/reader/verify children exited0. Each stage
+saved midpoint/final checkpoints, passed independent read-back and completion
+verification, and recorded before/after GT comparison. Reader14-view `exact`
+agreement is with that stage's saved state and same-binary raw rendering,
+**not exact agreement with GT or historical images**. The run finished on
+2026-10-18 in approximately3 h57 min; this is an observation, not a future duration
+guarantee or restored time-stop limit.
+
+All1,451 recorded resource decisions passed, with no stop/failure record.
+Observed child RSS high-water maximum was6.744 GiB; minimum WSL MemAvailable
+37.598 GiB, maximum Torch allocated/reserved3.394/5.244 GiB, boundary GPU-free
+minimum9.573 GiB and disk-free minimum839.631 GiB; child swap maximum was0.
+These saved poll/boundary observations establish this run's bounded feasibility,
+not continuous GPU/native peak coverage, Windows-wide memory peaks, proof of the
+estimation margins or feasibility under other conditions. The linked evidence
+retains the detailed records and existing torchmetrics import FutureWarning;
+neither success nor the warning authorizes environment changes.
+
+The accepted [advisor image review](../../reports/corrected-4dgs/phase3/step17/step17-validation2/step17-validation2-advisor-image-review.txt)
+and [comparison HTML](../../reports/corrected-4dgs/phase3/step17/step17-validation2/step17-validation2-advisor-image-review.html)
+distinguish stabilization's blurred red/blue bands and filled gaps, growth's
+improved outer shape, E2-like separation/curling, and E3-like individual vortices
+and some clearer black gaps. All14 views improved in both L1 and SSIM relative
+to each stage's start. Fixed-train9 float mean L1 progressed
+0.015185→0.012917→0.011330→0.008251→0.006598 from init through the four finals.
+This is separate from historical-correspondence train5 and ordinary train5/test166.
+
+The E3-like result is visually approximately comparable to historical E3 at the
+same five views. Corresponding historical/current GT pixels matched; this supports
+image correspondence, not complete identity of historical code, camera matrices,
+every process condition or bitwise reproduction. The
+[Original history](../../docs/original-4dgs-training-history/README.md) retains
+confirmed/reconstructed/inferred/missing distinctions. Same-five-view, same-formula
+**PNG8** reference mean L1 is historical E3=0.007990 versus current E3-like=0.007718,
+with small improvements and regressions mixed across views. This is not the float
+metric above, universal superiority or a blur-resolution percentage. Historical
+growth images at24500 differ from this growth final30000; E1/E2 remain separate
+branches, with E1 images not proof of E2 reproduction. Historical E6 has additional
+processes/SH differences and remains a reference, not complete reproduction or a
+new E6-quality, PSNR30 or exact-historical-point-count requirement.
+
+The advisor's visual scope was fixed14-view comparison crops across all four
+stages, representative whole images, the final ordinary test's five saved views
+and corresponding historical images, **not all times or all166 test views**.
+GT's thin gaps/fine curls, separation of overlapping frontal red/blue layers and
+rough/fuzzy outlines remain unresolved. Acceptance covers diagnostic reconstruction
+and approach to GT, not elimination of all blur, one identified cause, successful
+parameter search or additional proof of B's fixes. Step 16's shared A/B blur is
+preserved as that comparison's history; reconstructed A improved here, but B was
+not updated. Historical test-information contamination of A init remains possible;
+A test improvement is not leakage-free generalization or B Gate evidence.
+
+Next is advisor review of this synchronization, then user research Git/push and
+Step completion/progress processing. B normal-baseline quality, final formal
+settings/schedule/full-Gate reconciliation and necessary source/Git finalization
+remain governed by [Gate B](#gate-b-before-formal-retraining), not selected here.
+Gate A passage, Gates B/C/D unpassed, formal retraining unstarted and Viewer freeze
+are unchanged. A diagnostic initial-state/population/warm-start exceptions do not
+transfer to B's formal from-scratch/no-legacy-warm-start/no-resume boundary.
+No new Step number, extra pilot, run value or further training is authorized.
+
+**Current resource checks and elapsed-time recording, not execution permission or prediction.**
+
+The user subsequently approved removing forced stops based only on elapsed time.
+This supersedes Design2/DocSync2's whole-program18-hour, cumulative worker/reader/
+verification and individual worker7.5-hour/reader20-minute deadlines. The old
+reports and settings remain historical evidence, not current time-stop authority.
+Record elapsed times and complete the approved stage/update counts; elapsed time
+alone must not fail a run, terminate a child or skip a later stage. Do not replace
+these deadlines with an arbitrary point cap or no-progress timeout. Actual
+resource insufficiency, allocation/OOM, I/O or process anomalies, missing required
+observations/records and the user's stop instruction still require stopping with
+preserved evidence; no extra updates or automatic retry are authorized. The
+[updated implementation instruction](../../reports/corrected-4dgs/phase3/step17/step17-implement2/step17-implement2-instruction.txt)
+records this bounded correction. The 2-second polling and 5-second TERM/KILL
+handling below are monitoring/termination mechanics, not training time limits.
+
+| Boundary | Current adopted condition |
+|---|---|
+| Whole program and each worker/reader/verification process | Record elapsed time; no forced stop based only on elapsed time. Normal completion uses the approved stage/update counts and independent completion checks |
+| Before start and child resource boundaries | Compare current available capacity with boundary-specific additional demand plus an explicit estimation margin; use current point count, not a uniform pilot-derived free/usage threshold |
+| Save boundaries | Current free on the actual output filesystem must cover the boundary's new-write estimate plus8 GiB operating reserve; recheck at current point count |
+| Parent monitoring | Poll2 s; preserve process identity, exit collection, stop-reason records and necessary TERM5 s / KILL5 s handling; use Fix3's parent-recording headroom and disk-reserve checks, not a worker-HWM cap |
+
+For this current four-stage A path, withdraw stopping solely on CPU HWM32 GiB
+or Torch allocated/reserved13 GiB, and the old uniform start WSL36/GPU12/disk40 GiB
+and runtime WSL-free4 GiB conditions. HWM/allocated/reserved remain observations,
+not usage ceilings. These withdrawals do not rewrite old execution contracts or
+B's separate conditions.
+
+Use WSL's current `MemAvailable`. For GPU demand, distinguish current device free
+from `reserved - allocated - inactive_split`, the estimate of reusable retained
+storage; compare their sum with additional demand plus margin. Do not count
+already allocated resident state again as additional demand. Invalid accounting
+or missing mandatory information is unavailable capacity evidence, never an
+assumed sufficient value. Windows-wide RAM, WSL RAM, VRAM and filesystem space
+are separate resources; old snapshots are not current capacity.
+
+The accepted [Fix3 estimates and basis](../../reports/corrected-4dgs/phase3/step17/step17-fix3/step17-fix3-report.md)
+and [boundary-specific implementation](../../reports/corrected-4dgs/phase3/step17/step17-fix3/step17-fix3-resources.py)
+cover worker/reader loading, continuing updates, observation, save, comparison
+and parent monitoring. Their memory margin of64 MiB plus25% of base demand,
+image scratch and camera metadata allowances are local SE estimates, not maxima
+proved by past success or new usage limits. CPU save/comparison with no new GPU
+allocation does not acquire an unnecessary GPU-headroom/query requirement.
+Detailed formulas remain in the linked implementation rather than a second specification here.
+Validation2's successful bounded observations above do not establish maxima for
+native workspace, instantaneous peaks, population overshoot, fragmentation,
+concurrent allocations or storage contention under other conditions; checks do
+not guarantee future allocation success, OOM prevention, completion or image quality.
+
+**Save-capacity estimate.** Tensor payload alone is not a serialized-size upper
+bound. Include checkpoint, initial raw, final expected/raw, known fixed and
+comparison images, JSON and records at the relevant boundary. Fix3 adds a
+serializer allowance of `ceil(payload / 100) + 1 MiB`; PNG estimates use known
+dimensions/channels/panels and scanlines plus1% and64 KiB/file; records have16 MiB
+allowance. These are format/metadata/working allowances for the known layout,
+not a strict byte guarantee or a tiny-fixture ratio extrapolated to millions
+of points. The linked report owns the detailed basis and small-fixture evidence.
+
+Compare current filesystem free with **new boundary writes plus8 GiB operating
+reserve**. Start with the current-point-count estimate for that stage, and
+recheck at later boundaries using current point count. Already occupied outputs
+are reflected in free space and are not added twice. The8 GiB reserve is an
+operating allowance, not a requirement empirically proved by past learning.
+Design2's approximately22.786 GiB whole-chain payload example is only a static
+reference excluding serialization and other outputs, not complete storage
+need, start permission or a completion guarantee. A later write failure still
+preserves partial outputs and cause, never publishes success or starts the next
+stage. No extra full-state copy, giant `BytesIO`, trial production-checkpoint
+save, old-artifact deletion or condition change is introduced to evade shortage.
+
+**Bounded GPU-state query.** Preserve the existing pre-start query's20-second
+deadline. Timeout, nonzero exit or invalid output means **state observation
+unavailable**, not observed GPU shortage or a training failure. There is no
+automatic retry or fallback to old free values. This query deadline, parent
+poll and termination grace are distinct from the withdrawn elapsed-only
+training/reader/verification cutoffs. Fix3 tested query handling with mock
+responses only at that time; Validation2 subsequently passed the actual pre-start
+query and recorded bounded GPU observations. Timeout/failure handling is not
+thereby claimed live-tested in every case.
+
+Reuse identified existing binaries and parent monitoring/failure records; stop
+on identity mismatch, with no automatic rebuild or retry. Run stages serially
+with exclusive new outputs and independent completion checks, preserving partial
+and old results. No condition change, old-artifact deletion, WSL adjustment or
+relaxation of the current resource checks may evade insufficiency. B's formal from-scratch/
+no-legacy-warm-start/no-resume, necessary fixes, numerical/save consistency,
+Gate A passage, formal retraining unstarted, Gates B/C/D open and Viewer freeze
+are unchanged. The [Fix3 candidate](../../reports/corrected-4dgs/phase3/step17/step17-fix3/step17-fix3-cuda-input-candidate.json)
+is preserved as unapproved/non-executable; document synchronization does not
+flip its flags. Validation2 used its separately authorized input and completed
+four-stage execution, save/read-back/GT and bounded resource checks as recorded
+above. Next are advisor document review, user research Git/push and Step
+completion/progress processing, not another execution decision for this completed
+run. This sync stops at advisor document review.
+
+**Historical one-stage contract and executed result (not the current four-stage
+starting point or budget).** Under the earlier
+[Step17-docsync1 adoption instruction](../../reports/corrected-4dgs/phase3/step17/step17-docsync1/step17-docsync1-instruction.txt),
+**Option 1, nominal12000 and the existing resource limits** were adopted from the
+[reviewed Design1 report](../../reports/corrected-4dgs/phase3/step17/step17-design1/step17-design1-design-report.md).
+The old adoption-time unperformed status is superseded by
+[Validation1's execution report](../../reports/corrected-4dgs/phase3/step17/step17-validation1/step17-validation1-report.md):
+additional learning, save, independent read-back and verify succeeded,
+495992→481948 points, with small improvement and strong blur remaining.
+This is neither a failed run nor historical initial-learning reconstruction.
+It does not complete Step17 or pass Gate B. The following old conditions are
+retained as that execution's history, not commands to repeat it or defaults for
+the new four-stage contract. Design1's old option numbering is not Design2's
+案1/案2 or the original-A/corrected-B code naming.
+
+**Historical parent and fixed conditions.** Use only the saved Step 16 original-A
+[final checkpoint](../../reports/corrected-4dgs/phase3/step16/step16-implement4/prepared-comparison/output-original/chkpnt12000.pth)
+as parent: 495992 points, active/maximum SH 3/2 and 48 slots. Do not replenish
+to 600000 or claim reconstruction of the historical multi-million-point state.
+Use Step 16 A's actually consumed settings, not the YAML name alone. The only
+configuration-leaf changes are `loaded_pth` to that fixed parent and `model_path`
+to a new non-overlapping output. Preserve train5146/test166, effective `eval=True`,
+image/mask/frame/camera/time correspondence, 1280×720, black background, seed0,
+batch1 with existing lazy loading, time interval [0,33]/divisor1, SH3/2 and all
+LR, loss, population and reset setting values. Parent and old outputs stay immutable.
+
+Inherit all nine learned Parameters, including `t`, `scaling_t`, both rotations,
+SH values and active degree. Do not re-inject fresh coefficient5 or historical
+`.05`. Reuse A's existing Scene → `create_from_pth` → `training_setup`: restart
+Adam moments/step, densification statistics, stage iteration, LR/population
+schedules and seed/sampling. This is a new stage using learned state, **not
+exact resume or a comparison changing only the update count**. Preserve A's
+update/save ordering rather than transplanting B's corrected transaction.
+The [formal no-resume scope](#exact-resume-remains-deferred) and Gate B's from-
+scratch/new-output/numerical/save contracts remain unchanged for B. No B warm-
+start is enabled, and unimplemented exact resume or its equivalence gate is not
+a new prerequisite for this A-only diagnostic stage.
+
+**Historical budget and evaluation.** Nominal12000 means A labels2…12000: 11999
+forward/backward and LR calls, but optimizer calls only at labels2…11999,
+11998 in total. Observe initial0, middle6000 and fixed final12000; save/evaluate
+6000 after 5998 optimizer calls and 12000 after 11998 calls. Old plus new stages'
+known total is 23996 optimizer calls, **not 24000 completed updates**; report
+actual per-Parameter Adam steps separately.
+
+Before the first learning update, verify parent-final → new-initial learned
+values and exact same-binary raw rendering at the existing fixed nine train
+views (times0/16.6/33 × v01/v16/v31). Keep parent-final and stage-initial states
+distinct. Reuse the fixed whole-image, foreground-crop and metric comparison
+against identical GT, and distinguish ordinary train5/test166 aggregates from
+fixed train9. Test must not select settings, stopping point or a best checkpoint.
+There is no new PSNR30 or other quality threshold. Interpret improvement,
+insufficient change and deterioration separately: restarting LR and population
+events changes the process even with identical setting values. Any improvement
+is the **total staged-learning effect**, not prune-only causality, exact historical
+reproduction, proof of B's corrections or Gate B passage. No automatic extension,
+parameter search or additional pilot is adopted.
+
+**Historical resources and preservation.** The following were the one-stage
+stop budgets, not the current four-stage budgets or predictions of completion.
+
+| Boundary | Adopted limit |
+|---|---|
+| Time | Worker maximum27000 s; reader maximum1200 s, also bounded by remaining total budget; total28800 s |
+| Before start | WSL `MemAvailable` ≥36 GiB, GPU free ≥12 GiB, output-filesystem free ≥20 GiB |
+| During execution | WSL `MemAvailable` minimum4 GiB; disk free minimum8 GiB; worker HWM32 GiB; Torch allocated/reserved13 GiB at existing observation boundaries |
+| Parent monitoring | Poll2 s; TERM5 s / KILL5 s; preserve resource-stop and exit records |
+
+WSL `MemAvailable` is not Windows-wide free RAM or GPU free memory. Do not
+extend the worker HWM condition to the reader. Starting from 495992 points with
+48 SH slots, static payload estimates exclude rendering workspace and temporary
+copies: at 3.2 million points, param/grad/Adam/statistics are approximately
+7.725 GiB and capture approximately5.805 GiB. The 3.2-million growth-stopping
+threshold is **not a hard cap**. Neither old runs below about600000 points nor
+design-time capacity guarantees completion at millions of points. Validation1's
+bounded saved-state/reader/resource evidence does not establish million-point
+save/reader feasibility or peak clone/split behavior. At the Validation1 reporting
+point, the new four-stage pre-execution capacity checks were still outstanding;
+Validation2's later bounded evidence is recorded above, without rewriting this run.
+
+Reuse existing source/binary bindings, resource monitoring, stop/exit recording
+and independent saved-result verification; stop on identity mismatch. Preserve
+original A, accepted B/any WIP, old artifacts and all failure records. Do not
+evade insufficiency by changing points, images, resolution, thresholds, WSL
+settings or deleting old results; no automatic retry, rebuild or cleanup.
+The unresolved normal-baseline quality, B formal settings, Gates B–D and frozen
+Viewer remain separate. Subsequent connection/CPU work and actual execution
+require their own authorization and advisor review.
 
 The following original roadmap numbers retain their dependency/register role;
-they do not renumber Step 16 or authorize its next execution.
+they do not renumber Steps 16/17 or authorize a next execution.
 
 21. Run small corrected pilot training from iteration 0 with resume prohibited
     after Gate A, using `4dgs310` only after its fresh-build and focused-CUDA
@@ -5029,8 +5479,20 @@ Complete at this milestone:
 - [Step 16](#step-16-matched-fresh-training-comparison) adopted comparison conditions,
   SH3/2, nominal12000 and resource correction, followed by user acceptance of
   the A/B comparison function/report through Validation5 fresh training and
-  Validation6 saved-B read-back/GT comparison. Old failures remain unchanged;
-  small B improvements are not acceptance of the common blur or baseline quality.
+  Validation6 saved-B read-back/GT comparison, followed by completed document
+  review, user research Git/push and completion processing. Old failures remain
+  unchanged; small B improvements are not acceptance of the common blur or
+  baseline quality;
+- [Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a)
+  Validation1's one-stage additional learning/save/independent read-back/verify
+  and bounded GT comparison, with small improvement and strong blur remaining;
+  separately, Design2's four-stage reconstruction from 4DGS initial learning,
+  explicit supplements and no time-only forced stop are adopted; Fix3's limited
+  connection/resource fixes and CPU validation are accepted under the current
+  Step 17 resource contract. Validation2's four-stage execution, saves/independent
+  read-backs/GT comparison and bounded resource checks passed; advisor image review
+  and user acceptance of the diagnostic function followed. Historical E3 correspondence
+  and remaining GT gaps are recorded, not B quality/Gate closure.
 
 The adopted D-DATA, initialization/LR/batch/SH, population inputs and bounded
 handoff, seed/initial-loss/time/V-B and closed-key contracts are enforced within
@@ -5044,8 +5506,10 @@ remains withdrawn; no approved policy is reselected.
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
-- advisor document review of this Step 16 result sync, user research Git/
-  accepted revision and final completion processing/batch progress update;
+- advisor document review of this Step 17 acceptance/current-state sync, user
+  research Git/push and Step completion/progress processing; the four-stage
+  Validation2 execution and diagnostic functional acceptance are not unperformed,
+  and the old Validation1 execution remains preserved;
 - remaining source, config, test or tool fixes beyond the accepted Step 5
   connection, Step 6 A camera scope, Step 7 A update/population/save-test scope
   and Step 8 SH / Step 9 alpha / Step 10 camera / Step 11 time / Step 12 update-population / Step 13 checkpoint / Step 14 health-failure / Step 15 real-input scopes, including other renderer mathematics, later
@@ -5106,12 +5570,19 @@ Prior preparation, pilots and failures remain preserved.
   are no longer open adoption questions; actual GPU cast/activation and
   numerical health validation outside the accepted Step 11 and bounded
   [Step 14 health/failure scopes](#step-14-formal-numerical-health-and-failure-termination) remain outstanding;
-- advisor document review of this Step 16 result sync, user research Git/
-  accepted revision and final completion processing/batch progress update.
-  Steps 5–15 are complete,
+- advisor document review of this Step 17 acceptance/current-state sync, user
+  research Git/push and Step completion/progress processing. Limited connection/
+  resource implementation and CPU validation through Fix3, Validation2's four-stage
+  execution/save/read-back/GT comparison, bounded resource checks and the diagnostic
+  function are accepted; remaining GT quality gaps and B/Gate B requirements are
+  separate from that acceptance.
+  Design2's 案1, fixed-final parents, explicit supplements and no time-only forced
+  stop remain adopted, with the current Fix3 resource contract, not open selections.
+  The old one-stage Validation1 execution remains recorded.
+  Steps 5–16 are complete,
   not awaiting another Fix, local-design approval or Git checkpoint. Their
   remaining runtime/CUDA and separate downstream owner dependencies remain
-  open; this sync does not complete Step 16 or assign a later Step;
+  open; this sync does not complete Step 17's remaining workflow or authorize execution;
 - the remaining pre-integration owner details and per-run values classified
   [above](#remaining-field-and-owner-boundary), not reopening P1–P6, PF/time/V-B,
   D-DATA, minimal initialization/LR/batch/SH, population inputs/conditions,
@@ -5239,14 +5710,22 @@ is also complete, including document review, user research Git/push and
 completion processing, as is [Step 14](#step-14-formal-numerical-health-and-failure-termination).
 [Step 15](#step-15-real-input-integration-and-gate-a-acceptance) is complete,
 including document review, user research Git/push and completion processing;
-cumulative Gate A passage remains user-approved. Current
+cumulative Gate A passage remains user-approved.
 [Step 16](#step-16-matched-fresh-training-comparison) now records user acceptance
 of the A/B comparison function/report, preserving old pilot and failure history.
 Small B improvements and the shared strong blur are separate findings; normal-
-baseline quality and Gate B are not accepted. Document review, user research
-Git/accepted revision and final completion processing/batch progress update
-remain pending. This synchronization performs none of those operations and
-does not authorize a new execution or condition change.
+baseline quality and Gate B are not accepted. Its document review, user research
+Git/push and final completion processing/batch progress update are complete
+under the Step 16 completion record. Current
+[Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a) preserves
+Validation1's executed one-stage diagnosis and records Validation2's accepted
+four-stage reconstruction from the saved 4DGS initial input, with explicit
+supplements, Fix3 resource checks and no time-only forced stop. Execution,
+saves/read-backs/GT comparison and bounded resource checks passed; advisor image
+review and user diagnostic functional acceptance followed. Historical E3-like
+appearance is distinct from remaining GT gaps and B's still-open normal-baseline
+quality. Document review, user research Git/push and Step completion/progress
+processing remain pending; this synchronization authorizes no execution.
 Later-owner source fixes,
 downstream consumer integration and remaining device/GPU/training validation
 retain their own execution/build acceptance duties, not new Step 5/6/7 CPU
