@@ -1,6 +1,6 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **Steps-5-6-7-8-9-10-11-12-13-14-15-16-complete-and-user-research-Git-integrated / Gate-A-passed-by-user-approved-cumulative-evidence / Step-16-comparison-complete-quality-unaccepted / Step-17-four-stage-reconstruction-execution-and-diagnostic-function-accepted-document-review-user-research-Git-completion-pending / corrected-coefficient-5-and-33-pilots-and-saved-result-comparison-recorded / successful-setting-derived-SH3-2-nominal12000-adopted / Validation5-failure-preserved-Validation6-saved-B-readback-and-AB-GT-comparison-accepted / slight-B-improvement-common-blur-unresolved / Gate-B-not-passed / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / focused-time-camera-SH-and-alpha-CUDA-passed / formal-retraining-not-started / Viewer-frozen**
+Status: **Steps-5-6-7-8-9-10-11-12-13-14-15-16-17-complete-and-user-research-Git-integrated / Gate-A-passed-by-user-approved-cumulative-evidence / Step-16-comparison-complete-quality-unaccepted / Step-17-four-stage-reconstruction-complete / Step-18-AB-comparison-function-and-results-user-accepted-document-review-research-Git-completion-pending / Step-18-final-B-improved-GT-gaps-remain / corrected-coefficient-5-and-33-pilots-and-saved-result-comparison-recorded / successful-setting-derived-SH3-2-nominal12000-adopted / Validation5-failure-preserved-Validation6-saved-B-readback-and-AB-GT-comparison-accepted / Step-16-slight-B-improvement-common-blur-recorded / Gate-B-not-passed / plan-with-accepted-P1-P2-P3-P4-P5-P6-components / Investigation1-4 and Issue-#10/#12/#18 static audit complete / audit integration documented / eight-formal-policy-groups-approved / Issue-#11-policy-sync / Issue-#17-formal-entry-and-4dgs310-sync / Issue-#22-adopted-JSON-and-run-mode-sync / Issue-#24-adopted-partial-field-contract-sync / Issue-#26-adopted-prefilter-policy-sync / Issue-#30-adopted-three-time-contract-sync / Issue-#33-adopted-current-PLY-raw-time-sync / Issue-#34-adopted-initial-time-variance-sync / remaining-formal-policy-open / Issue-#35-P2-component-accepted / Issue-#36-P1-partial-component-accepted / Issue-#37-P3-partial-component-accepted / Issue-#38-P5-partial-component-accepted / Issue-#39-P4-partial-component-accepted / Issue-#41-P6-partial-component-accepted / other-owner-source-fixes-and-validation-outstanding / focused-time-camera-SH-and-alpha-CUDA-passed / formal-retraining-not-started / Viewer-frozen**
 
 This document records the approved transition from the historical split
 camera/raster baseline toward a corrected Fudan Native 4DGS baseline that will
@@ -44,8 +44,8 @@ Step design and documentation timing by
 Git timing by [USR-GIT-09/10](../../4dgs-development-governance/40_USER_GIT_AND_ACCEPTANCE_RUNBOOK_JA.md),
 and overall progress by [RM-PROGRESS](../../4dgs-development-governance/30_REDMINE_WORKFLOW_JA.md).
 Technical owners, dependencies and Gate conditions remain unchanged. The
-current functional Step after completed Steps 5–16 is
-[Step 17: diagnostic staged learning from saved original A](#step-17-diagnostic-staged-learning-from-saved-original-a)
+current functional Step after completed Steps 5–17 is
+[Step 18: original-A and corrected-B four-stage comparison](#step-18-original-a-and-corrected-b-four-stage-comparison)
 within Phase 3. Step 15's document review, user research Git/push and completion
 processing are complete under its
 [completion record](../../reports/corrected-4dgs/phase2/step15/step15-completion-report.txt);
@@ -60,9 +60,16 @@ reconstruction from the saved 3DGS-derived 4DGS initial input, not that learned
 parent. Stage saves/read-backs/GT comparison and bounded real-resource checks
 passed; advisor image review and user functional acceptance are recorded in
 [Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a). Its document
-review, user research Git/push and Step completion/progress processing remain
-pending. The reconstructed A approaches historical E3 but retains GT quality
-gaps; B is not updated and Gate B remains open. This sync authorizes no execution.
+review, user research Git/push and completion/progress processing are complete
+under the [Step 17 completion record](../../reports/corrected-4dgs/phase3/step17/step17-completion-report.txt).
+Reconstructed A approaches historical E3 but retains GT gaps. Step 18 uses that
+A as control with GT as common reference. Its connection implementation, CPU
+validation and actual-CUDA comparison have now led to advisor review and user
+acceptance of the A/B comparison function and results. Final B improves on A
+within this evidence scope, with GT gaps remaining. Step 18 document review,
+user research Git/push and completion/progress processing are pending; formal-B
+quality/conditions and Gate B remain separate open judgments. This sync
+authorizes no execution.
 Step 14's document
 review, user research Git/push and completion processing are complete under its
 [completion record](../../reports/corrected-4dgs/phase1/step14/step14-completion-report.txt).
@@ -193,13 +200,20 @@ coefficient-5/33 pilots, Validation4's reader failure/unstarted B and Validation
 B-parent failure remain historical evidence, not rewritten successes.
 B's slight improvement does not resolve the strong common blur or establish
 normal-baseline quality. Its document review, user research Git/push and final
-processing are complete under the completion record. Current
+processing are complete under the completion record.
 [Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a) preserves
 Validation1's executed one-stage diagnosis and now records Validation2's four-stage
 reconstruction from 4DGS initial learning, including saves/independent read-backs/GT
 comparison, bounded resource checks and user diagnostic functional acceptance
-after image review. Document review, user research Git/push and Step completion/
-progress processing remain pending; Gate B is not passed and Gates C/D remain open.
+after image review. Its document review, user research Git/push and completion/
+progress processing are complete under the Step 17 completion record.
+Current [Step 18](#step-18-original-a-and-corrected-b-four-stage-comparison)
+records user-accepted A/B comparison function/results after implementation,
+CPU validation, actual-CUDA save/read-back/comparison and advisor review.
+Final B improvement and remaining GT gaps supersede Step 16's result as the
+current comparison evidence, without rewriting that history. Document review,
+user research Git/push and completion/progress processing remain pending.
+Gate B is not passed and Gates C/D remain open.
 Historical Issue/component and individual Step boundaries below describe what
 each result alone established. They do not override this cumulative current
 boundary or reopen the closed Gate A consumer/provenance gap.
@@ -2242,7 +2256,11 @@ its exact-resume path. The separately adopted
 uses A's existing `loaded_pth` staged learning with a new optimizer/schedule,
 not B warm-start or exact resume. It neither relaxes these formal prohibitions
 nor requires the unimplemented exact-resume feature/equivalence gate as a new
-prerequisite for A's diagnostic stage.
+prerequisite for A's diagnostic stage. The separately adopted
+[Step 18 comparison profile](#step-18-original-a-and-corrected-b-four-stage-comparison)
+also permits only its identified initial state and staged Parameter inheritance
+with fresh Adam; it is not formal B warm-start or exact resume and cannot enter
+the formal profile. The formal prohibitions below remain unchanged.
 
 Pilot runs start from iteration 0, prohibit resume, and reject every resume
 entry. Legacy checkpoint warm-start is always prohibited. Exact resume is not
@@ -3006,7 +3024,7 @@ instruction and must not be created by this documentation task.
 
 ## Comparison conditions
 
-The primary Step 16 comparison is fresh training of original A and corrected B
+The completed Step 16 comparison is fresh training of original A and corrected B
 under the [adopted matched-training contract](#step-16-matched-fresh-training-comparison),
 each against the same GT. Common external conditions and intentional internal
 bug differences are distinguished there. Corrected-only pilots and historical
@@ -3017,6 +3035,15 @@ is a separate original-A reconstruction from 4DGS initial learning through four
 historically grounded stages and GT comparison, not a replacement fresh A/B
 comparison, mandatory single-cause blur diagnosis, B correction-effect proof or
 authorization to warm-start the formal corrected baseline.
+
+Current [Step 18](#step-18-original-a-and-corrected-b-four-stage-comparison)
+adopts comparison of saved successful four-stage A with B under matched initial
+state/external conditions and retained necessary bug fixes. A/B is primary and
+GT is common reference, not B-only optimization. Its comparison function and
+results are now user-accepted: B's learning/save/render path is not materially
+impaired within the tested scope and final B improves on A, with GT gaps
+remaining. Its comparison-only exceptions do not alter formal B or the earlier
+pair, and this acceptance does not itself pass Gate B.
 
 The following fixed-checkpoint renderer comparison retains its separate
 historical/diagnostic role; it is not the fresh-training comparison above.
@@ -3223,10 +3250,10 @@ the cumulative Gate A passage and the following evidence are not blanket closure
 | Requirement/evidence boundary | Current disposition |
 |---|---|
 | Shared formal enforcement, camera/renderer, update/health, checkpoint and environment/build evidence | Steps 5–15 retain their accepted bounded CPU/CUDA and real-input evidence; do not reopen that work or infer general runtime closure |
-| Pilot comparison and save/read-back | [Step 16](#step-16-matched-fresh-training-comparison) comparison function/report accepted: Validation5 fresh A/B, A read-back, then Validation6 saved-B read-back and fixed A/B/GT comparison; test non-selection retained. B exact correspondence is to its own saved state/render, not A or GT; old failures remain failures |
-| Normal-baseline quality | Unaccepted: B's small metric improvement does not resolve the strong blur shared by A/B; the minor-result-difference allowance does not classify that GT gap as normal |
+| Pilot comparison and save/read-back | [Step 16](#step-16-matched-fresh-training-comparison) retains its accepted pair. [Step 18](#step-18-original-a-and-corrected-b-four-stage-comparison) now adds user-accepted matched four-stage A/B results: reused B stabilization final plus new growth/E2/E3, middle/final saves, independent read-back/verify and A/GT comparison; test non-selection retained. B exact correspondence is to its own saved state/render, not A or GT; old failures remain failures |
+| Normal-baseline quality | Formal-baseline quality judgment remains open. Step 18's final B improves on A in metrics and reviewed images, unlike treating Step 16's small improvement/common blur as the only current evidence; thin-gap filling, local blur and missing GT detail remain. Comparison acceptance neither declares GT equivalence nor automatically completes the formal-baseline quality judgment |
 | Formal-run settings/schedule and full Gate checklist | Final reconciliation/adoption remains required; the comparison-run settings, bounded numerical/finiteness/save checks and functional acceptance do not themselves select formal conditions or satisfy every Gate requirement |
-| Accepted source revision and closure | Step 16 document review, user research Git/push and completion/progress processing are complete under its [completion record](../../reports/corrected-4dgs/phase3/step16/step16-completion-report.txt); Step 17's four-stage A reconstruction, save/read-back/GT comparison and diagnostic function are now user-accepted after Validation2 and image review. Step 17 document review, user research Git/push and completion/progress processing remain pending, separately from B's necessary source/Git finalization and Gate closure |
+| Accepted source revision and closure | Step 16 and Step 17 document review, user research Git/push and completion/progress processing remain complete under their [Step 16](../../reports/corrected-4dgs/phase3/step16/step16-completion-report.txt) and [Step 17](../../reports/corrected-4dgs/phase3/step17/step17-completion-report.txt) completion records. Step 18 comparison function/results are user-accepted; its document review, user research Git/push and completion/progress processing are pending. B's necessary source/Git finalization and full Gate reconciliation remain separate |
 
 The legacy A comparison exceptions do not relax formal B transaction, camera,
 renderer or checkpoint contracts. No new quality threshold, mandatory extra
@@ -3367,19 +3394,23 @@ the historical `[524288,1048576)` range.
 ## Dependency order
 
 This register retains the original responsibility numbers for historical
-cross-references. Steps 5–16 are complete, including document review, user
+cross-references. Steps 5–17 are complete, including document review, user
 research Git/push and completion processing, under their completion records.
 The accepted [Step 15](#step-15-real-input-integration-and-gate-a-acceptance)
 integration and cumulative Gate A passage remain closed.
 [Step 16](#step-16-matched-fresh-training-comparison) is complete in Phase 3: the fresh
 A/B comparison function and report are user-accepted, separately from
-normal-baseline quality and Gate B. Current
+normal-baseline quality and Gate B.
 [Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a) preserves the
 executed one-stage Validation1 diagnosis and now records Validation2's four-stage
 reconstruction from the saved 4DGS initial input: execution, saves/independent
 read-backs/GT comparison and bounded resource checks passed, followed by advisor
 image review and user functional acceptance. Document review, user research
-Git/push and Step completion/progress processing remain pending.
+Git/push and completion/progress processing are complete under its completion
+record. Current [Step 18](#step-18-original-a-and-corrected-b-four-stage-comparison)
+has implemented and validated the adopted four-stage A/B comparison; its
+function/results are user-accepted after advisor review. Document review,
+user research Git/push and completion/progress processing are pending.
 Quality/formal-condition judgments remain open, without repeating prior Step
 completion or permitting automatic extra training.
 Step 7 covered
@@ -4911,11 +4942,12 @@ them through this sync. Warm-start-free convergence sufficient for normal-baseli
 quality and historical SH differences' quality effects remain unproven; blur is
 not assigned a single cause.
 Step 16's document review, user research Git/push and completion processing are
-complete, not repeated here. The current adopted design/comparison contract is
-[Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a); its A-only
-four-stage reconstruction does not change this completed fresh pair's conditions
-or evidence, and does not reclassify Step 16 as historical initial-learning or
-sufficient-quality reproduction.
+complete, not repeated here. The completed
+[Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a) A-only
+reconstruction and current adopted
+[Step 18 comparison contract](#step-18-original-a-and-corrected-b-four-stage-comparison)
+do not change this fresh pair's conditions/evidence or reclassify Step 16 as
+historical initial-learning or sufficient-quality reproduction.
 Quality/formal-condition judgments remain outstanding under Gate B. No
 implementation, build, CUDA, extra pilot or learning is authorized by this sync.
 Formal retraining is unstarted, Gates B–D and downstream artifacts remain
@@ -4923,7 +4955,7 @@ outstanding, and Viewer stays frozen.
 
 #### Step 17: diagnostic staged learning from saved original A
 
-**Current adopted scope and status (Step17-docsync4).** Under the
+**Adopted scope and completed status (updated at Step18-docsync1).** Under the
 [user-approved adoption instruction](../../reports/corrected-4dgs/phase3/step17/step17-docsync2/step17-docsync2-instruction.txt),
 adopt Design2 **案1: reconstruction from 4DGS initial learning through four
 stages**, its supplements and fixed-final parents. The subsequently user-approved
@@ -4944,7 +4976,8 @@ and their save/independent read-back/GT checks. Following the advisor image revi
 the user accepted **Step 17's diagnostic reconstruction function** under the
 [current acceptance/synchronization instruction](../../reports/corrected-4dgs/phase3/step17/step17-docsync4/step17-docsync4-instruction.txt).
 **Document review, user research Git/push and Step completion/progress processing
-remain pending; Gate B is not passed.** Earlier reports and raw results containing
+are complete** under the [Step 17 completion record](../../reports/corrected-4dgs/phase3/step17/step17-completion-report.txt).
+Gate B is not passed. Earlier reports and raw results containing
 review-pending wording or `step17_accepted=false` remain unchanged creation-time
 records, not a reversal of the later user acceptance. Old Validation1 remains
 separate evidence; this sync authorizes no further execution.
@@ -5125,14 +5158,17 @@ preserved as that comparison's history; reconstructed A improved here, but B was
 not updated. Historical test-information contamination of A init remains possible;
 A test improvement is not leakage-free generalization or B Gate evidence.
 
-Next is advisor review of this synchronization, then user research Git/push and
-Step completion/progress processing. B normal-baseline quality, final formal
+Step 17's document review, user research Git/push and completion/progress
+processing are complete. The next adopted contract is
+[Step 18's A/B comparison](#step-18-original-a-and-corrected-b-four-stage-comparison),
+not the earlier completion record's B-independent-process suggestion.
+B normal-baseline quality, final formal
 settings/schedule/full-Gate reconciliation and necessary source/Git finalization
 remain governed by [Gate B](#gate-b-before-formal-retraining), not selected here.
 Gate A passage, Gates B/C/D unpassed, formal retraining unstarted and Viewer freeze
 are unchanged. A diagnostic initial-state/population/warm-start exceptions do not
 transfer to B's formal from-scratch/no-legacy-warm-start/no-resume boundary.
-No new Step number, extra pilot, run value or further training is authorized.
+Step 18 adoption below is not further training authorization.
 
 **Current resource checks and elapsed-time recording, not execution permission or prediction.**
 
@@ -5226,9 +5262,10 @@ are unchanged. The [Fix3 candidate](../../reports/corrected-4dgs/phase3/step17/s
 is preserved as unapproved/non-executable; document synchronization does not
 flip its flags. Validation2 used its separately authorized input and completed
 four-stage execution, save/read-back/GT and bounded resource checks as recorded
-above. Next are advisor document review, user research Git/push and Step
-completion/progress processing, not another execution decision for this completed
-run. This sync stops at advisor document review.
+above. Step 17's document review, user research Git/push and completion/progress
+processing are now complete. Old candidate flags remain unchanged; no repetition
+of this completed run or completion workflow is authorized. Current Step 18
+contract synchronization stops at advisor document review.
 
 **Historical one-stage contract and executed result (not the current four-stage
 starting point or budget).** Under the earlier
@@ -5319,8 +5356,285 @@ The unresolved normal-baseline quality, B formal settings, Gates B–D and froze
 Viewer remain separate. Subsequent connection/CPU work and actual execution
 require their own authorization and advisor review.
 
+#### Step 18: original-A and corrected-B four-stage comparison
+
+**Adopted scope and current status.** The user has adopted the comparison
+contracts in [Design1](../../reports/corrected-4dgs/phase3/step18/step18-design1/step18-design1-design-report.md)
+under the [Step18-docsync1 instruction](../../reports/corrected-4dgs/phase3/step18/step18-docsync1/step18-docsync1-instruction.txt),
+following the [corrected advisor policy v2](../../reports/corrected-4dgs/phase3/step18/step18-design1/step18-design1-advisor-policy-v2.md).
+Design1's adoption-pending statements remain creation-time records, not current
+unresolved policy. Following connection implementation, CPU validation,
+actual-CUDA comparison and advisor review, the user has **accepted the A/B
+comparison function and results** under the
+[Step18-docsync2 instruction](../../reports/corrected-4dgs/phase3/step18/step18-docsync2/step18-docsync2-instruction.txt).
+Document review, user research Git/push and Step completion/progress processing
+remain pending. Prior reports/JSON retain their creation-time review-pending,
+`step18_accepted=false` and `gate_b_passed=false` records; the later comparison
+acceptance is recorded here without rewriting them or passing Gate B.
+
+The primary purpose is to compare successful Step 17 original A with corrected
+B under corresponding initial state and external learning conditions, retaining
+necessary bug fixes and checking that learning, saving, rendering and results
+are not materially impaired. GT is their common improvement/deterioration
+reference, not a substitute B-only quality-optimization objective. Do not
+collapse the four stages into one run, use only the last YAML, search parameters,
+or revive the withdrawn B-independent-process policy.
+
+**Saved A as the control.** Reuse the accepted Step 17 results, conditional on
+correspondence of initial input, effective source/binary, four settings and
+parent transfers, saved results and evaluation populations. Effective A includes
+the isolated original source **and** Step 17's historical population-block
+connection, not today's A repository or YAML alone. Design1 sections 2–3 and
+its [machine evidence](../../reports/corrected-4dgs/phase3/step18/step18-design1/step18-design1-design-evidence.json)
+record the inspected correspondence and its limits. If identity/readability or
+evaluation correspondence fails, return the missing evidence and necessary
+decision for review; do not automatically retrain A. Existing A success is not
+evidence that the new B connection has succeeded.
+
+**Matched initial state and common conditions.**
+
+| Item | Adopted comparison-only contract |
+|---|---|
+| Initial state | Identified `/home/demo/work/data/4dgs_sph_scene/init_from_3dgs_35_200_aligned_sigmaT0p05.pth`, 1,326,947 rows; inherit all nine Parameters, row order and float32 values, including saved time/scale/rotations. Neither Step 17 final A nor Step 16 learned A is B's initial input; no 600k PLY model, coefficient-5 temporal initialization or new 3DGS training |
+| Time | Raw interval [0,33], divisor1; use saved temporal-axis scale (approximately .05 initially), not an assertion that rotated effective temporal covariance is .05. Do not reinitialize learned time/scale in later stages |
+| SH | Maximum spatial/temporal3/2, physical16 (DC1 + rest15), active0/0, increase interval1000000000. Reject another layout or active-degree increase in this closed profile; do not pad to48 or relax formal B's48-slot contract |
+| Data/camera | Same scene, image/mask/frame/camera/time correspondence, train5146/test166, eval=true, 1280×720, resolution1, black background. B retains its corrected canonical camera and time handoff |
+| RNG/loading | Seed0 at each stage; batch1, shuffle/drop_last=true, workers0, threads4 and existing lazy/serial reading. Preserve Scene input/sampling order and mask lifetime; do not create/discard an unnecessary GPU600k initial model merely to replace it |
+| Model/renderer | 4D, rot_4d=true, force_sh_3d=false; native covariance/SH, env0, prefilter=-1.0, scaling modifier1, override_color=None, debug disabled. No AMP or environment/package change; existing4dgs310 only |
+| Optimizer/transfer | Nine-group Adam, betas(.9,.999), eps1e-15, weight decay0. Each next B stage inherits **B's own preceding confirmed final** nine learned Parameters and active SH; restart Adam, gradients, statistics, labels/schedules and seed. Never substitute A's intermediate checkpoint; this is staged learning, not exact resume |
+
+**Four-stage setting correspondence.** Adopt Design1 sections 5.1–5.2 and the
+executed A configs:
+[stabilization](../../reports/corrected-4dgs/phase3/step17/step17-fix3/step17-fix3-stabilization-config.json),
+[growth](../../reports/corrected-4dgs/phase3/step17/step17-fix3/step17-fix3-growth-config.json),
+[E2-like](../../reports/corrected-4dgs/phase3/step17/step17-fix3/step17-fix3-e2-like-config.json),
+[E3-like](../../reports/corrected-4dgs/phase3/step17/step17-fix3/step17-fix3-e3-like-config.json).
+The following are comparison settings, not formal-run defaults or evidence of
+complete historical provenance.
+
+| Field | Stabilization | Growth | E2-like | E3-like |
+|---|---:|---:|---:|---:|
+| Nominal N / planned B optimizer calls | 12000 | 30000 | 12000 | 12000 |
+| xyz LR init | .00008 | .00008 | .00005 | .00002 |
+| xyz LR final | .0000008 | .0000008 | .0000005 | .0000002 |
+| xyz LR horizon | 12000 | 12000 | 12000 | 12000 |
+| t LR init (before extent, constant) | .00008 | .00008 | .00005 | .00002 |
+| scaling / scaling_t LR | .0001 | .0002 | .0003 | .00015 |
+| rotation / rotation_r LR | .0005 | .0005 | .0003 | .00015 |
+| opacity LR | .01 | .01 | .015 | .01 |
+| mask loss weight | .02 | .02 | .01 | .01 |
+| densify from / until | 1000000000 / 0 | 14000 / 26000 | 200 / 3000 | 2500 / 9000 |
+| densification interval | 100 | 200 | 400 | 100 |
+| xyz gradient threshold | 1 | .0006 | .0006 | .00022 |
+| opacity prune threshold | 0 | .002 | .05 | .02 |
+| point stop threshold | -1 | -1 | 2500000 | 3200000 |
+| save / middle and final observation labels | 6000,12000 | 15000,30000 | 6000,12000 | 6000,12000 |
+
+All stages retain f_dc LR=.0025, f_rest=.000125, percent_dense=.01, DSSIM=.2,
+rigid/motion=0 and the existing L1/DSSIM/mask formula. Opacity reset and SH
+increase intervals are1000000000, unreachable in this comparison; no white-
+background reset. Apply the existing extent multiplier and NumPy float32
+operation order to xyz and t LR, with xyz log interpolation over12000 and
+constant t LR. Growth's30000 is **not** the LR horizon. Delay multiplier .01 is
+inactive because delay steps=0. Unused temporal-gradient/final-prune settings
+remain audit context, not newly active formal fields. Observe initial0 as well
+as the listed middle/final labels; save checkpoints only at middle/final.
+Only a confirmed final after independent reader/verify success may become the
+next B parent; inherited values/active degree must match exactly.
+
+**Population eligibility and necessary differences.** In this comparison only,
+a point count at or above an enabled stage threshold disables the **whole
+population block**, including statistics, topology/prune and reset, as in
+effective A. The -1 value means no point-stop threshold, not immediate stopping;
+the stage's existing from/until/interval conditions still apply.
+It does not stop Adam or learning. Check the pre-topology point count once and
+share the eligibility across statistics and mutation. E2/E3 thresholds are
+2500000/3200000, not strict caps or targets equal to A's final counts.
+Keep B's same-Parameter Adam → zero-grad → topology/reset order and corrected
+radius/moment handling. Formal B's post-threshold prune-only continuation remains
+a separate, unchanged contract.
+
+Design1 section 4 distinguishes, rather than automatically justifying all
+existing source differences:
+
+| Difference class | Retain or align |
+|---|---|
+| Necessary corrections | Canonical camera/intrinsics, safe one-time time handoff and contiguous/autograd connection, SH/alpha gradients, same-Parameter Adam, final update, statistics/radius/child-moment handling and completed-state save. Do not restore the old bugs to force equal results |
+| Non-interfering support | Effective-state/identity and health checks, save/read-back, bounded observation and parent resource/exit records. Reuse existing consumers without changing valid loss, Parameter/grad, Adam, RNG or sample order; copying/synchronization still has resource cost |
+| Matched comparison conditions | Initial state, physical16/active0/0, four-stage LR/loss/population settings, fresh stage Adam and full-block eligibility. These choices are not themselves mathematical bug fixes or general formal-policy replacements |
+
+For each nominal N, A has N−1 forward/LR calls and N−2 optimizer calls; B
+retains exact-N and its final update. Total optimizer calls are therefore
+A65992 versus B66000 (now executed). Record forward/LR labels, pre-update A versus
+completed B save boundaries, and each group's actual Adam step separately.
+Do not add A updates, reduce B updates, force equal points, or reset RNG to
+erase consequences of necessary corrections. The comparison concerns the
+correction bundle, not isolated causal proof of each bug. Inactive high-order
+SH, PLY initialization or unreachable reset paths are not newly validated by
+this active0/0 inherited-state run.
+
+**Closed comparison save/read-back contract.** Use a distinct comparison profile
+and artifact domain, reusing existing training/capture/save/reader primitives
+through minimum connections. Do not forge formal JSON/checkpoint metadata,
+create a general resume/arbitrary-shape API, duplicate the training loop, or
+silently route formal entry into comparison mode. Local API/helper/file layout
+remains implementation SE discretion, not new fixed policy.
+
+For both middle and final, save the same B completed-k state through independent
+snapshot → private write → read-back comparison → final atomic complete-marker
+publication. Preserve incomplete/failure evidence; never relabel it success.
+Bind comparison domain/layout, stage and nominal/actual counts, parent checkpoint
+or initial input, all four settings, source/native/new connection identities,
+environment, evaluation frames and optimizer description. Do not use formal B's
+schema/marker or claim formal-baseline identity for comparison outputs.
+
+The independent reader compares saved model, statistics and Adam with independent
+expected state, then restores a rendering model without creating an optimizer.
+Require exact same-B saved/raw-render correspondence at the fixed14 views,
+**not A/B/GT exact equality**. Do not derive expected from actual or relax finite,
+shape, moment or saved-state checks. Derive physical16 size/ZIP checks from its
+actual payload, not a blanket relaxation of the formal reader.
+
+Reusing the identified saved native binary with a separately bound current
+Python connection **succeeded in this comparison**, as recorded below.
+Preserve the binary's actual source/build/ABI provenance and the current Python
+identity separately. This is neither a fresh build nor a general guarantee for
+other environments/connections; unprovable correspondence still returns to
+review, not automatic rebuild/fallback.
+
+**Comparison acceptance and resources.** Compare the same stage's initial,
+middle and fixed final A/B/GT, with actual counts/save boundaries visible.
+Keep fixed train9, historical-correspondence train5, and ordinary train5/test166
+as separate populations, and float L1/SSIM/channel-wise PSNR distinct from PNG8
+metrics. Inspect matched whole images/crops for vortex form/curling, gaps,
+red/blue separation and blur, alongside numerical differences, population
+transitions and saved state. No best/test-selected final, view selection or
+parameter tuning follows results. Historical init may contain current test
+information; preserving the split is not leakage-free generalization proof.
+
+The existing minor-improvement/deterioration allowance applies without new
+PSNR quotas, equal-point or A/B pixel-equality requirements. Unexplained large
+deterioration, rendering failure or required missing observations return to
+advisor/user review, not B-only optimization, automatic retry or extra learning.
+This allowance never relaxes numerical or save/read-back checks. Completion,
+comparison validity and all Gate B requirements are distinct judgments.
+
+Retain demand-based parent resource monitoring/stop records, serial
+worker → reader → verify stages, new non-overwriting outputs and no forced stop
+solely for elapsed time. Reuse the existing additional-demand/margin and save-
+reserve contract recorded in Step 17, adjusted for actual B state lifetimes,
+not old fixed HWM/time caps. Design1 section 8's physical16 population,
+snapshot/read-back and storage estimates are **estimates**, not A measurements,
+current free capacity or a B completion guarantee. The measured B resources
+below establish this run only; population growth/native workspace and future
+capacity cannot be guaranteed from those observations. No new resource/time
+limit or deletion of old artifacts is adopted.
+
+**Accepted execution and preserved failure boundary (Step18-docsync2).**
+The [Validation1 report](../../reports/corrected-4dgs/phase3/step18/step18-validation1/step18-validation1-report.md)
+records successful B stabilization:12000 updates,1326947 final points,
+middle/final saves, independent reader/verify and A/GT comparison. Its later
+growth failure reached saved scalar1304 without a final confirmed worker
+counter; that failed run and unstarted E2/E3 remain unchanged. The exact old
+ESRCH operation/PID remains unproven, even after the
+[Investigation1 diagnosis](../../reports/corrected-4dgs/phase3/step18/step18-investigation1/step18-investigation1-report.md)
+and [Fix4 CPU-validated monitor correction](../../reports/corrected-4dgs/phase3/step18/step18-fix4/step18-fix4-report.md).
+
+The [Implement3 connection](../../reports/corrected-4dgs/phase3/step18/step18-implement3/step18-implement3-report.md)
+reused only the confirmed stabilization final, not the failed growth state.
+[Validation2 report](../../reports/corrected-4dgs/phase3/step18/step18-validation2/step18-validation2-report.md),
+[evidence](../../reports/corrected-4dgs/phase3/step18/step18-validation2/step18-validation2-evidence.json),
+[stored-result checks](../../reports/corrected-4dgs/phase3/step18/step18-validation2/step18-validation2-results-read.json)
+and [authorized input](../../reports/corrected-4dgs/phase3/step18/step18-validation2/step18-validation2-authorized-input.json)
+record the subsequent serial execution:
+
+| New B stage | Parent | Completed updates / Adam calls | Final points | Population events | Saved completed boundaries |
+|---|---|---:|---:|---:|---|
+| Growth | Reused B stabilization final | 30000 / 30000 | 2691766 | 59 | 15000,30000 |
+| E2-like | New B growth confirmed final | 12000 / 12000 | 2691766 | 0 | 6000,12000 |
+| E3-like | New B E2 confirmed final | 12000 / 12000 | 3248901 | 6 | 6000,12000 |
+
+New54000 plus reused12000 gives B66000, against saved A65992 optimizer calls.
+Failed growth1304 is neither added nor subtracted and is not a parent. Each
+stage retained the adopted resets and B's own preceding confirmed final; this
+does not establish generic resume or exact continuation of the failed process.
+E2 started above2500000, so full-block eligibility prevented population work
+while all12000 Adam updates ran. E3's3200000 is not a hard cap; its final count
+is not a contract violation or a reason to retune the run.
+
+All three stages completed middle/final publication, independent reader,
+verify and saved-A/common-GT comparison. Reader state/statistics/Adam checks
+and fixed14-view raw exact agreement are **with saved B itself**, not A or GT.
+The parent and nine new children exited0; the run ended2026-10-20 22:19 JST
+after6h10m55.73s. Source/current-Python and saved-native provenance bindings,
+resource monitoring and termination records were checked. No rebuild,
+automatic retry or comparison-condition change was performed.
+
+**Comparison results and limits.** Final float metrics below are saved
+view/channel averages; PSNR is not a pooled-pixel recomputation and PNG8
+metrics are not mixed into this table. Fixed train9, historical-correspondence
+train5 and ordinary train5/test166 remain distinct evaluation populations.
+
+| Stage / population | L1 A → B | SSIM A → B | Mean PSNR dB A → B |
+|---|---|---|---|
+| Growth / fixed train9 | .011330 → .010551 | .925803 → .930552 | 30.487 → 31.453 |
+| Growth / historical train5 | .012980 → .012199 | .913224 → .920452 | 26.861 → 27.150 |
+| E2 / fixed train9 | .008251 → .007062 | .936803 → .942863 | 32.736 → 33.890 |
+| E2 / historical train5 | .009913 → .008830 | .927030 → .935007 | 28.905 → 29.740 |
+| E3 / fixed train9 | .006598 → .005348 | .944301 → .950837 | 34.156 → 35.888 |
+| E3 / historical train5 | .007711 → .006522 | .938160 → .945990 | 30.588 → 32.034 |
+
+Ordinary train5 final mean L1 is .013024→.012006 (growth),
+.009697→.008287 (E2), .007720→.006335 (E3); ordinary test166 is
+.010592→.010354, .007592→.006785, .006161→.005382 respectively.
+E3 test166 mean SSIM is .946767→.952579 and mean PSNR32.133→33.344.
+The linked result checks retain all initial/middle/final aggregates.
+E2/E3 final B L1 improves over A at all fixed14 views. Growth final is worse
+at3/9 fixed-train views and1/5 historical views, despite improved averages.
+Each stage's B fixed9 final mean L1 is worse than its middle observation:
+.008857→.010551, .006578→.007062 and .005268→.005348 respectively.
+The canonical fixed final was not replaced by a better middle result;
+test-selection/tuning was not performed.
+
+Saved whole/crop review finds clearer red/blue layers, outlines and curling
+in final B, especially E2/E3, but filled thin GT gaps, local blur and missing
+surface detail remain. Within this evidence scope B's learning/save/render
+path and results are not materially impaired, and final-stage improvement
+supports the user-accepted comparison conclusion. Step16's small improvement
+and strong shared blur remain that earlier pair's findings, not the sole
+current description of B. This single-run correction-bundle comparison does
+not prove uniform improvement at every stage/view, GT equivalence, individual
+bug causality, reproducibility under all conditions, inactive higher-SH paths
+or leakage-free generalization. The historical init/test-information caveat
+remains. GT gaps alone do not revoke comparison acceptance, authorize B-only
+optimization, or introduce mandatory extra training or a new quality threshold.
+
+All saved resource decisions passed, with no primary/secondary failure or
+stop signal in the new run. Across its stages, sampled host available reached
+33.883GiB minimum, RSS high-water9.758GiB maximum, disk free815.292GiB minimum,
+and observed swap0; saved GPU free minima were8.729/9.923/8.890GiB.
+These are recorded observations, not current free capacity, continuous
+Windows-wide monitoring, instantaneous peaks or a future completion guarantee.
+Required saves/checks were not removed to reduce capacity needs. The detailed
+stage resource table remains in the Validation2 report rather than being
+duplicated as new limits here.
+
+**Formal boundary and remaining work.** Formal B remains from-scratch,
+48-slot, no-legacy-warm-start/no-resume, with its formal population and save
+contracts unchanged. Gate A remains passed; Gates B/C/D remain unpassed,
+formal retraining unstarted and Viewer frozen. Comparison adoption does not
+select formal training conditions or transfer A's historical exceptions to the
+formal entry. Step 17 is complete under its completion record. Step 18's
+comparison function/results are user-accepted, but document review, user
+research Git/push and Step completion/progress processing remain pending.
+Formal-baseline quality, final adoption of formal settings/learning process,
+the full Gate B checklist and necessary source/Git finalization remain separate
+existing judgments; comparison acceptance does not complete them. No new Gate
+condition, experiment, candidate, source/test change or execution is authorized
+by this sync.
+
 The following original roadmap numbers retain their dependency/register role;
-they do not renumber Steps 16/17 or authorize a next execution.
+they do not renumber Steps 16–18 or authorize a next execution.
 
 21. Run small corrected pilot training from iteration 0 with resume prohibited
     after Gate A, using `4dgs310` only after its fresh-build and focused-CUDA
@@ -5492,7 +5806,18 @@ Complete at this milestone:
   Step 17 resource contract. Validation2's four-stage execution, saves/independent
   read-backs/GT comparison and bounded resource checks passed; advisor image review
   and user acceptance of the diagnostic function followed. Historical E3 correspondence
-  and remaining GT gaps are recorded, not B quality/Gate closure.
+  and remaining GT gaps are recorded, not B quality/Gate closure. Document review,
+  user research Git/push and completion/progress processing are complete under
+  its completion record;
+- [Step 18](#step-18-original-a-and-corrected-b-four-stage-comparison) detailed
+  design and user adoption of the comparison-only initial-state/SH/stage-reset,
+  population eligibility, save/read-back domain, actual-count distinction and
+  saved-A reuse contracts, followed by connection implementation/CPU validation,
+  Validation1 stabilization success and Validation2 growth/E2/E3 saves,
+  independent read-backs and A/GT comparison. Advisor review and user acceptance
+  of the comparison function/results are recorded; document review, user
+  research Git/push and completion/progress processing remain pending, not Gate
+  acceptance. Old failed runs and their review-time flags remain preserved.
 
 The adopted D-DATA, initialization/LR/batch/SH, population inputs and bounded
 handoff, seed/initial-loss/time/V-B and closed-key contracts are enforced within
@@ -5506,10 +5831,11 @@ remains withdrawn; no approved policy is reselected.
 Not complete and not authorized by this document sync:
 
 - remaining formal policy selection listed in Open items;
-- advisor document review of this Step 17 acceptance/current-state sync, user
-  research Git/push and Step completion/progress processing; the four-stage
-  Validation2 execution and diagnostic functional acceptance are not unperformed,
-  and the old Validation1 execution remains preserved;
+- advisor document review of this Step 18 accepted-results sync, user research
+  Git/push and Step completion/progress processing; its comparison function and
+  results are already user-accepted. Step 17's execution,
+  functional/document acceptance and Git/completion processing are complete;
+  its old Validation1 and all failure evidence remain preserved;
 - remaining source, config, test or tool fixes beyond the accepted Step 5
   connection, Step 6 A camera scope, Step 7 A update/population/save-test scope
   and Step 8 SH / Step 9 alpha / Step 10 camera / Step 11 time / Step 12 update-population / Step 13 checkpoint / Step 14 health-failure / Step 15 real-input scopes, including other renderer mathematics, later
@@ -5522,8 +5848,8 @@ Not complete and not authorized by this document sync:
   the accepted Step 8/9/10/11/12/13/14/15 runs, not a repeat triggered only by this document sync;
 - normal-baseline quality/Gate B acceptance, formal settings/schedule and full
   Gate checklist reconciliation/adoption, formal retraining and any separately
-  adopted exact-resume Fix/equivalence acceptance; the accepted Step 16 comparison
-  and earlier corrected pilots are not unstarted work;
+  adopted exact-resume Fix/equivalence acceptance; the accepted Step 16 and
+  Step 18 comparisons and earlier corrected pilots are not unstarted work;
 - a formal real-data corrected checkpoint/population identity, SPL4 or CUDA
   Reference; Steps 13–14's limited synthetic and Step 15's real-input smoke
   checkpoints and Step 16's existing pilot checkpoints do not establish the
@@ -5542,7 +5868,11 @@ are adopted for that pair, not unresolved defaults or permanent formal-run
 values. Preparation, bounded A/B execution, save/read-back and fixed GT comparison
 are now recorded and functionally accepted; normal-baseline quality, general
 resource guarantees and the remaining Gate B decisions/procedures are not.
-Prior preparation, pilots and failures remain preserved.
+[Step 18](#step-18-original-a-and-corrected-b-four-stage-comparison) adds
+user-accepted four-stage A/B comparison results and final B improvement with
+GT gaps remaining; its document/Git/completion workflow is pending, not its
+comparison execution or functional review. Prior preparation, pilots and
+failures remain preserved.
 
 - alpha-cap implementation and focused CPU/CUDA acceptance are recorded in
   [Step 9](#step-9-alpha-cap-correction-and-cpucuda-validation), not open Fix or
@@ -5570,19 +5900,17 @@ Prior preparation, pilots and failures remain preserved.
   are no longer open adoption questions; actual GPU cast/activation and
   numerical health validation outside the accepted Step 11 and bounded
   [Step 14 health/failure scopes](#step-14-formal-numerical-health-and-failure-termination) remain outstanding;
-- advisor document review of this Step 17 acceptance/current-state sync, user
-  research Git/push and Step completion/progress processing. Limited connection/
-  resource implementation and CPU validation through Fix3, Validation2's four-stage
-  execution/save/read-back/GT comparison, bounded resource checks and the diagnostic
-  function are accepted; remaining GT quality gaps and B/Gate B requirements are
-  separate from that acceptance.
-  Design2's 案1, fixed-final parents, explicit supplements and no time-only forced
-  stop remain adopted, with the current Fix3 resource contract, not open selections.
-  The old one-stage Validation1 execution remains recorded.
-  Steps 5–16 are complete,
-  not awaiting another Fix, local-design approval or Git checkpoint. Their
-  remaining runtime/CUDA and separate downstream owner dependencies remain
-  open; this sync does not complete Step 17's remaining workflow or authorize execution;
+- advisor document review of the accepted
+  [Step 18 comparison results](#step-18-original-a-and-corrected-b-four-stage-comparison),
+  followed by user research Git/push and completion/progress processing.
+  Connection implementation/CPU validation, saved-native/current-Python reuse,
+  actual B resources/save/read-back/A-B-GT results and comparison functional
+  acceptance are established within the recorded scope, not general environment
+  guarantees or Gate B passage.
+  Steps 5–17, including Step 17's document review/user research Git/completion,
+  are complete. Their historical results, failures and raw acceptance flags are
+  preserved. Remaining GT gaps and formal B/Gate requirements are distinct;
+  this sync neither repeats completed workflow nor authorizes execution;
 - the remaining pre-integration owner details and per-run values classified
   [above](#remaining-field-and-owner-boundary), not reopening P1–P6, PF/time/V-B,
   D-DATA, minimal initialization/LR/batch/SH, population inputs/conditions,
@@ -5716,7 +6044,7 @@ of the A/B comparison function/report, preserving old pilot and failure history.
 Small B improvements and the shared strong blur are separate findings; normal-
 baseline quality and Gate B are not accepted. Its document review, user research
 Git/push and final completion processing/batch progress update are complete
-under the Step 16 completion record. Current
+under the Step 16 completion record.
 [Step 17](#step-17-diagnostic-staged-learning-from-saved-original-a) preserves
 Validation1's executed one-stage diagnosis and records Validation2's accepted
 four-stage reconstruction from the saved 4DGS initial input, with explicit
@@ -5724,8 +6052,14 @@ supplements, Fix3 resource checks and no time-only forced stop. Execution,
 saves/read-backs/GT comparison and bounded resource checks passed; advisor image
 review and user diagnostic functional acceptance followed. Historical E3-like
 appearance is distinct from remaining GT gaps and B's still-open normal-baseline
-quality. Document review, user research Git/push and Step completion/progress
-processing remain pending; this synchronization authorizes no execution.
+quality. Its document review, user research Git/push and completion/progress
+processing are complete under its completion record. Current
+[Step 18](#step-18-original-a-and-corrected-b-four-stage-comparison) records
+user-accepted saved-A/matched-B four-stage comparison function/results, with GT
+as common reference. Final B improves while GT gaps remain; formal-baseline
+quality/conditions and Gate B are still separate open judgments. Document
+review, user research Git/push and completion/progress processing remain pending.
+This synchronization authorizes no execution or new conditions.
 Later-owner source fixes,
 downstream consumer integration and remaining device/GPU/training validation
 retain their own execution/build acceptance duties, not new Step 5/6/7 CPU

@@ -60,15 +60,21 @@ def _rates(c, extent, k):
 
 
 def validate_state(payload, meta, c):
+    from formal_config import FormalConfig
+    require(type(c) is FormalConfig, 'formal_state_domain')
+    return _validate_state(payload, meta, c, SCHEMA, SHAPES)
+
+
+def _validate_state(payload, meta, c, schema, shapes):
     keys(payload, 'schema layout k capture')
-    require(payload['schema'] == SCHEMA and type(payload['layout']) is int and payload['layout'] == 1 and
+    require(payload['schema'] == schema and type(payload['layout']) is int and payload['layout'] == 1 and
             type(payload['k']) is int and payload['k'] == meta['k'], 'payload_version_label')
     a = payload['capture']; k, m = meta['k'], meta['rows']
     require(type(a) is tuple and len(a) == 19, 'capture_layout')
     stage = c.fixed.sh_stages[min(k//c.optimization.sh.increase_interval, 5)]
     require(type(a[0]) is int and type(a[18]) is int and (a[0], a[18]) == stage and
             a[16] is True and a[17] is None, 'capture_semantics')
-    for i, tail in SHAPES.items():
+    for i, tail in shapes.items():
         t = a[i]
         require(type(t) is torch.Tensor and t.device.type == 'cpu' and t.dtype == torch.float32 and
                 tuple(t.shape) == (m,)+tail and t.is_contiguous() and not t.requires_grad and
@@ -126,6 +132,12 @@ def validate_state(payload, meta, c):
 
 
 def snapshot(model, c, k):
+    from formal_config import FormalConfig
+    require(type(c) is FormalConfig, 'formal_state_domain')
+    return _snapshot(model, c, k, SCHEMA, SHAPES)
+
+
+def _snapshot(model, c, k, schema, shapes):
     require(type(k) is int and 1 <= k <= c.optimization.total_updates and k in c.save_updates, 'save_label')
     model_contract(model, c)
     groups = model.optimizer.param_groups
@@ -134,18 +146,24 @@ def snapshot(model, c, k):
         require(len(g['params']) == 1 and g['params'][0] is getattr(model, GROUPS[g['name']][1]) and
                 g['params'][0].grad is None, 'live_parameter')
     captured = _clone(model.capture())
-    payload = dict(schema=SCHEMA, layout=1, k=k, capture=captured)
+    payload = dict(schema=schema, layout=1, k=k, capture=captured)
     opt = captured[11]; desc = {}
     for group in opt['param_groups']:
         i, name = group['params'][0], group['name']
         desc[name] = dict(slot=GROUPS[name][0], id=i, initialized=i in opt['state'],
             step_dtype=str(opt['state'][i]['step'].dtype) if i in opt['state'] else None)
     meta = dict(k=k, rows=len(captured[1]), optimizer=desc)
-    validate_state(payload, meta, c)
+    _validate_state(payload, meta, c, schema, shapes)
     return payload, desc
 
 
 def load_state(stream, meta, c):
+    from formal_config import FormalConfig
+    require(type(c) is FormalConfig, 'formal_state_domain')
+    return _load_state(stream, meta, c, SCHEMA, SHAPES, 8*1024**3)
+
+
+def _load_state(stream, meta, c, schema, shapes, byte_limit):
     # weights_only is not sufficient: TorchScript ZIPs dispatch to jit.load.
     stream.seek(0)
     try:
@@ -159,13 +177,13 @@ def load_state(stream, meta, c):
                 allowed = suffix in ('data.pkl','byteorder','version','.data/serialization_id') or (
                     suffix.startswith('data/') and suffix[5:].isdigit())
                 require(allowed and row.compress_type == zipfile.ZIP_STORED and not row.flag_bits & 1, 'zip_format')
-            require(sum(i.file_size for i in entries) <= 8*1024**3 and
+            require(sum(i.file_size for i in entries) <= byte_limit and
                     any(n.endswith('/data.pkl') for n in names), 'zip_budget')
         stream.seek(0)
         payload = torch.load(stream, map_location='cpu', weights_only=True)
     except (zipfile.BadZipFile, EOFError):
         raise ValueError('checkpoint_payload_file') from None
-    return validate_state(payload, meta, c)
+    return _validate_state(payload, meta, c, schema, shapes)
 
 
 def restore_diagnostic(result, device):

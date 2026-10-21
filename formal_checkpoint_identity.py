@@ -163,6 +163,17 @@ def file_identity(path):
 def source_snapshot():
     paths = {ROOT/'train.py', ROOT/'simple-knn/setup.py', ROOT/'formal_dataset_reference.json'}
     paths.update(ROOT.glob('formal*.py'))
+    # These are also dependencies of shared train/health/Scene consumers.
+    # Include them for formal validation too; never exempt a loaded comparison
+    # module from the ordinary full-current-source contract.
+    for pattern in ('comparison*.py', 'staged_comparison*.py'):
+        paths.update(ROOT.glob(pattern))
+    paths.update(ROOT/name for name in (
+        'comparison_inputs.py', 'comparison_profile.py',
+        'staged_comparison_checkpoint.py', 'staged_comparison_runtime.py',
+        'staged_comparison_state.py', 'staged_comparison_native_origin.json',
+        'pointops2/__init__.py', 'pointops2/functions/__init__.py',
+        'pointops2/functions/pointops.py'))
     for package in ('arguments', 'scene', 'utils', 'gaussian_renderer'):
         paths.update((ROOT/package).rglob('*.py'))
     for package in ('simple-knn', 'diff-gaussian-rasterization'):
@@ -197,9 +208,36 @@ def validate_native(evidence, *, live=False):
     keys(e, 'schema repository source build_root knn raster environment base_head')
     require(e['schema'] == 'formal-native-v1' and e['repository'] == str(ROOT), 'native_schema')
     verify_source(e['source'])
+    return _validate_native_build(evidence, live=live)
+
+
+def _validate_native_build(evidence, *, live=False, comparison=False):
+    """Private build/ABI checks shared with separately bound comparison Python.
+
+    No caller-supplied root: comparison selects the fixed, identity-checked
+    origin record; formal validation remains bound to ROOT and current source.
+    """
+    require(type(evidence) is NativeEvidence, 'native_type')
+    e = evidence.value()
+    keys(e, 'schema repository source build_root knn raster environment base_head')
+    source_root = ROOT
+    require(type(comparison) is bool, 'native_domain')
+    if comparison:
+        # Deferred stdlib-only dependency, after both modules are initialized.
+        # The candidate is not an authority for its own build source directory.
+        from staged_comparison_checkpoint import _trusted_native
+        trusted = _trusted_native()
+        require(canonical(e) == canonical(trusted), 'comparison_native_origin')
+        require(type(trusted.get('repository')) is str, 'native_source_root')
+        source_root = Path(trusted['repository'])
+        require(source_root.is_absolute() and str(source_root) == trusted['repository'] and
+                source_root.resolve() == source_root, 'native_source_root')
+        fd = open_directory(str(source_root)); os.close(fd)
+    require(e['schema'] == 'formal-native-v1' and e['repository'] == str(source_root), 'native_schema')
     root = Path(e['build_root'])
     require(root.is_absolute() and root.resolve() == root and root.is_dir(), 'build_root')
-    require(not any(p == root or p in root.parents for p in (ROOT,)), 'build_overlap')
+    require(not any(p == root or p in root.parents or root in p.parents
+                    for p in (ROOT, source_root)), 'build_overlap')
     for name, units in (('knn', KNN_UNITS), ('raster', RASTER_UNITS)):
         row = e[name]
         keys(row, 'binary recipe objects command')
@@ -214,7 +252,7 @@ def validate_native(evidence, *, live=False):
             validate_identity(identity)
             require(root in Path(path).parents and file_identity(Path(path)) == identity, 'build_file')
         recipe = Path(row['recipe']['path']).read_text()
-        require(all(str(ROOT/u) in recipe for u in units), 'recipe_sources')
+        require(all(str(source_root/u) in recipe for u in units), 'recipe_sources')
     keys(e['environment'], 'python executable torch torch_cuda')
     require(all(type(v) is str and v for v in e['environment'].values()), 'environment')
     require(type(e['base_head']) is str and re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', e['base_head']), 'base_head')

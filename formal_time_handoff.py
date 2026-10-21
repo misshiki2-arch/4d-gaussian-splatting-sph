@@ -39,11 +39,25 @@ def validate_classes(raw, effective):
         raise ValueError('formal_time_class_collapse')
 
 
+@dataclass(frozen=True)
+class InheritedTime:
+    """Closed comparison interval; deliberately has no fresh-initial variance."""
+    raw_interval: tuple = (0., 33.)
+    effective_interval: tuple = (0., 33.)
+    raw_duration: float = 33.
+    effective_duration: float = 33.
+    divisor: float = 1.
+
+
 def validate_time(time, frames=()):
     a, b = map(binary32, time.effective_interval)
     if not a < b or binary32(time.effective_duration) <= 0:
         raise ValueError('formal_time_interval_binary32')
-    binary32(time.log_effective_scale)
+    if type(time) is InheritedTime:
+        if time != InheritedTime():
+            raise ValueError('comparison_time_contract')
+    else:
+        binary32(time.log_effective_scale)
     validate_classes([f.raw_time for f in frames], [f.effective_time for f in frames])
 
 

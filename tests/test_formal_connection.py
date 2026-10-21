@@ -73,6 +73,10 @@ print(sys.executable)
 class ConnectionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.stack = ExitStack()
+        cls.addClassCleanup(cls.stack.close)
+        from checkpoint_native_fixture import cpu_device_queries
+        cls.stack.enter_context(cpu_device_queries())
         # These are actual installed dependencies, not success stubs.
         import numpy as np
         import torch
@@ -81,8 +85,6 @@ class ConnectionTests(unittest.TestCase):
         import torch.utils.cpp_extension
         cls.np, cls.torch, cls.Image = np, torch, Image
         cls.PlyData, cls.PlyElement = PlyData, PlyElement
-        cls.stack = ExitStack()
-        cls.addClassCleanup(cls.stack.close)
         def forbidden(*args, **kwargs):
             raise AssertionError('real CUDA/JIT/kernel execution forbidden')
         pointops = types.ModuleType('pointops2.functions.pointops')
@@ -106,6 +108,10 @@ class ConnectionTests(unittest.TestCase):
             else:
                 sys.modules[name] = previous
         for name, module in isolated_modules.items():
+            if name.startswith('pointops2'):
+                relative = name.replace('.', '/')
+                module.__file__ = str(ROOT/(relative+'.py' if name.endswith('.pointops')
+                                            else relative+'/__init__.py'))
             cls.stack.callback(restore_module, name, sys.modules.get(name, absent))
             sys.modules[name] = module
         cls.jit = cls.stack.enter_context(patch.object(torch.utils.cpp_extension, 'load', return_value=raster))

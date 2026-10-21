@@ -12,6 +12,21 @@ from formal_checkpoint_identity import (ROOT, KNN_UNITS, RASTER_UNITS, NativeEvi
 import formal_native_bootstrap as native
 
 
+@contextmanager
+def cpu_device_queries():
+    """Install before dependent imports, also in fresh-process CPU probes."""
+    import torch
+    def forbidden(*args, **kwargs):
+        raise AssertionError('GPU query/NVML/CUDA forbidden in CPU fixture')
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(torch.cuda, 'is_available', return_value=False))
+        stack.enter_context(patch.object(torch.cuda, 'device_count', return_value=0))
+        for name in ('_lazy_init', '_raw_device_count_nvml', '_raw_device_uuid_nvml',
+                     'mem_get_info', 'memory_stats'):
+            stack.enter_context(patch.object(torch.cuda, name, side_effect=forbidden))
+        yield
+
+
 def products(directory, units, binary):
     directory.mkdir(parents=True, exist_ok=True)
     (directory/'build.ninja').write_text('\n'.join('build '+str(i)+'.o: cuda_compile '+str(ROOT/u)
@@ -46,6 +61,12 @@ def evidence_for_loaded_cpu_modules(base):
 @contextmanager
 def compiler_boundaries(base):
     """Fresh-process ordinary-entry test: real bootstrap, no injected receipt."""
+    with cpu_device_queries(), _compiler_boundaries(base):
+        yield
+
+
+@contextmanager
+def _compiler_boundaries(base):
     import torch
     import torch.utils.cpp_extension as ext
     def compile_knn(command, **kwargs):
@@ -76,6 +97,9 @@ def compiler_boundaries(base):
                    'pointops2.functions':types.ModuleType('pointops2.functions'),
                    'pointops2.functions.pointops':pointops}
         for name, mod in modules.items():
+            relative = name.replace('.', '/')
+            mod.__file__ = str(ROOT/(relative+'.py' if name.endswith('.pointops')
+                                     else relative+'/__init__.py'))
             previous = sys.modules.get(name)
             sys.modules[name] = mod
             stack.callback(lambda n=name, p=previous: sys.modules.pop(n,None) if p is None else sys.modules.__setitem__(n,p))

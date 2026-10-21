@@ -57,6 +57,10 @@ class PreparedFormal(NamedTuple):
 
 def prepare_formal_runtime(inputs, *, native_evidence=None):
     """Output-free preparation using existing consumers, never a CPU fallback."""
+    from formal_inputs import Inputs
+    from formal_config import FormalConfig
+    if type(inputs) is not Inputs or type(inputs.config) is not FormalConfig:
+        raise ValueError('formal_input_domain')
     c = inputs.config
     # Preparation remains output-free. Legacy CPU handoff probes may prepare
     # without evidence, but cannot begin formal output or save a checkpoint.
@@ -64,6 +68,19 @@ def prepare_formal_runtime(inputs, *, native_evidence=None):
     if native_evidence is not None:
         from formal_checkpoint import prepare_context
         context = prepare_context(inputs, native_evidence)
+    return _prepare_runtime(inputs, context)
+
+
+def prepare_comparison_runtime(inputs):
+    from comparison_inputs import ComparisonInputs, validate_inputs
+    if type(inputs) is not ComparisonInputs:
+        raise ValueError('comparison_input_domain')
+    validate_inputs(inputs)
+    return _prepare_runtime(inputs, None, initializer=inputs.initializer)
+
+
+def _prepare_runtime(inputs, context, *, initializer=None):
+    c = inputs.config
     if not torch.cuda.is_available():
         raise RuntimeError('formal_cuda_unavailable')
     torch.cuda.set_device(0)
@@ -74,7 +91,8 @@ def prepare_formal_runtime(inputs, *, native_evidence=None):
         force_sh_3d=c.model.force_sh_3d, sh_degree_t=c.model.temporal_sh_degree,
         prefilter_var=dataset.prefilter_var)
     scene = Scene(dataset, gaussians, num_pts=c.initialization.num_pts,
-        time_duration=c.time_derivation.effective_interval, shuffle=c.fixed.shuffle, formal_inputs=inputs)
+        time_duration=c.time_derivation.effective_interval, shuffle=c.fixed.shuffle, formal_inputs=inputs,
+        comparison_initializer=initializer)
     if not np.isfinite(scene.cameras_extent) or scene.cameras_extent <= 0:
         raise ValueError('formal_scene_extent')
     gaussians.training_setup(opt, formal_config=c)
@@ -98,6 +116,19 @@ def begin_formal_output(prepared, claim):
 
 def continue_formal_training(prepared, writer):
     # One verified authority; actual CUDA/training acceptance remains separate.
+    from formal_config import FormalConfig
+    if type(prepared.inputs.config) is not FormalConfig:
+        raise ValueError('formal_input_domain')
+    return _continue_runtime(prepared, writer)
+
+
+def continue_comparison_training(prepared, writer):
+    from comparison_profile import validate_config
+    validate_config(prepared.inputs.config)
+    return _continue_runtime(prepared, writer)
+
+
+def _continue_runtime(prepared, writer):
     c = prepared.inputs.config
     return training(prepared.dataset, prepared.opt, prepared.pipe,
         c.reporting.test_updates, c.save_updates, None, -1, c.model.gaussian_dim,
@@ -349,7 +380,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 if run is not None:
                     run.stage = 'statistics'
                 # Statistics still refer to the parameters used by backward.
-                if iteration < opt.densify_until_iter:
+                population_active = iteration < opt.densify_until_iter
+                if _formal_prepared is not None:
+                    from comparison_profile import ComparisonConfig, population_active as comparison_population
+                    if type(c) is ComparisonConfig:
+                        population_active = comparison_population(c, iteration, len(gaussians.get_xyz))
+                if population_active:
                     gaussians.max_radii2D[visibility_filter] = torch.max(
                         gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                     can_densify = (opt.densify_until_num_points < 0
@@ -377,7 +413,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     env_map_optimizer.step()
                     env_map_optimizer.zero_grad(set_to_none=True)
 
-                if iteration < opt.densify_until_iter:
+                if population_active:
                     if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
                         size_threshold = 20 if iteration > opt.opacity_reset_interval else None
                         if run is not None:

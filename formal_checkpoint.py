@@ -186,36 +186,43 @@ class CheckpointWriter:
         meta = dict(schema=SCHEMA, layout=1, boundary='completed-after-topology-reset',
             k=k, n=c.optimization.total_updates, final=k == c.optimization.total_updates,
             rows=len(state['capture'][1]), base=strict_json(self.context.base), optimizer=descriptor)
-        encoded = canonical(meta); require(len(encoded) <= MAX_METADATA, 'metadata_budget')
-        parent = child = None
-        try:
-            try: os.mkdir('checkpoints', mode=0o700, dir_fd=self.claim.fd)
-            except FileExistsError: pass
-            parent = os.open('checkpoints', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=self.claim.fd)
-            name = 'completed-'+str(k)
-            os.mkdir(name, mode=0o700, dir_fd=parent)
-            child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
-            _write(child, 'metadata.json', lambda f: f.write(encoded))
-            import torch
-            _write(child, 'state.pt', lambda f: torch.save(state, f))
-            read_meta, read_state, _, files = _read_pair(child, Path(self.claim.path))
-            require(canonical(read_meta) == encoded, 'metadata_readback')
-            equal_state(state, read_state)
-            del read_state  # Private comparison is complete; do not overlap published read-back.
-            marker = canonical(dict(schema=SCHEMA, k=k, files=files))
-            _write(child, '.complete.pending', lambda f: f.write(marker))
-            stream, before = checked_file(child, '.complete.pending', 4096)
-            with stream:
-                require(stream_identity(stream, before) == byte_identity(marker) and stream.read() == marker, 'marker_readback')
-            self.claim.check()
-            os.link('.complete.pending', 'complete.json', src_dir_fd=child, dst_dir_fd=child, follow_symlinks=False)
-            os.fsync(child); os.fsync(parent); os.fsync(self.claim.fd)
-            result = read_checkpoint(Path(self.claim.path)/'checkpoints'/name)
-            equal_state(state, result['state'])
-            require(result['marker_identity'] == byte_identity(marker), 'published_identity')
-            os.unlink('.complete.pending', dir_fd=child)
-            self.failed = False
-            return result['marker_identity']
-        finally:
-            if child is not None: os.close(child)
-            if parent is not None: os.close(parent)
+        identity = _publish_snapshot(self.claim, meta, state, k, SCHEMA, _read_pair, read_checkpoint)
+        self.failed = False
+        return identity
+
+
+def _publish_snapshot(claim, meta, state, k, schema, pair_reader, public_reader):
+    """Shared private I/O transaction; each domain supplies its strict readers."""
+    from formal_checkpoint_state import equal_state
+    encoded = canonical(meta); require(len(encoded) <= MAX_METADATA, 'metadata_budget')
+    parent = child = None
+    try:
+        try: os.mkdir('checkpoints', mode=0o700, dir_fd=claim.fd)
+        except FileExistsError: pass
+        parent = os.open('checkpoints', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=claim.fd)
+        name = 'completed-'+str(k)
+        os.mkdir(name, mode=0o700, dir_fd=parent)
+        child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+        _write(child, 'metadata.json', lambda f: f.write(encoded))
+        import torch
+        _write(child, 'state.pt', lambda f: torch.save(state, f))
+        read_meta, read_state, _, files = pair_reader(child, Path(claim.path))
+        require(canonical(read_meta) == encoded, 'metadata_readback')
+        equal_state(state, read_state)
+        del read_state  # Private comparison is complete; do not overlap published read-back.
+        marker = canonical(dict(schema=schema, k=k, files=files))
+        _write(child, '.complete.pending', lambda f: f.write(marker))
+        stream, before = checked_file(child, '.complete.pending', 4096)
+        with stream:
+            require(stream_identity(stream, before) == byte_identity(marker) and stream.read() == marker, 'marker_readback')
+        claim.check()
+        os.link('.complete.pending', 'complete.json', src_dir_fd=child, dst_dir_fd=child, follow_symlinks=False)
+        os.fsync(child); os.fsync(parent); os.fsync(claim.fd)
+        result = public_reader(Path(claim.path)/'checkpoints'/name)
+        equal_state(state, result['state'])
+        require(result['marker_identity'] == byte_identity(marker), 'published_identity')
+        os.unlink('.complete.pending', dir_fd=child)
+        return result['marker_identity']
+    finally:
+        if child is not None: os.close(child)
+        if parent is not None: os.close(parent)

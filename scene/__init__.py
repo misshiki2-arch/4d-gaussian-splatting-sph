@@ -24,7 +24,7 @@ class Scene:
 
     gaussians : GaussianModel
 
-    def __init__(self, args : ModelParams, gaussians : GaussianModel, load_iteration=None, shuffle=True, resolution_scales=[1.0], num_pts=100_000, num_pts_ratio=1.0, time_duration=None, *, formal_inputs=None):
+    def __init__(self, args : ModelParams, gaussians : GaussianModel, load_iteration=None, shuffle=True, resolution_scales=[1.0], num_pts=100_000, num_pts_ratio=1.0, time_duration=None, *, formal_inputs=None, comparison_initializer=None):
         """b
         :param path: Path to colmap scene main folder.
         """
@@ -36,6 +36,12 @@ class Scene:
         self._formal_resolution = None if formal_inputs is None else formal_inputs.config.dataset.resolution
         if formal_inputs is not None and (load_iteration is not None or args.loaded_pth or resolution_scales != [1.0]):
             raise ValueError('formal_scene_override')
+        if comparison_initializer is not None:
+            from comparison_inputs import ComparisonInputs
+            from staged_comparison_state import Initializer
+            if (type(formal_inputs) is not ComparisonInputs or type(comparison_initializer) is not Initializer
+                    or formal_inputs.initializer is not comparison_initializer):
+                raise ValueError('comparison_scene_domain')
 
         if load_iteration:
             if load_iteration == -1:
@@ -81,7 +87,9 @@ class Scene:
             print("Loading Test Cameras")
             self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, args, formal_resolution=self._formal_resolution)
             
-        if args.loaded_pth:
+        if comparison_initializer is not None:
+            comparison_initializer.initialize(self.gaussians, self.cameras_extent, formal_inputs.config)
+        elif args.loaded_pth:
             self.gaussians.create_from_pth(args.loaded_pth, self.cameras_extent)
         else:
             if self.loaded_iter:

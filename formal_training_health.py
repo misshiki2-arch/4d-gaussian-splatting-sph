@@ -84,11 +84,11 @@ def optimizer_settings(model, config, k):
                 g['foreach'] is None and g['fused'] is None, 'optimizer_settings/' + g['name'])
 
 
-def _parameter(model, name):
+def _parameter(model, name, shapes=SHAPES):
     slot, attr = GROUPS[name]
     p = getattr(model, attr)
     require(isinstance(p, torch.nn.Parameter), attr + '/parameter')
-    tensor(p, (len(model._xyz),) + SHAPES[slot], model._xyz.device, attr)
+    tensor(p, (len(model._xyz),) + shapes[slot], model._xyz.device, attr)
     if name in ('scaling', 'scaling_t'):
         scale = p.detach().exp()
         require(bool(torch.isfinite(scale).all() and (scale > 0).all()), attr + '/activation')
@@ -115,12 +115,18 @@ def _adam(model, p, k):
 
 @torch.no_grad()
 def model_state(model, config, k):
+    from comparison_profile import ComparisonConfig, validate_config
+    shapes = SHAPES
+    if type(config) is ComparisonConfig:
+        validate_config(config)
+        shapes = dict(SHAPES, **{})
+        shapes[3] = (15, 3)
     require(len(model._xyz) > 0, 'empty_population')
     require(model.env_map is None or (k == 0 and isinstance(model.env_map, torch.Tensor)
                                     and model.env_map.numel() == 0), 'env_map')
     optimizer_settings(model, config, k)
     for name in GROUPS:
-        p = _parameter(model, name)
+        p = _parameter(model, name, shapes)
         _adam(model, p, k)
     statistics(model)
 
