@@ -116,14 +116,17 @@ def prepare_context(inputs, native, parent):
         provenance=native,parent=parent,execution=execution_files())))
 
 
-def validate_metadata(meta,root):
+def validate_metadata(meta,root,*,_adopted=None):
     keys(meta,'schema layout boundary k n final rows base optimizer')
     require(meta['schema']==DOMAIN and type(meta['layout']) is int and meta['layout']==1 and
             meta['boundary']=='completed-after-topology-reset','comparison_metadata_domain')
     base=meta['base'];keys(base,'profile dataset provenance parent execution')
     from staged_comparison_support import check_execution_files
     from staged_comparison_followup import historical_metadata
-    historical=historical_metadata(meta,root)
+    if _adopted is not None:
+        from staged_comparison_adopted_input import check_metadata
+        check_metadata(_adopted,meta,root)
+    historical=_adopted is not None or historical_metadata(meta,root)
     if not historical:check_execution_files(base['execution'])
     require(type(base['profile']) is dict and 'stage' in base['profile'],'comparison_profile')
     c=stage_config(base['profile']['stage'],str(root))
@@ -150,13 +153,13 @@ def validate_metadata(meta,root):
     return c
 
 
-def _read_pair(fd,root,marker=None):
+def _read_pair(fd,root,marker=None,*,_adopted=None):
     with ExitStack() as stack:
         ms,mb=checked_file(fd,'metadata.json',cp.MAX_METADATA);stack.enter_context(ms)
         mi=stream_identity(ms,mb)
         if marker is not None:require(mi==marker['files']['metadata.json'],'component_hash')
         meta=strict_json(ms.read(),cp.MAX_METADATA)
-        c=validate_metadata(meta,root)  # All M validation before Torch/serializer.
+        c=validate_metadata(meta,root,_adopted=_adopted)  # M before Torch/serializer.
         ss,sb=checked_file(fd,'state.pt',state_byte_budget(meta['rows']));stack.enter_context(ss)
         si=stream_identity(ss,sb)
         if marker is not None:
@@ -168,6 +171,17 @@ def _read_pair(fd,root,marker=None):
 
 
 def read_checkpoint(directory):
+    return _read_checkpoint(directory)
+
+
+def read_adopted_checkpoint(proof):
+    """Only the selected adopted E3 final; no arbitrary migration/resume API."""
+    from staged_comparison_adopted_input import checked_proof
+    value=checked_proof(proof)
+    return _read_checkpoint(value['checkpoint'],_adopted=proof)
+
+
+def _read_checkpoint(directory,*,_adopted=None):
     directory=Path(directory)
     require(directory.parent.name=='checkpoints','checkpoint_directory')
     fd=open_directory(str(directory))
@@ -175,11 +189,16 @@ def read_checkpoint(directory):
         stream,before=checked_file(fd,'complete.json',4096)
         with stream:
             marker_identity=stream_identity(stream,before);marker=strict_json(stream.read(),4096)
+            if _adopted is not None:
+                from staged_comparison_adopted_input import checked_proof
+                require(marker_identity==checked_proof(_adopted)['marker'],'adopted_marker')
         keys(marker,'schema k files');require(marker['schema']==DOMAIN,'comparison_marker_domain')
         keys(marker['files'],'metadata.json state.pt')
         for value in marker['files'].values():validate_identity(value)
         require(type(marker['k']) is int and directory.name=='completed-'+str(marker['k']),'directory_label')
-        meta,state,c,_=_read_pair(fd,directory.parent.parent,marker)
+        meta,state,c,_=_read_pair(fd,directory.parent.parent,marker,_adopted=_adopted)
+        with checked_file(fd,'complete.json',4096)[0] as stream:
+            require(identity.byte_identity(stream.read())==marker_identity,'readback_changed')
         return dict(config=c,metadata=meta,state=state,marker_identity=marker_identity)
     finally:os.close(fd)
 
