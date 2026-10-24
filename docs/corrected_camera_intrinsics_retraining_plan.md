@@ -1,12 +1,15 @@
 # Corrected Camera Intrinsics Retraining Plan
 
-Status: **Steps-5-through-19-complete-and-user-research-Git-integrated / saved-B-E3-final-formal-baseline-user-adopted / Gates-A-B-passed / Step20-function-user-accepted / Gate-C-passed-for-adopted-B-published-bundle / Step20-document-review-research-Git-completion-pending / Gate-D-not-passed / Viewer-frozen**
+Status: **Steps-5-through-20-complete-and-user-research-Git-integrated / saved-B-E3-final-formal-baseline-user-adopted / Gates-A-B-C-passed-with-recorded-scopes / Step21-function-user-accepted / adopted-bundle-Gate-D-input-accepted / Step21-document-review-research-Git-and-completion-processing-pending / Viewer-general-freeze-maintained**
 
-Current adoption status (Step20, 2026-10-22): **Steps 5–19 complete; saved B E3
+Current adoption status (Step21, 2026-10-25 JST): **Steps 5–20 complete; saved B E3
 final remains the formally adopted baseline; Gates A/B passed; Step20 function
 and Gate C for its published all-point SPL4/14-view Reference bundle user-accepted;
 Step20 document review, research Git/push and completion/progress processing
-pending; Gate D not passed; Viewer frozen.** Historical Issue/Step boundaries
+complete; Step21 function and this bundle's Gate D input acceptance user-approved;
+Step21 document review, user research Git/push and completion/progress processing
+pending; Viewer general freeze maintained.** Any further source work requires
+separate explicit authorization; see [Step21](#step21-handoff). Historical Issue/Step boundaries
 and false Gate flags retain their recorded scope and bytes. Later acceptance
 is a separate decision, not a retroactive change to execution records.
 
@@ -26,7 +29,8 @@ executed Step18 B process and saved E3 final; it does not require another run
 merely to call it formal. The saved corrected checkpoint retains its actual
 identity. [Step20](#step-20-adopted-b-to-spl4-and-cuda-reference) now supplies the
 separately accepted, non-overwriting SPL4/CUDA Reference publication. Viewer
-binding and acceptance remain separate under Gate D.
+input binding and this bundle's Gate D acceptance are now accepted under
+[Step21](#step21-handoff); broader rendering acceptance remains separate.
 
 The formal training-provenance classification is
 `D: training-provenance-insufficient`: saved artifacts cannot prove every
@@ -99,11 +103,14 @@ Step design and documentation timing by
 Git timing by [USR-GIT-09/10](../../4dgs-development-governance/40_USER_GIT_AND_ACCEPTANCE_RUNBOOK_JA.md),
 and overall progress by [RM-PROGRESS](../../4dgs-development-governance/30_REDMINE_WORKFLOW_JA.md).
 Technical root owners and later artifact dependencies are retained; Gate B is
-reconciled to the approved Step19 adoption criteria. After completed Steps 5–19,
+reconciled to the approved Step19 adoption criteria. After completed Steps 5–20,
 the current functional Step is
-[Step20: adopted B to SPL4 and CUDA Reference](#step-20-adopted-b-to-spl4-and-cuda-reference)
-within Phase 4, functionally accepted with its bounded Gate C decision; its
-document review, research Git/push and completion processing remain pending.
+[Step21: SH-aware adopted-bundle handoff](#step21-handoff)
+within Corrected Phase 5: function and this bundle's Gate D input acceptance
+user-approved; document review, user research Git/push and completion/progress
+processing remain pending. Step20's bounded Gate C decision and
+document/research-Git/completion workflow are complete under its
+[completion record](../../reports/corrected-4dgs/phase4/step20/step20-completion-report.txt).
 Step19 was the adoption/completion consolidation of Step18 results, not a new
 implementation or experiment; its existing number/history is preserved.
 Step 15's document review, user research Git/push and completion
@@ -280,8 +287,9 @@ user research Git/push and completion/progress processing are complete.
 user's formal adoption of saved B E3 final and Gate B passage, with its document/
 Git/completion workflow complete. [Step20](#step-20-adopted-b-to-spl4-and-cuda-reference)
 adds functionally accepted all-point SPL4/14-view Reference publication and
-user-approved Gate C for that bundle; its document/Git/completion workflow and
-Gate D remain open.
+user-approved Gate C for that bundle; its document/Git/completion workflow is complete.
+[Step21](#step21-handoff) adds function and this bundle's Gate D input acceptance;
+its document review, user research Git/push and completion/progress processing remain pending.
 Historical Issue/component and individual Step boundaries below describe what
 each result alone established. They do not override this cumulative current
 boundary or reopen the closed Gate A consumer/provenance gap.
@@ -2523,6 +2531,10 @@ P0-T7, and the incomplete effective-config snapshot into a consumer.
 
 ### P0-A3: SPL4 parser accepts malformed or incompatible layouts
 
+P0-A3/A4 below preserve the audited pre-Fix findings. Their current closure for
+the adopted bundle is recorded in [Step21](#step21-handoff) and Gate D; they
+are not unresolved intake defects for that accepted bundle.
+
 The Viewer v2 parser validates magic/version but not the complete payload
 length, semantic dimensions, reserved/raw flags, overflow, finite values,
 quaternion validity, or scale validity. Truncated data can be zero-filled and
@@ -2800,7 +2812,7 @@ and formal-run duties are not additional prerequisites for that passed gate.
 | required before implementation | Remaining owner details beyond the adopted closed-key/input/handoff subsets [above](#remaining-field-and-owner-boundary) and accepted Step 5 connection. The [Step 13 checkpoint v1 and publication/entry contracts](#approved-checkpoint-foundation-and-exact-resume-staging) have bounded implementation/validation and document review/research Git completion. The [Step 14 health/normal-exception/failure contract](#approved-formal-numerical-health-and-failure-termination) has functionally accepted bounded implementation/validation, not an open semantic choice or pending source Fix. Camera choices in [Step 6 A](#step-6-canonical-camera-handoff), loop connection and population statistics-lifetime/point-correspondence correction in [Step 7 A](#step-7-learning-update-consistency-and-cpu-validation) are implemented and CPU-accepted, not pending local-design approval. The completed-update event order, formal-entry authority, JSON/mode choice, adopted P1–P6, PF/time/V-B, D-DATA, minimal initialization/LR/batch/SH, configurability/population conditions and eight-field input/handoff contract, Step 5 seed/initial-loss/time-cast/key-set adoption, formal-only locator CLI, and output-claim ordering are not open. Run values are distinct from these specification decisions. |
 | required before downstream execution acceptance | Remaining D-* owner decisions and implementation/validation beyond the accepted Step 5 CPU connection and Steps 8–12 bounded CPU/CUDA scopes, as classified [above](#remaining-field-and-owner-boundary), including PF validation outside Step 11 and later-consumer binding. Owner separation permits neither implicit defaults nor a claim of training readiness. |
 | accepted final baseline/Gate B adoption; Step19 complete | The user adopted the identified saved E3 final with explicit use limits and passed revised Gate B on 2026-10-21; Step19 document review, research Git/push and completion processing are complete. Executed stage schedule/LR/loss/seed/batch/time/population values and actual save schema remain unchanged. No new formal run, full suite or build follows from adoption; arbitrary exact-resume acceptance remains separate if ever selected. |
-| accepted Step20 artifact contract and bounded Gate C | [Step20](#step-20-adopted-b-to-spl4-and-cuda-reference) records all-point SPL4-v2/raw log-scale, physical16/active0/0, fixed14 fresh Reference/raw/PNG semantics, strict manifest/index/receipt and source/native/current-Python binding. Independent inspection and non-overwrite publication passed; the user accepted the function and this bundle's Gate C on 2026-10-22. Direct rasterizer evidence remains ungenerated/diagnostic-only. Document review, research Git/push and Step20 completion processing remain pending; Viewer compatibility is not accepted. |
+| accepted Step20 artifact contract and bounded Gate C | [Step20](#step-20-adopted-b-to-spl4-and-cuda-reference) records all-point SPL4-v2/raw log-scale, physical16/active0/0, fixed14 fresh Reference/raw/PNG semantics, strict manifest/index/receipt and source/native/current-Python binding. Independent inspection and non-overwrite publication passed; the user accepted the function and this bundle's Gate C on 2026-10-22. Direct rasterizer evidence remains ungenerated/diagnostic-only. Document review, research Git/push and Step20 completion processing are complete; [Step21](#step21-handoff) records user-accepted limited handoff/SH0 function and this bundle's Gate D input acceptance. Broader Viewer image/full-scene acceptance is separate; Step21 document review, research Git/push and completion processing remain pending. |
 | required before Viewer restart | Corrected population and fixed range; Viewer provenance binding; strict parser acceptance; removal or versioned isolation of historical hard-coded ranges; Viewer capture/comparison bundle identity. |
 
 ## Pre-retraining validation requirements
@@ -3424,8 +3436,9 @@ gate only when it is part of formal acceptance.
 
 Old execution/candidate/manifest/result/receipt `gate_c_passed=false` values
 remain unchanged as review-time records. This later user judgment does not
-repair old failed runs or imply every legacy/unused feature is fixed. Gate D,
-Viewer freeze and Step20's pending workflow remain separate.
+repair old failed runs or imply every legacy/unused feature is fixed. Step20's
+workflow is complete; this bundle's subsequent Gate D input acceptance is recorded
+under Step21, separately from general Viewer restart.
 
 ### Gate D: before Viewer restart
 
@@ -3437,6 +3450,17 @@ stale-artifact rejection; and Viewer capture/comparison bundle identity.
 
 P0-A3/A4 are Viewer-specific and do not block Gate A or corrected training.
 They do block promotion of corrected artifacts into Viewer acceptance.
+
+The user accepted this adopted bundle's Gate D input and Step21 function on
+2026-10-25 JST after implementation, CPU validation, Validation3 and advisor review;
+see [Step21](#step21-handoff) for the decision and evidence links. P0-A3/A4 are closed
+for this bundle through actual intake/parser/scene/production/capture binding,
+not merely an external checker. Limited SH0 and record/tile numerical evidence
+and production completion are accepted, not general image/full-scene parity.
+[Viewer CURRENT_STATE §24](../../GaussianSplats3D/docs/phase3_current_state.md#corrected-b-handoff)
+owns these receiver results and limits. Gate D is an input-acceptance gate:
+general Viewer freeze remains, further source work requires separate explicit
+authorization, and Step122/Phase4 does not automatically resume.
 
 ## Root-finding owner table
 
@@ -3508,7 +3532,10 @@ renderer mathematics or P0-A7.
 
 ## Viewer unfreeze and acceptance gates
 
-Viewer development remains frozen until all of the following hold:
+The following input prerequisites are now met for the adopted bundle under
+[Step21](#step21-handoff). General Viewer development nevertheless remains frozen;
+Gate D passage alone is not authorization to resume source work, Step122 or Phase4.
+Any subsequent work needs a separately explicit scope and authorization:
 
 - Gates A-C are accepted, including the Step19 saved-baseline adoption and
   subsequent artifact evidence; an additional old-profile training is not implied;
@@ -3520,20 +3547,18 @@ Viewer development remains frozen until all of the following hold:
   are reviewed without inheriting historical values;
 - Viewer capture and comparison outputs bind the corrected bundle identity.
 
-After unfreeze, reuse the completed Step118-122 production, diagnostic,
-comparison, capture, and PNG infrastructure, but rerun asset-dependent
-acceptance:
+Reuse completed Step118-122 infrastructure for any later authorized acceptance.
+The dependency areas remain distinct:
 
-1. canonical representative comparison;
-2. new fixed-range semantic comparison;
-3. tile-reference, sort, compositor, and PNG comparison;
-4. corrected full-scene gate over the new canonical population count without
-   silent omission;
-5. interactive camera/time, performance, scalability, and LOD validation.
+1. representative and fixed-range semantic comparison: preserve Step21's accepted bounded evidence;
+2. record/tile numerical comparison and production completion: accepted within Viewer §24's scope;
+3. remaining sort/compositor and matched-range CUDA image parity: separate image-level acceptance;
+4. corrected full-scene gate without silent omission: not established by bounded rendering;
+5. interactive/performance work: separately scoped if needed; scalability/LOD follow PRG's measured-need boundary.
 
-Asset-dependent Step118-122 acceptance must be rerun. Infrastructure reuse
-does not authorize reuse of legacy acceptance values, `3,231,588` records, or
-the historical `[524288,1048576)` range.
+No automatic rerun or new mandatory implementation follows from this register.
+Infrastructure reuse does not transfer legacy acceptance values, `3,231,588`
+records or the historical `[524288,1048576)` range into the corrected baseline.
 
 ## Dependency order
 
@@ -5907,9 +5932,10 @@ for the identified adopted B and this published bundle, following the
 [Validation1 advisor review](../../reports/corrected-4dgs/phase4/step20/step20-validation1/step20-validation1-advisor-review.txt).
 The [current documentation instruction](../../reports/corrected-4dgs/phase4/step20/step20-docsync1/step20-docsync1-instruction.txt)
 records that approval; the review's earlier user-approval-pending wording is
-historical. Document review of this synchronization, consolidated user research
-Git/push and Step20 completion/progress processing remain pending. No Phase
-completion, progress change, Viewer restart or further execution is declared.
+historical. The later [Step20 completion record](../../reports/corrected-4dgs/phase4/step20/step20-completion-report.txt)
+confirms document review, user research Git/push and completion/progress processing
+are complete. This synchronization records that outcome, not a new progress
+change, Viewer restart or further execution authorization.
 
 **Implemented function and accepted evidence.** The
 [adopted design](../../reports/corrected-4dgs/phase4/step20/step20-design1/step20-design1-design-report.md)
@@ -5981,8 +6007,10 @@ guarantee. P0-A7 old-build log correspondence is in the
 P0-A5 directRasterizerEvidence remains ungenerated/diagnostic-only and unused as
 formal direct evidence; no debug rerender was added or claimed.
 
-Viewer P0-A3/A4, parser/manifest compatibility, wrong-pair/stale rejection,
-range suitability/binding and WebGPU parity remain Gate D responsibilities.
+Viewer P0-A3/A4, parser/manifest compatibility, wrong-pair/stale rejection and
+range binding are Gate D input responsibilities, subsequently accepted for this
+bundle under [Step21](#step21-handoff). Its bounded SH0 numerical/production
+connection acceptance remains separate from broader WebGPU image parity.
 The bundle is not claimed compatible with the frozen Viewer's old validator.
 Gate C does not lift the Viewer freeze or authorize Viewer implementation.
 Past false Gate flags and failed runs retain their bytes; this later adoption
@@ -5995,18 +6023,92 @@ scope, not five new Steps or a duty to regenerate after Gate C:
 28. CUDA Reference reconstruction and effective-state publication: accepted for the fixed14.
 29. Source/binary/dataset/checkpoint/render bundle: accepted with the stated provenance limits.
 30. Fresh generation and independent inspection/publication precede the user Gate C decision; no post-Gate regeneration obligation.
-31. Corrected full population/count and recorded ranges: accepted; Viewer suitability remains Gate D.
+31. Corrected full population/count and recorded ranges: accepted; subsequent bounded Viewer input acceptance is recorded in Step21's Gate D decision.
 
 ### Phase 5: Viewer restart
 
-32. Implement and validate the strict SPL4 parser.
-33. Bind corrected provenance/bundle identity into Viewer handoff.
-34. Design new representative records and a new fixed range.
-35. Unfreeze the Viewer only after Gate D.
-36. Rerun record-local, tile, sort, compositor, and PNG validation.
-37. Run the matched corrected full-scene gate.
-38. Continue only then to performance, interactive behavior, scalability, and
-    LOD.
+<a id="step21-handoff"></a>
+#### Step 21: SH-aware adopted-bundle handoff
+
+**Current boundary (2026-10-25 JST).** The user accepted Step21 function and
+Gate D input acceptance for this adopted bundle after implementation, necessary
+Fixes, CPU validation and user-executed Validation3. The
+[current approval/sync instruction](../../reports/corrected-4dgs/phase5/step21/step21-docsync2/step21-docsync2-instruction.txt)
+and [Validation3 advisor review](../../reports/corrected-4dgs/phase5/step21/step21-validation3/step21-validation3-advisor-review.txt)
+record the decision and its basis. The adopted
+[design](../../reports/corrected-4dgs/phase5/step21/step21-design1/step21-design1-design-report.md)
+and [design review](../../reports/corrected-4dgs/phase5/step21/step21-design1/step21-design1-advisor-review.txt)
+remain its technical foundation.
+Document review, user research Git/push and Step21 completion/progress processing
+remain pending; functional/Gate D acceptance is not awaiting renewed approval.
+Corrected Phase5/Step21 is a handoff identifier, not a renumbering or restart of
+Viewer Step122/Phase4. Historical reviews awaiting acceptance and
+`gateDPassed:false`, `stepAccepted:false`, `imageAgreementVerified:false` in old
+execution artifacts retain their bytes; this later decision does not rewrite them.
+
+This plan owns the adopted baseline, formal outputs and Gate/Phase dependencies.
+[Viewer CURRENT_STATE §24](../../GaussianSplats3D/docs/phase3_current_state.md#corrected-b-handoff)
+owns receiver implementation/CPU/browser results, SH capability/acceptance tables, accepted bounded range
+and representative records, limited work scope and remaining Viewer duties.
+The accepted design supplies implementation detail; do not duplicate or redesign
+its API/layout choices here.
+
+Keep adopted B E3 final, all3,248,901 SPL4-v2 records and the14 Reference views
+unchanged. Maximum-degree labels3/2, active spatial/temporal0/0 and physical16
+coefficients per color describe different properties. Preserve inactive
+coefficients without activation, truncation, padding or retraining. The required
+SH0 evaluates `max(C0*f_dc + 0.5, 0)`, not SH-off and not an added upper clamp.
+The adopted connection shares existing128-byte staging with legacy spatialSH2;
+old SH2 behavior/evidence is preserved, not promoted to corrected higher-order
+or temporal-SH acceptance. SH1/3/temporal activation and new layouts are outside
+scope. Structural readability, profile acceptance, evaluation and independent
+verification remain distinct; unsupported input must not silently downgrade.
+
+P0-A3/A4 must reach actual file I/O, parser, scene/production and capture consumers:
+validate real SPL4 length/dimensions/payload semantics and bind checkpoint,
+population, Reference, camera/time/range and external publication records to the
+bytes and frame actually consumed. Reuse existing loader/parser/manifest/evaluator;
+an external checker, path presence or old standalone SPL4 is not verified-bundle
+acceptance. Wrong pairs, stale provenance and wrong ranges must be rejected.
+
+The saved view04 visibility/radii selection supplies the65,536-point range
+used successfully for actual production connection and independent SH0 numbers.
+This is bounded acceptance, not a full-scene drawing baseline. Exact conditions,
+representatives, numerical results and reproducible rationale are owned by
+Viewer §24 and its evidence links. All-point intake is separate from bounded
+rendering; resource limits do not authorize dropping points, files or checks.
+The full14-view CUDA images are not matched-range images. That missing reference
+remains a later image-parity duty, not an extra generation task here.
+
+The implemented real intake, strict rejection/provenance binding, independent
+SH0 comparison, production/frame/PNG connection and legacySH2 focused CPU
+regression satisfy the accepted bounded function; P0-A3/A4 are closed for this
+bundle. Viewer §24 distinguishes all-point input from limited rendering,
+separate diagnostic-device numerical evidence from production readback, and
+existing precision-aligned pixel differences from bitwise equality.
+Preserve production/diagnostic separation and production readback-none.
+General freeze remains; any further source work needs separate explicit
+authorization. No old Step122/Phase4 restart or new high-order learning follows.
+Gate D input success and the accepted record/tile numbers/production completion
+do not prove sort/compositor/image-level, full-scene or interactive/performance acceptance.
+
+PRG retains program-wide ownership. Direct conversion keeps physical attributes,
+units, particle identity and time separate from SH appearance. Learned B, SH2
+and per-attribute retraining are not mandatory converter inputs. SH0 basic-color
+intake does not create a converter, attribute platform, editing UI or high-order
+learning responsibility.
+
+The original roadmap32–38 remains a dependency register, not newly numbered
+implementation tasks. Receiver acceptance is now bounded as above; general
+restart and downstream responsibilities still need explicit authorization:
+
+32. Strict SPL4 parser: implemented/validated and accepted for this bundle.
+33. Corrected provenance/bundle binding: accepted at the real intake and frame/capture consumers.
+34. New representatives and fixed range: designed and used in the accepted bounded run.
+35. General Viewer unfreeze: not authorized by Gate D passage alone.
+36. Preserve accepted record/tile numbers and drawing completion; remaining sort/compositor and matched-range CUDA image parity are separate.
+37. Matched corrected full-scene acceptance remains outside the bounded run.
+38. Interactive/performance and any scalability/LOD work need separate necessity/scope decisions under PRG, not automatic implementation.
 
 These technical dependencies keep Viewer-only P0-A3/A4 out of the pilot path,
 while keeping training-state and checkpoint-identity defects before any
@@ -6166,8 +6268,11 @@ Complete at this milestone:
 - [Step20](#step-20-adopted-b-to-spl4-and-cuda-reference) generation of all-point
   SPL4 and fixed14 fresh CUDA Reference, exact raw/independent GT inspection,
   separate CPU reader and non-overwrite publication. The user accepted the
-  function and Gate C for this bundle on 2026-10-22; the document/Git/completion
-  workflow below remains pending.
+  function and Gate C for this bundle on 2026-10-22; document/Git/completion
+  processing is complete under its completion record;
+- [Step21](#step21-handoff) implemented and CPU/browser-validated limited receiver/SH0
+  function and this bundle's Gate D input acceptance, user-approved on
+  2026-10-25 JST; broader Viewer acceptance remains separate.
 
 The adopted D-DATA, initialization/LR/batch/SH, population inputs and bounded
 handoff, seed/initial-loss/time/V-B and closed-key contracts are enforced within
@@ -6181,10 +6286,10 @@ from these preserved shared correctness and old-profile technical contracts.
 
 Not complete and not authorized by this document sync:
 
-- advisor document review of this Step20 synchronization, consolidated research
-  Git/push and Step20 completion/progress processing. Step20 function and bounded
-  Gate C passage are approved; Steps5–19 and their completion workflows are
-  complete. Historical failure evidence and run-time Gate flags remain preserved;
+- advisor document review of this Step21 synchronization, user research Git/push
+  and Step21 completion/progress processing. Its function and this bundle's Gate D
+  input acceptance are already approved. Steps5–20 completion workflows are complete.
+  Historical failure evidence and run-time Gate flags remain preserved;
 - remaining source, config, test or tool fixes beyond the accepted Step 5
   connection, Step 6 A camera scope, Step 7 A update/population/save-test scope
   and Step 8 SH / Step 9 alpha / Step 10 camera / Step 11 time / Step 12 update-population / Step 13 checkpoint / Step 14 health-failure / Step 15 real-input scopes, including other renderer mathematics, later
@@ -6200,8 +6305,8 @@ Not complete and not authorized by this document sync:
 - any artifact/consumer beyond the accepted Step20 bundle and its stated scope;
   that bundle is no longer an outstanding generation or Gate C duty. No extra
   artifact regeneration is implied by documentation or research Git;
-- Viewer restart, fixed-range parity, full-scene correctness, or Acceptance
-  Level 4;
+- general Viewer restart, matched-range CUDA image parity, full-scene correctness,
+  or Acceptance Level 4; not the accepted Step21 record/tile numbers and drawing completion;
 - performance, interactive behavior, scalability, or LOD work.
 
 ## Open items
@@ -6224,7 +6329,9 @@ GT gaps remaining; its document/Git/completion workflow is complete. Step19's
 prior document/evidence review and final saved-baseline/Gate B judgment are
 accepted and Step19's document/Git/completion processing is complete. Step20
 adds accepted all-point SPL4/14-view Reference publication and bounded Gate C
-passage; its document/Git/completion processing and Gate D remain pending.
+passage; its document/Git/completion processing is complete. Step21 function and
+this bundle's Gate D input acceptance are user-approved; document review,
+user research Git/push and completion/progress processing remain pending.
 Prior preparation, pilots and failures remain preserved.
 
 - alpha-cap implementation and focused CPU/CUDA acceptance are recorded in
@@ -6361,9 +6468,11 @@ Prior preparation, pilots and failures remain preserved.
 - SPL4-v2 representation and export identity;
 - corrected CUDA Reference output identity;
 - manifest schema, runtime-state validator, and direct-evidence boundary;
-- strict SPL4 parser and Viewer provenance/bundle binding;
-- representative selection and fixed-range design;
-- corrected semantic and image thresholds;
+- Viewer parser/provenance extensions beyond the adopted bundle, only if separately required;
+- full-scene/other-view acceptance beyond [Step21](#step21-handoff)'s accepted
+  representative range, record/tile numbers and actual drawing completion;
+- later image-level parity and its separately scoped acceptance; existing
+  semantic tolerances and precision classification remain unchanged;
 - full-scene resource and performance plan;
 - governance for any separate future proposal covering Python covariance/SH
   precompute, non-unit scaling, environment maps, or color override: a new
@@ -6420,9 +6529,13 @@ Step19 formally adopted that executed profile and saved E3 final under the
 user's 2026-10-21 approval and passed revised Gate B; its document/Git/completion
 processing is complete. Step20's all-point SPL4/14-view Reference function and
 this bundle's Gate C passage are user-accepted on 2026-10-22. Step20 document
-review, research Git/push and completion/progress processing remain pending;
-Gate D and Viewer restart remain unaccepted. This synchronization authorizes
-no execution or new parameters.
+review, research Git/push and completion/progress processing are complete.
+Step21 function and this bundle's Gate D input acceptance are user-approved
+on 2026-10-25 JST. This synchronization awaits document review; user research
+Git/push and completion/progress processing remain pending. General Viewer
+restart is not authorized. Accepted limited results and remaining image/full-scene
+acceptance are distinguished above and in Viewer CURRENT_STATE §24.
+This synchronization authorizes no execution or new parameters.
 Later-owner source fixes,
 downstream consumer integration and remaining device/GPU/training validation
 retain their own execution/build acceptance duties, not new Step 5/6/7 CPU
