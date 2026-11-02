@@ -21,6 +21,51 @@ It does not implement a
 camera, renderer, or CUDA fix; run a diagnostic render; start training; export
 assets; generate a CUDA Reference; or authorize Git operations.
 
+<a id="main-integration-and-reference-routing"></a>
+## Main integration and current reference paths (2026-11-02)
+
+The user completed the fast-forward promotion of accepted Corrected history to
+GitHub `main`, followed by the README-only commit, and pushed `main` together
+with the annotated `original-sph-before-corrected` tag. Independent
+[post-push verification](../../reports/corrected-4dgs/main-integration-20261102/main-integration-post-push-verification.json)
+confirms the remote main/tag/development-branch identities and preservation of
+the original A and saved Corrected B tracked files. This is repository publication
+maintenance, not new training, a new research Step, or a change to the accepted
+baseline/Gate decisions.
+
+| Purpose | Local folder and Git reference |
+| --- | --- |
+| Current Corrected source and maintained canonical plan; default for new source/document review | `/home/demo/work/4d-gaussian-splatting_main`, branch `main` |
+| Preserved Corrected B execution/source history; use when a saved record explicitly binds this path | `/home/demo/work/4d-gaussian-splatting_corrected_v1`, branch `research/corrected-training-baseline-v1` |
+| Preserved original SPH/A comparison source | `/home/demo/work/4d-gaussian-splatting`, local branch `archive/original-sph-before-corrected`, published tag `original-sph-before-corrected` |
+| Viewer development and its own current-state/acceptance authority | `/home/demo/work/GaussianSplats3D`; read its current AGENTS and CURRENT_STATE |
+
+This file under the `main` worktree is the maintained Corrected canonical plan.
+The copy under `_corrected_v1` is a preserved historical reference, not a second
+document to keep editing in parallel. The three training folders are linked Git
+worktrees sharing one repository/object database, not three independent backups.
+Do not switch, update, remove, or repurpose the preserved A/B worktrees as routine
+Viewer work. The earlier `legacy-camera-raster-baseline-20260901` tag is retained
+and denotes an earlier snapshot; it is not the new pre-integration A tag.
+
+The adopted E3 checkpoint, published SPL4/14-view Reference bundle, reports,
+native build origin, source snapshots and failure records remain at their
+existing paths. In particular, the accepted bundle remains
+`/home/demo/work/reports/corrected-4dgs/phase4/step20/step20-implement1/reference-run/bundle/`.
+A new default source-review path does not authorize substituting `main` into
+old execution commands, locators or identity-bound manifests. Preserve those
+recorded paths and hashes; do not rebuild, regenerate or weaken provenance
+checks merely because the repository was promoted to main.
+
+Viewer work should consult the
+[updated cross-chat handoff](../../reports/webgpu-4dgs-viewer/corrected-completion-handoff-20261025/viewer-restart-handoff-v2.txt)
+and the live [Viewer CURRENT_STATE](../../GaussianSplats3D/docs/phase3_current_state.md).
+Freeze/next-work statements in the 2026-10-25 completion narrative below describe
+that handoff time; they do not override later separately authorized Viewer work.
+Corrected remains complete within the adopted scope and this bundle's Gate D
+input acceptance remains valid. This routing update adds no Viewer acceptance,
+new execution permission, or progress requirement.
+
 ## Purpose and decision
 
 The project will not reproduce the historical negative-FoV-sentinel footprint
